@@ -19,7 +19,7 @@ const norm = s => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
 /* ============================ state ============================ */
 let STATS, TOWNS, PROV, DISTF, MUNIF;
-let proj, path, gNode, gProv, gDist, gMuni, gTown, gLabel, defs, svg;
+let proj, path, gNode, gProv, gDist, gMuni, gLabel, defs, svg;
 let DISTRICTS = {};            // name -> {feature, munis:[name]}
 let muniByName = {};           // name -> feature
 let curK = 1, statePath = [];
@@ -73,16 +73,6 @@ function toPlanar() {
     else a.forEach(conv); };
   [PROV, DISTF, MUNIF].forEach(fc => fc.features.forEach(f => f.geometry && conv(f.geometry.coordinates)));
 }
-function planarBounds(f) { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
-  const g = f.geometry, polys = g.type === "MultiPolygon" ? g.coordinates : [g.coordinates];
-  polys.forEach(p => p[0].forEach(q => { x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]); }));
-  return [x0, y0, x1, y1]; }
-function pip(pt, ring) { let x = pt[0], y = pt[1], inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) { const xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
-    if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) inside = !inside; } return inside; }
-function containsPlanar(f, pt) { const g = f.geometry, polys = g.type === "MultiPolygon" ? g.coordinates : [g.coordinates];
-  return polys.some(p => pip(pt, p[0])); }
-
 /* ============================ stats accessors (REAL data) ============================ */
 const provStat = () => STATS.province;
 const distStat = n => STATS.districts[n] || null;
@@ -101,8 +91,8 @@ function initMap() {
   defs = svg.append("defs");
   const g = svg.append("g"); gNode = g.node();
   gNode.style.transformBox = "view-box"; gNode.style.transformOrigin = "0 0";
-  gProv = g.append("g"); gDist = g.append("g"); gMuni = g.append("g"); gTown = g.append("g"); gLabel = g.append("g");
-  [gDist, gMuni, gTown].forEach(l => l.node().style.transition = "opacity .5s ease");
+  gProv = g.append("g"); gDist = g.append("g"); gMuni = g.append("g"); gLabel = g.append("g");
+  [gDist, gMuni].forEach(l => l.node().style.transition = "opacity .5s ease");
 
   const provExt = ext(Object.keys(DISTRICTS).map(d => med(distStat(d))));
   gProv.selectAll("path").data(PROV.features).join("path")
@@ -120,7 +110,7 @@ function initMap() {
 const wcCrumb = () => ({ type: "province", name: "Western Cape" });
 
 /* ============================ draw layers ============================ */
-let distDrawn = false, muniDistrict = null, townMuni = null;
+let distDrawn = false, muniDistrict = null;
 
 function drawDistricts() {
   if (distDrawn) return; distDrawn = true;
@@ -147,50 +137,12 @@ function drawMunis(district) {
     .on("mouseenter mousemove", (ev, d) => tip(ev, name(d), muniStat(name(d)), true))
     .on("mouseleave", tipHide);
 }
-function drawTowns(muni) {
-  if (townMuni === muni) return; townMuni = muni;
-  gTown.selectAll("*").remove();
-  const mf = muniByName[muni]; if (!mf) return;
-  const towns = townsOf(muni);
-  const [bx0, by0, bx1, by1] = planarBounds(mf);
-  let seed = 2166136261; for (const ch of muni) { seed ^= ch.charCodeAt(0); seed = Math.imul(seed, 16777619); }
-  const rng = () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
-  const seeds = towns.map(t => { let pt = null;
-    for (let k = 0; k < 800; k++) { const px = bx0 + rng() * (bx1 - bx0), py = by0 + rng() * (by1 - by0); if (containsPlanar(mf, [px, py])) { pt = [px, py]; break; } }
-    if (!pt) pt = [(bx0 + bx1) / 2, (by0 + by1) / 2]; return { town: t.name, stat: t, xy: proj(pt) }; });
-  const e = ext(towns.map(t => t.median));
-  const b = path.bounds(mf);
-  const clipId = "clip-" + norm(muni);
-  defs.selectAll("#" + clipId).remove();
-  defs.append("clipPath").attr("id", clipId).append("path").attr("d", path(mf));
-  const layer = gTown.append("g").attr("clip-path", `url(#${clipId})`);
-  if (seeds.length >= 2) {
-    const del = d3.Delaunay.from(seeds.map(p => p.xy));
-    const vor = del.voronoi([b[0][0] - 2, b[0][1] - 2, b[1][0] + 2, b[1][1] + 2]);
-    layer.selectAll("path").data(seeds).join("path")
-      .attr("d", (d, i) => vor.renderCell(i))
-      .attr("fill", (d, i) => color(towns[i].median, e))
-      .attr("stroke", "#fbf9f3").attr("stroke-width", 1).attr("vector-effect", "non-scaling-stroke")
-      .attr("class", "o-clickable")
-      .on("mouseenter mousemove", (ev, d) => tip(ev, d.town, d.stat, false))
-      .on("mouseleave", tipHide);
-  } else if (seeds.length === 1) {
-    layer.append("path").attr("d", path(mf)).attr("fill", color(towns[0].median, e))
-      .on("mouseenter mousemove", ev => tip(ev, towns[0].name, towns[0], false)).on("mouseleave", tipHide);
-  }
-  gTown.append("path").attr("d", path(mf)).attr("fill", "none").attr("stroke", "#1a1714")
-    .attr("stroke-width", 1.2).attr("vector-effect", "non-scaling-stroke").style("pointer-events", "none");
-  townSeeds = seeds;
-}
-let townSeeds = [];
-
 function setLayers(len) {
   gProv.style("opacity", len === 0 ? 1 : 0.5).style("pointer-events", len === 0 ? "auto" : "none");
   gProv.selectAll(".o-wc").attr("fill", len === 0 ? color(med(provStat()), ext(Object.keys(DISTRICTS).map(d => med(distStat(d))))) : "none");
   const set = (g, on, dim) => g.style("display", dim ? "block" : "none").style("opacity", on ? 1 : 0.16).style("pointer-events", on ? "auto" : "none");
   set(gDist, len === 1, len >= 1);
-  if (muniDistrict) set(gMuni, len === 2, len >= 2);
-  if (townMuni) set(gTown, len >= 3, len >= 3);
+  if (muniDistrict) set(gMuni, len >= 2, len >= 2);   // municipalities clickable at district + terminal at municipality
 }
 
 /* ============================ zoom (CSS transform) ============================ */
@@ -210,7 +162,7 @@ function labels(len, p) {
   if (len === 0) { const c = path.centroid(PROV.features.find(f => name(f) === "Western Cape")); items = [{ t: "WESTERN CAPE", x: c[0], y: c[1], wc: true }]; }
   else if (len === 1) items = DISTF.features.map(f => { const c = path.centroid(f); return { t: name(f), x: c[0], y: c[1] }; });
   else if (len === 2) items = DISTRICTS[p[1].name].munis.map(m => muniByName[m]).filter(Boolean).map(f => { const c = path.centroid(f); return { t: name(f), x: c[0], y: c[1] }; });
-  else items = townSeeds.map(s => ({ t: s.town, x: s.xy[0], y: s.xy[1] }));
+  else { const f = muniByName[p[2].name]; if (f) { const c = path.centroid(f); items = [{ t: name(f), x: c[0], y: c[1] }]; } }
   const k = curK, fs = (len === 0 ? 13 : 11) / k;
   gLabel.selectAll("text").data(items).join("text")
     .attr("x", d => d.x).attr("y", d => d.y).attr("text-anchor", "middle").attr("dy", ".32em")
@@ -241,7 +193,6 @@ const tipHide = () => $("tip").style.opacity = 0;
 function navigate(p, animate = true) {
   statePath = p; const len = p.length;
   if (len >= 2) drawMunis(p[1].name);
-  if (len >= 3) drawTowns(p[2].name);
   drawDistricts();
   setLayers(len);
   let feats = len === 0 ? PROV.features : len === 1 ? [PROV.features.find(f => name(f) === "Western Cape")]
@@ -262,7 +213,7 @@ function renderChrome(p) {
   const len = p.length;
   $("headline").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;
   $("subline").textContent = len === 0 ? "Tap the Western Cape to begin"
-    : len === 1 ? "Six districts · " + YEAR : len === 2 ? "Local municipalities · " + YEAR : "Towns & suburbs · " + YEAR;
+    : len === 1 ? "Six districts · " + YEAR : len === 2 ? "Local municipalities · " + YEAR : "Municipal valuation roll · " + YEAR;
 
   // breadcrumb
   const steps = [{ label: "South Africa", go: () => navigate([]) }];
@@ -278,8 +229,7 @@ function renderChrome(p) {
 
   // legend (extent of currently displayed set)
   let e, lt;
-  if (len >= 3) { e = ext(townsOf(p[2].name).map(t => t.median)); lt = "MEDIAN VALUE · TOWN"; }
-  else if (len === 2) { e = ext(DISTRICTS[p[1].name].munis.map(m => med(muniStat(m)))); lt = "MEDIAN VALUE · MUNICIPALITY"; }
+  if (len >= 2) { e = ext(DISTRICTS[p[1].name].munis.map(m => med(muniStat(m)))); lt = "MEDIAN VALUE · MUNICIPALITY"; }
   else { e = ext(Object.keys(DISTRICTS).map(d => med(distStat(d)))); lt = "MEDIAN VALUE · DISTRICT"; }
   $("legendTitle").textContent = lt; $("legendMin").textContent = R(e[0]); $("legendMax").textContent = R(e[1]);
 
@@ -287,42 +237,97 @@ function renderChrome(p) {
 }
 
 function renderDash(p) {
-  const len = p.length;
-  let scope, children, kindP, kindS, kicker;
-  if (len === 1) { scope = provStat(); children = DISTF.features.map(f => ({ name: name(f), s: distStat(name(f)), go: () => navigate([wcCrumb(), { type: "district", name: name(f) }]) })); kindP = "Districts"; kindS = "district"; kicker = "WESTERN CAPE PROVINCE"; }
-  else if (len === 2) { const dl = p[1].name; scope = distStat(dl); children = DISTRICTS[dl].munis.map(m => ({ name: m, s: muniStat(m), go: () => navigate([wcCrumb(), { type: "district", name: dl }, { type: "municipality", name: m }]) })); kindP = "Municipalities"; kindS = "municipality"; kicker = dl.toUpperCase() + " DISTRICT"; }
-  else { const m = p[2].name; scope = muniStat(m); children = townsOf(m).map(t => ({ name: t.name, s: t, go: null })); kindP = "Towns"; kindS = "town"; kicker = m.toUpperCase() + " · " + p[1].name.toUpperCase(); }
+  const len = p.length, isMuni = len >= 3;
+  let scope, children = [], kindP, scopeName, kicker;
+  if (len === 1) { scope = provStat(); scopeName = "Western Cape"; kicker = "WESTERN CAPE PROVINCE"; kindP = "Districts";
+    children = DISTF.features.map(f => ({ name: name(f), s: distStat(name(f)), go: () => navigate([wcCrumb(), { type: "district", name: name(f) }]) })); }
+  else if (len === 2) { const dl = p[1].name; scope = distStat(dl); scopeName = dl; kicker = dl.toUpperCase() + " DISTRICT"; kindP = "Municipalities";
+    children = DISTRICTS[dl].munis.map(m => ({ name: m, s: muniStat(m), go: () => navigate([wcCrumb(), { type: "district", name: dl }, { type: "municipality", name: m }]) })); }
+  else { const m = p[2].name; scope = muniStat(m); scopeName = m; kicker = m.toUpperCase() + " · " + p[1].name.toUpperCase(); }
 
   $("dashKicker").textContent = kicker;
-  $("scopeLabel").textContent = len === 1 ? "Western Cape" : p[len - 1].name;
-  $("scopeSub").textContent = (scope ? "" : "No public valuation roll · ") + children.filter(c => c.s).length + " " + kindP.toLowerCase() + " · valuation roll " + YEAR;
+  $("scopeLabel").textContent = scopeName;
+  $("scopeSub").textContent = !scope ? "No public valuation roll"
+    : isMuni ? "Municipal valuation roll · " + YEAR
+    : children.filter(c => c.s).length + " " + kindP.toLowerCase() + " · valuation roll " + YEAR;
   $("statMedian").textContent = scope ? R(scope.median) : "—";
   $("statAvg").textContent = scope ? R(scope.mean ?? scope.avg) : "—";
   $("statTotal").textContent = scope ? R(scope.total) : "—";
-  $("statParcels").textContent = scope ? N(scope.properties || scope.valued || scope.parcels) : "—";
+  $("statParcels").textContent = scope ? N(scope.properties || scope.valued) : "—";
 
-  const valued = children.filter(c => c.s && c.s.median != null);
-  const sorted = valued.sort((a, b) => b.s.median - a.s.median);
-  const maxMed = sorted.length ? sorted[0].s.median : 1;
-  const minMed = sorted.length ? sorted[sorted.length - 1].s.median : 0;
-  $("rankTitle").textContent = kindP + " ranked";
+  renderHist(scope && scope.hist, scope ? (scope.properties || scope.valued) : 0);
+
   const rk = $("ranked"); rk.innerHTML = "";
-  sorted.forEach(c => {
-    const row = document.createElement("div"); row.className = c.go ? "o-clickable" : "";
-    row.style.cssText = "padding:13px 0;border-bottom:1px solid rgba(26,23,20,.09);" + (c.go ? "cursor:pointer" : "");
-    row.innerHTML = `<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:15px">${c.name}</span><span style="font-size:14px;font-variant-numeric:tabular-nums">${R(c.s.median)}</span></div>
-      <div style="height:5px;background:rgba(26,23,20,.07);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${Math.max(8, Math.round(c.s.median / maxMed * 100))}%;background:${color(c.s.median, [minMed, maxMed])};border-radius:3px"></div></div>`;
-    if (c.go) row.onclick = () => { c.go(); scrollTo({ top: 0, behavior: "smooth" }); };
-    rk.appendChild(row);
+  if (!isMuni && scope) {
+    $("rankTitle").textContent = kindP + " ranked"; $("rankSub").textContent = "by median value";
+    const sorted = children.filter(c => c.s && c.s.median != null).sort((a, b) => b.s.median - a.s.median);
+    const maxMed = sorted.length ? sorted[0].s.median : 1, minMed = sorted.length ? sorted[sorted.length - 1].s.median : 0;
+    sorted.forEach(c => {
+      const row = document.createElement("div"); row.className = "o-clickable";
+      row.style.cssText = "padding:13px 0;border-bottom:1px solid rgba(26,23,20,.09);cursor:pointer";
+      row.innerHTML = `<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:15px">${c.name}</span><span style="font-size:14px;font-variant-numeric:tabular-nums">${R(c.s.median)}</span></div>
+        <div style="height:5px;background:rgba(26,23,20,.07);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${Math.max(8, Math.round(c.s.median / maxMed * 100))}%;background:${color(c.s.median, [minMed, maxMed])};border-radius:3px"></div></div>`;
+      row.onclick = () => { c.go(); scrollTo({ top: 0, behavior: "smooth" }); };
+      rk.appendChild(row);
+    });
+  } else {
+    $("rankTitle").textContent = "Valuation spread"; $("rankSub").textContent = scope ? (scope.cycle || "") : "";
+    if (scope) [["Lower quartile (Q1)", R(scope.q1)], ["Median", R(scope.median)], ["Upper quartile (Q3)", R(scope.q3)],
+      ["Average residential", R(scope.residential_avg)]]
+      .forEach(([k, v]) => { const d = document.createElement("div");
+        d.style.cssText = "display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid rgba(26,23,20,.09);font-size:15px";
+        d.innerHTML = `<span>${k}</span><span style="font-variant-numeric:tabular-nums">${v}</span>`; rk.appendChild(d); });
+    else rk.innerHTML = `<div style="color:#9a9286;font-size:14px;padding-top:6px">City of Cape Town publishes valuations only via per-property online search.</div>`;
+  }
+
+  fillProp("hi", scope && scope.hi);
+  fillProp("lo", scope && scope.lo);
+  $("dashNote").textContent = !scope
+    ? "The City of Cape Town does not publish a downloadable valuation roll — values are available only through its per-property online search, so it can't be aggregated here."
+    : isMuni
+    ? "Municipality is the finest level with reliable public boundaries — suburb/town borders aren't published as open data, so we don't subdivide further."
+    : "Figures are recomputed live from the underlying valuation roll · refreshed for " + YEAR + ".";
+}
+
+function fillProp(id, pr) {
+  if (!pr) { $(id + "Addr").textContent = "—"; $(id + "Sub").textContent = ""; $(id + "Val").textContent = ""; $(id + "Meta").textContent = ""; return; }
+  $(id + "Addr").textContent = pr.address || "Unnamed erf";
+  $(id + "Sub").textContent = [pr.suburb, pr.muni].filter(Boolean).join(" · ");
+  $(id + "Val").textContent = R(pr.value);
+  const ppm = pr.extent ? " · R" + N(Math.round(pr.value / pr.extent)) + "/m²" : "";
+  $(id + "Meta").textContent = (pr.extent ? N(pr.extent) + " m²" : "extent n/a") + ppm;
+}
+
+function renderHist(hist, total) {
+  const el = $("distChart"); el.innerHTML = "";
+  if (!hist) { el.innerHTML = `<div style="color:#9a9286;font-size:14px;padding:24px 0">No distribution data for this area.</div>`; return; }
+  const labels = STATS.buckets, n = hist.length, max = Math.max(...hist, 1);
+  const VW = 1000, VH = 230, padL = 6, padR = 6, padT = 22, padB = 46, gap = 9;
+  const chartW = VW - padL - padR, chartH = VH - padT - padB, bw = chartW / n - gap;
+  const compact = v => v >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, "") + "m" : v >= 1e3 ? Math.round(v / 1e3) + "k" : "" + v;
+  const s = d3.select(el).append("svg").attr("viewBox", `0 0 ${VW} ${VH}`).attr("preserveAspectRatio", "xMidYMid meet").style("width", "100%").style("display", "block");
+  s.append("line").attr("x1", padL).attr("x2", VW - padR).attr("y1", padT + chartH).attr("y2", padT + chartH).attr("stroke", "rgba(26,23,20,.18)");
+  hist.forEach((cnt, i) => {
+    const x = padL + i * (bw + gap) + gap / 2, bh = cnt / max * chartH, y = padT + chartH - bh;
+    const g = s.append("g");
+    g.append("rect").attr("x", x).attr("y", y).attr("width", bw).attr("height", Math.max(0, bh)).attr("rx", 1.5)
+      .attr("fill", d3.interpolateRgbBasis(RAMP)(n > 1 ? i / (n - 1) : .5))
+      .on("mouseenter mousemove", e => tipHist(e, labels[i], cnt, total)).on("mouseleave", tipHide);
+    if (cnt) g.append("text").attr("x", x + bw / 2).attr("y", y - 6).attr("text-anchor", "middle")
+      .style("font-size", "11px").style("font-variant-numeric", "tabular-nums").attr("fill", "#6f685c").text(compact(cnt));
+    g.append("text").attr("x", x + bw / 2).attr("y", padT + chartH + 18).attr("text-anchor", "middle")
+      .style("font-size", "10.5px").attr("fill", "#9a9286").text(labels[i]);
   });
-  const top = sorted[0], bot = sorted[sorted.length - 1];
-  $("topKindHi").textContent = "Highest median · " + kindS;
-  $("topKindLo").textContent = "Lowest median · " + kindS;
-  $("topLabel").textContent = top ? top.name : "—"; $("topVal").textContent = top ? R(top.s.median) + " median" : "";
-  $("bottomLabel").textContent = bot ? bot.name : "—"; $("bottomVal").textContent = bot ? R(bot.s.median) + " median" : "";
-  $("dashNote").textContent = `Figures are recomputed live from the underlying valuation roll. Spread across ${valued.length} ${kindP.toLowerCase()} · refreshed for ${YEAR}.`;
+}
+function tipHist(e, label, cnt, total) {
+  const t = $("tip"), pct = total ? (cnt / total * 100) : 0;
+  t.innerHTML = `<div style="font-family:'Newsreader',serif;font-size:15px;margin-bottom:4px">${label}</div>` +
+    `<div style="font-size:12px"><span style="opacity:.6">Parcels </span><span style="font-variant-numeric:tabular-nums">${N(cnt)}</span> · ${pct.toFixed(1)}%</div>`;
+  t.style.opacity = 1; let x = e.clientX + 16, y = e.clientY + 16;
+  if (x + 220 > innerWidth) x = e.clientX - 220; if (y + 80 > innerHeight) y = e.clientY - 80;
+  t.style.left = x + "px"; t.style.top = y + "px";
 }
 
 /* ============================ search (area names + addresses) ============================ */

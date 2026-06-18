@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Western Cape Property Valuation Atlas</title>
-<meta name="description" content="An interactive atlas of municipal property valuations across the Western Cape — by district, municipality and town. Public data." />
+<meta name="description" content="An interactive atlas of municipal property valuations across the Western Cape — by district and municipality, with price distributions and standout properties. Public data." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -92,24 +92,38 @@
         <div style="padding:24px 26px 26px"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Registered parcels</div><div id="statParcels" style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
       </div>
 
-      <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:64px;margin-top:54px;align-items:start">
+      <!-- price distribution -->
+      <div style="margin-top:50px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px">
+          <div style="font-family:'Newsreader',serif;font-size:23px">Price distribution</div>
+          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286">parcels by value band</div>
+        </div>
+        <div id="distChart"></div>
+      </div>
+
+      <!-- ranked children + extreme properties -->
+      <div style="display:grid;grid-template-columns:1.1fr .9fr;gap:64px;margin-top:56px;align-items:start">
         <div>
           <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px">
             <div id="rankTitle" style="font-family:'Newsreader',serif;font-size:23px"></div>
-            <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286">by median value</div>
+            <div id="rankSub" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286">by median value</div>
           </div>
           <div id="ranked"></div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:26px">
-          <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:24px 26px">
-            <div id="topKindHi" style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px"></div>
-            <div id="topLabel" style="font-family:'Newsreader',serif;font-size:27px;line-height:1.05;margin-bottom:4px"></div>
-            <div id="topVal" style="font-size:15px;color:#6f685c;font-variant-numeric:tabular-nums"></div>
+        <div style="display:flex;flex-direction:column;gap:22px">
+          <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:22px 24px">
+            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px">Most valuable property</div>
+            <div id="hiAddr" style="font-family:'Newsreader',serif;font-size:22px;line-height:1.15;margin-bottom:3px"></div>
+            <div id="hiSub" style="font-size:12.5px;color:#9a9286;margin-bottom:12px"></div>
+            <div id="hiVal" style="font-family:'Newsreader',serif;font-size:26px;font-variant-numeric:tabular-nums"></div>
+            <div id="hiMeta" style="font-size:12.5px;color:#6f685c;font-variant-numeric:tabular-nums;margin-top:3px"></div>
           </div>
-          <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:24px 26px">
-            <div id="topKindLo" style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#b8623c;margin-bottom:12px"></div>
-            <div id="bottomLabel" style="font-family:'Newsreader',serif;font-size:27px;line-height:1.05;margin-bottom:4px"></div>
-            <div id="bottomVal" style="font-size:15px;color:#6f685c;font-variant-numeric:tabular-nums"></div>
+          <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:22px 24px">
+            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#b8623c;margin-bottom:12px">Most affordable home</div>
+            <div id="loAddr" style="font-family:'Newsreader',serif;font-size:22px;line-height:1.15;margin-bottom:3px"></div>
+            <div id="loSub" style="font-size:12.5px;color:#9a9286;margin-bottom:12px"></div>
+            <div id="loVal" style="font-family:'Newsreader',serif;font-size:26px;font-variant-numeric:tabular-nums"></div>
+            <div id="loMeta" style="font-size:12.5px;color:#6f685c;font-variant-numeric:tabular-nums;margin-top:3px"></div>
           </div>
           <div id="dashNote" style="font-size:12.5px;line-height:1.6;color:#9a9286;padding:0 2px"></div>
         </div>
@@ -118,6 +132,6 @@
   </section>
 
 </div>
-<script type="module" src="assets/atlas.js?v=1"></script>
+<script type="module" src="assets/atlas.js?v=3"></script>
 </body>
 </html>
