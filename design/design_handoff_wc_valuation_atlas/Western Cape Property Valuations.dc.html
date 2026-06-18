@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#f3efe6;color:#1a1714;font-family:'Libre Franklin',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  ::selection{background:#1f6f63;color:#fff}
+  @keyframes ohintpulse{0%,100%{opacity:.45}50%{opacity:1}}
+  @keyframes ofadein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .o-scrollarea::-webkit-scrollbar{width:9px;height:9px}
+  .o-scrollarea::-webkit-scrollbar-thumb{background:rgba(26,23,20,.18);border-radius:9px}
+  #ova-map svg{display:block;width:100%;height:100%}
+  #ova-map path{cursor:default}
+  #ova-map .o-clickable{cursor:pointer}
+  #ova-map text{font-family:'Libre Franklin',sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none}
+</style>
+</helmet>
+<div style="position:relative;width:100%;background:#f3efe6">
+
+  <section data-screen-label="Map stage" style="position:relative;width:100%;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 30% 0%,#f7f3ea 0%,#efe9dc 70%,#e9e2d2 100%)">
+
+    <div id="ova-map" ref="{{ mapRef }}" style="position:absolute;inset:0"></div>
+
+    <div style="position:absolute;top:34px;left:38px;max-width:440px;z-index:6;pointer-events:none">
+      <div style="font-size:11px;letter-spacing:.22em;font-weight:600;color:#1f6f63;margin-bottom:10px">MUNICIPAL PROPERTY VALUATIONS</div>
+      <div style="font-family:'Newsreader',serif;font-weight:400;font-size:54px;line-height:.96;letter-spacing:-.015em;color:#1a1714">{{ headline }}</div>
+      <div style="font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#6f685c;margin-top:10px">{{ subline }}</div>
+    </div>
+
+    <div style="position:absolute;top:38px;right:38px;width:312px;z-index:8">
+      <div style="position:relative">
+        <svg viewBox="0 0 24 24" width="16" height="16" style="position:absolute;left:14px;top:13px;opacity:.4" fill="none" stroke="#1a1714" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+        <input ref="{{ searchRef }}" onInput="{{ onSearchInput }}" onFocus="{{ onSearchFocus }}" onBlur="{{ onSearchBlur }}" placeholder="Search a town, municipality or district" style="width:100%;padding:11px 14px 11px 40px;border:1px solid rgba(26,23,20,.16);border-radius:2px;background:rgba(251,249,243,.92);backdrop-filter:blur(6px);font-family:'Libre Franklin',sans-serif;font-size:13.5px;color:#1a1714;outline:none">
+      </div>
+      <sc-if value="{{ showResults }}" hint-placeholder-val="{{ false }}">
+        <div style="margin-top:6px;background:#fbf9f3;border:1px solid rgba(26,23,20,.12);border-radius:2px;box-shadow:0 14px 40px -18px rgba(26,23,20,.45);overflow:hidden">
+          <sc-for list="{{ results }}" as="r" hint-placeholder-count="0">
+            <div onMouseDown="{{ r.onClick }}" class="o-clickable" style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(26,23,20,.06);cursor:pointer">
+              <span style="font-size:13.5px;color:#1a1714">{{ r.label }}</span>
+              <span style="font-size:10.5px;letter-spacing:.04em;color:#9a9286;text-transform:uppercase;white-space:nowrap">{{ r.sub }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+
+    <div style="position:absolute;left:38px;bottom:34px;z-index:6;background:rgba(251,249,243,.86);backdrop-filter:blur(6px);border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:13px 15px 14px;min-width:236px">
+      <div style="font-size:10px;letter-spacing:.13em;font-weight:600;color:#6f685c;text-transform:uppercase;margin-bottom:9px">{{ legendTitle }}</div>
+      <div ref="{{ legendRef }}" style="height:9px;border-radius:1px;border:1px solid rgba(26,23,20,.1)"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11.5px;color:#1a1714;font-variant-numeric:tabular-nums">
+        <span>{{ legendMin }}</span><span>{{ legendMax }}</span>
+      </div>
+    </div>
+
+    <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:30px;z-index:7;display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:9px;background:rgba(251,249,243,.9);backdrop-filter:blur(6px);border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:8px 14px">
+        <sc-for list="{{ crumbs }}" as="c" hint-placeholder-count="1">
+          <span style="font-size:13px;color:#bdb6a8">{{ c.sep }}</span>
+          <span onClick="{{ c.onClick }}" class="o-clickable" style="font-size:13px;font-weight:500;color:#1a1714;cursor:pointer">{{ c.label }}</span>
+        </sc-for>
+      </div>
+      <div onClick="{{ resetView }}" class="o-clickable" style="font-size:11.5px;letter-spacing:.04em;color:#1f6f63;font-weight:600;cursor:pointer;text-transform:uppercase">Reset</div>
+    </div>
+
+    <div ref="{{ tipRef }}" style="position:fixed;z-index:20;pointer-events:none;opacity:0;transition:opacity .12s;background:#1a1714;color:#f3efe6;padding:10px 13px;border-radius:3px;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);max-width:240px"></div>
+
+    <div onClick="{{ scrollCue }}" class="o-clickable" style="position:absolute;right:40px;bottom:34px;z-index:6;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6f685c">
+      <sc-if value="{{ enteredWC }}" hint-placeholder-val="{{ false }}">
+        <span>Scroll for the valuation breakdown</span>
+        <span style="display:inline-block;animation:ohintpulse 1.8s infinite">↓</span>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ notReady }}" hint-placeholder-val="{{ true }}">
+      <div style="position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:#efe9dc">
+        <div style="text-align:center">
+          <div style="font-family:'Newsreader',serif;font-style:italic;font-size:22px;color:#6f685c;animation:ohintpulse 1.6s infinite">{{ loadingMsg }}</div>
+          <div style="width:160px;height:2px;background:rgba(26,23,20,.12);margin:18px auto 0;overflow:hidden"><div style="width:40%;height:100%;background:#1f6f63;animation:ohintpulse 1.2s infinite"></div></div>
+        </div>
+      </div>
+    </sc-if>
+  </section>
+
+  <sc-if value="{{ enteredWC }}" hint-placeholder-val="{{ false }}">
+    <section data-screen-label="Valuation breakdown" style="position:relative;width:100%;min-height:100vh;background:#f3efe6;padding:78px 56px 90px;border-top:1px solid rgba(26,23,20,.1)">
+      <div style="max-width:1180px;margin:0 auto">
+        <div style="font-size:11px;letter-spacing:.2em;font-weight:600;color:#1f6f63;margin-bottom:12px">{{ dashKicker }}</div>
+        <div style="font-family:'Newsreader',serif;font-size:46px;line-height:1;letter-spacing:-.015em;margin-bottom:6px">{{ scopeLabel }}</div>
+        <div style="font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#6f685c;margin-bottom:42px">{{ scopeSub }}</div>
+
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid rgba(26,23,20,.14);border-bottom:1px solid rgba(26,23,20,.14)">
+          <div style="padding:24px 26px 26px;border-right:1px solid rgba(26,23,20,.1)">
+            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Median valuation</div>
+            <div style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums">{{ statMedian }}</div>
+          </div>
+          <div style="padding:24px 26px 26px;border-right:1px solid rgba(26,23,20,.1)">
+            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Average valuation</div>
+            <div style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums">{{ statAvg }}</div>
+          </div>
+          <div style="padding:24px 26px 26px;border-right:1px solid rgba(26,23,20,.1)">
+            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Total roll value</div>
+            <div style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums">{{ statTotal }}</div>
+          </div>
+          <div style="padding:24px 26px 26px">
+            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Registered parcels</div>
+            <div style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums">{{ statParcels }}</div>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:64px;margin-top:54px;align-items:start">
+          <div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px">
+              <div style="font-family:'Newsreader',serif;font-size:23px">{{ rankTitle }}</div>
+              <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286">by median value</div>
+            </div>
+            <sc-for list="{{ ranked }}" as="row" hint-placeholder-count="6">
+              <div onClick="{{ row.onClick }}" class="o-clickable" style="padding:13px 0;border-bottom:1px solid rgba(26,23,20,.09);cursor:pointer">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+                  <span style="font-size:15px;color:#1a1714">{{ row.label }}</span>
+                  <span style="font-size:14px;color:#1a1714;font-variant-numeric:tabular-nums">{{ row.valStr }}</span>
+                </div>
+                <div style="height:5px;background:rgba(26,23,20,.07);border-radius:3px;overflow:hidden">
+                  <div style="height:100%;width:{{ row.pctStr }};background:{{ row.barColor }};border-radius:3px"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:26px">
+            <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:24px 26px">
+              <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px">Highest median · {{ topKind }}</div>
+              <div style="font-family:'Newsreader',serif;font-size:27px;line-height:1.05;margin-bottom:4px">{{ topLabel }}</div>
+              <div style="font-size:15px;color:#6f685c;font-variant-numeric:tabular-nums">{{ topVal }}</div>
+            </div>
+            <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:24px 26px">
+              <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#b8623c;margin-bottom:12px">Lowest median · {{ topKind }}</div>
+              <div style="font-family:'Newsreader',serif;font-size:27px;line-height:1.05;margin-bottom:4px">{{ bottomLabel }}</div>
+              <div style="font-size:15px;color:#6f685c;font-variant-numeric:tabular-nums">{{ bottomVal }}</div>
+            </div>
+            <div style="font-size:12.5px;line-height:1.6;color:#9a9286;padding:0 2px">
+              Figures are recomputed live from the underlying valuation roll. Spread across {{ statCount }} {{ topKindLower }} · refreshed for {{ yearLabel }}.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;colorTheme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Teal&quot;,&quot;Terracotta&quot;,&quot;Slate&quot;],&quot;default&quot;:&quot;Teal&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showLabels&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;valuationYear&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;2024 / 25&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { ready:false, path:[], results:[], showResults:false };
+
+  // ---- WC topology -------------------------------------------------------
+  DISTRICTS = {
+    'City of Cape Town': { adm2:'City of Cape Town', base:1.92e6, munis:['City of Cape Town'] },
+    'West Coast':        { adm2:'West Coast',        base:1.06e6, munis:['Matzikama','Cederberg','Bergrivier','Saldanha Bay','Swartland'] },
+    'Cape Winelands':    { adm2:'Cape Winelands',    base:1.5e6,  munis:['Witzenberg','Drakenstein','Stellenbosch','Breede Valley','Langeberg'] },
+    'Overberg':          { adm2:'Overberg',          base:1.42e6, munis:['Theewaterskloof','Overstrand','Cape Agulhas','Swellendam'] },
+    'Garden Route':      { adm2:'Eden',              base:1.55e6, munis:['Kannaland','Hessequa','Mossel Bay','George','Oudtshoorn','Bitou','Knysna'] },
+    'Central Karoo':     { adm2:'Central Karoo',     base:0.64e6, munis:['Laingsburg','Prince Albert','Beaufort West'] },
+  };
+  TOWNS = {
+    'City of Cape Town':['Cape Town','Bellville','Constantia','Hout Bay','Durbanville','Khayelitsha','Somerset West','Atlantis'],
+    'Matzikama':['Vredendal','Vanrhynsdorp','Klawer','Lutzville','Doringbaai'],
+    'Cederberg':['Clanwilliam','Citrusdal','Lamberts Bay','Graafwater'],
+    'Bergrivier':['Piketberg','Velddrif','Porterville','Aurora'],
+    'Saldanha Bay':['Saldanha','Vredenburg','Langebaan','St Helena Bay','Paternoster'],
+    'Swartland':['Malmesbury','Moorreesburg','Riebeek-Kasteel','Darling','Yzerfontein'],
+    'Witzenberg':['Ceres','Tulbagh','Wolseley','Op-die-Berg'],
+    'Drakenstein':['Paarl','Wellington','Gouda','Saron'],
+    'Stellenbosch':['Stellenbosch','Franschhoek','Pniel','Klapmuts'],
+    'Breede Valley':['Worcester','De Doorns','Rawsonville','Touwsrivier'],
+    'Langeberg':['Robertson','Montagu','Ashton','Bonnievale','McGregor'],
+    'Theewaterskloof':['Caledon','Grabouw','Villiersdorp','Genadendal','Riviersonderend'],
+    'Overstrand':['Hermanus','Gansbaai','Kleinmond','Stanford','Pringle Bay'],
+    'Cape Agulhas':['Bredasdorp','Struisbaai','Napier','Arniston','LAgulhas'],
+    'Swellendam':['Swellendam','Barrydale','Suurbraak','Malgas'],
+    'Kannaland':['Ladismith','Calitzdorp','Zoar','Van Wyksdorp'],
+    'Hessequa':['Riversdale','Stilbaai','Heidelberg','Witsand','Albertinia'],
+    'Mossel Bay':['Mossel Bay','Hartenbos','Great Brak River','Friemersheim'],
+    'George':['George','Pacaltsdorp','Wilderness','Uniondale','Haarlem'],
+    'Oudtshoorn':['Oudtshoorn','De Rust','Dysselsdorp'],
+    'Bitou':['Plettenberg Bay','Kurland','Kranshoek','Natures Valley'],
+    'Knysna':['Knysna','Sedgefield','Rheenendal','Brenton-on-Sea'],
+    'Laingsburg':['Laingsburg','Matjiesfontein'],
+    'Prince Albert':['Prince Albert','Leeu-Gamka','Klaarstroom'],
+    'Beaufort West':['Beaufort West','Nelspoort','Murraysburg'],
+  };
+  THEMES = {
+    Teal:       { ramp:['#eef0e3','#bcd9c7','#6cab95','#2f7d6b','#16524a'], accent:'#1f6f63' },
+    Terracotta: { ramp:['#f4ece0','#e9c9a6','#d99368','#bf5c38','#7d3320'], accent:'#bf5c38' },
+    Slate:      { ramp:['#eef1f3','#c2d0d9','#8aa6b5','#4f7186','#284656'], accent:'#4f7186' },
+  };
+  W=1000; H=760; MAXK=46;
+
+  // ---- deterministic data ------------------------------------------------
+  hash(s){ let h=2166136261; for(let i=0;i<s.length;i++){ h^=s.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+  rng(seed){ let a=seed>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+  median(arr){ const a=[...arr].sort((x,y)=>x-y); const n=a.length; if(!n)return 0; return n%2? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2; }
+
+  districtOf(muni){ for(const k in this.DISTRICTS){ if(this.DISTRICTS[k].munis.includes(muni)) return k; } return null; }
+
+  muniStat(name){
+    const dl=this.districtOf(name); const base=this.DISTRICTS[dl]?this.DISTRICTS[dl].base:1e6;
+    const r=this.rng(this.hash('m:'+name));
+    const median=base*(0.66+r()*0.82);
+    const parcels = name==='City of Cape Town' ? 862000 : Math.round(2400+r()*44000);
+    const avg=median*(1.24+r()*0.46); const total=parcels*avg;
+    return { name, label:name, district:dl, adm2:this.DISTRICTS[dl].adm2, median, avg, total, parcels };
+  }
+  townStat(muni,town){
+    const mb=this.muniStat(muni).median; const r=this.rng(this.hash('t:'+muni+'/'+town));
+    const median=mb*(0.58+r()*0.98);
+    const parcels=Math.round(180+r()*7200); const avg=median*(1.2+r()*0.42); const total=parcels*avg;
+    return { name:town, label:town, median, avg, total, parcels };
+  }
+  districtStat(label){
+    const items=this.DISTRICTS[label].munis.map(m=>this.muniStat(m));
+    const parcels=items.reduce((s,x)=>s+x.parcels,0); const total=items.reduce((s,x)=>s+x.total,0);
+    return { name:label, label, adm2:this.DISTRICTS[label].adm2, parcels, total, avg:total/parcels, median:this.median(items.map(x=>x.median)) };
+  }
+  summarize(items){ const parcels=items.reduce((s,x)=>s+x.parcels,0); const total=items.reduce((s,x)=>s+x.total,0); return { parcels, total, avg:total/parcels, median:this.median(items.map(x=>x.median)) }; }
+
+  R(v){ v=+v; if(v>=1e12)return 'R'+(v/1e12).toFixed(2)+'tn'; if(v>=1e9)return 'R'+(v/1e9).toFixed(v>=1e10?0:1)+'bn'; if(v>=1e6)return 'R'+(v/1e6).toFixed(2)+'m'; if(v>=1e3)return 'R'+Math.round(v/1e3)+'k'; return 'R'+Math.round(v); }
+  norm(s){ return (s||'').toLowerCase().replace(/[^a-z]/g,''); }
+
+  // ---- lifecycle ---------------------------------------------------------
+  mapRef=(el)=>{ if(el && !this._host){ this._host=el; this._boot(); } };
+  tipRef=(el)=>{ this._tip=el; };
+  legendRef=(el)=>{ this._leg=el; };
+  searchRef=(el)=>{ this._search=el; };
+
+  theme(){ return this.THEMES[this.props.colorTheme] || this.THEMES.Teal; }
+
+  async _boot(){
+    let tries=0; while(!window.d3 && tries++<200){ await new Promise(r=>setTimeout(r,50)); }
+    if(!window.d3){ this.setState({ready:false, err:true}); return; }
+    try{
+      const stem='https://media.githubusercontent.com/media/wmgeolab/geoBoundaries/main/releaseData/gbOpen/ZAF/';
+      const [a1,a2,a3]=await Promise.all([
+        fetch(stem+'ADM1/geoBoundaries-ZAF-ADM1_simplified.geojson').then(r=>r.json()),
+        fetch(stem+'ADM2/geoBoundaries-ZAF-ADM2_simplified.geojson').then(r=>r.json()),
+        fetch(stem+'ADM3/geoBoundaries-ZAF-ADM3_simplified.geojson').then(r=>r.json()),
+      ]);
+      this.adm1=a1; this.adm2=a2; this.adm3=a3;
+      this._clipMainland();
+      this._index();
+      this._toPlanar();
+      this._initMap();
+      this.setState({ready:true});
+      this.navigate('country', {}, false);
+    }catch(e){ console.error('boot failed', e); this.setState({ready:false, err:true}); }
+  }
+
+  _clipMainland(){
+    const inM=(p)=>p[0]>=14&&p[0]<=34&&p[1]<=-21&&p[1]>=-35.6;
+    const keepPoly=(poly)=>poly[0].some(inM);
+    const fix=(fc)=>fc.features.forEach(f=>{ const g=f.geometry; if(!g)return;
+      if(g.type==='MultiPolygon'){ const k=g.coordinates.filter(keepPoly); if(k.length){ if(k.length===1){ g.type='Polygon'; g.coordinates=k[0]; } else g.coordinates=k; } }
+    });
+    fix(this.adm1); fix(this.adm2); fix(this.adm3);
+  }
+  _toPlanar(){
+    const conv=(a)=>{ if(typeof a[0]==='number'){ const lng=a[0],lat=a[1]; a[0]=lng*Math.PI/180; a[1]=Math.log(Math.tan(Math.PI/4+lat*Math.PI/360)); } else a.forEach(conv); };
+    [this.adm1,this.adm2,this.adm3].forEach(fc=>fc.features.forEach(f=>{ if(f.geometry&&f.geometry.coordinates) conv(f.geometry.coordinates); }));
+  }
+  _planarBounds(f){ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; const g=f.geometry; const polys=g.type==='MultiPolygon'?g.coordinates:[g.coordinates]; polys.forEach(poly=>poly[0].forEach(p=>{x0=Math.min(x0,p[0]);y0=Math.min(y0,p[1]);x1=Math.max(x1,p[0]);y1=Math.max(y1,p[1]);})); return [x0,y0,x1,y1]; }
+  _pip(pt,ring){ let x=pt[0],y=pt[1],inside=false; for(let i=0,j=ring.length-1;i<ring.length;j=i++){ const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1]; if(((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/(yj-yi)+xi)) inside=!inside; } return inside; }
+  _containsPlanar(f,pt){ const g=f.geometry; const polys=g.type==='MultiPolygon'?g.coordinates:[g.coordinates]; return polys.some(poly=>this._pip(pt,poly[0])); }
+  _index(){
+    const d3=window.d3;
+    this.provF={}; this.adm1.features.forEach(f=>{ this.provF[this.norm(f.properties.shapeName)]=f; });
+    this.wc = this.provF['westerncape'];
+    this.distF={};
+    for(const label in this.DISTRICTS){ const want=this.norm(this.DISTRICTS[label].adm2); const f=this.adm2.features.find(x=>this.norm(x.properties.shapeName)===want); if(f) this.distF[label]=f; else console.warn('district not found',label); }
+    this.muniF={};
+    for(const label in this.DISTRICTS){ this.DISTRICTS[label].munis.forEach(m=>{ const f=this.adm3.features.find(x=>this.norm(x.properties.shapeName)===this.norm(m)); if(f) this.muniF[m]=f; else console.warn('muni not found',m); }); }
+  }
+
+  _initMap(){
+    const d3=window.d3, W=this.W, H=this.H;
+    this.proj=d3.geoIdentity().reflectY(true).fitExtent([[46,40],[W-46,H-40]], this.adm1);
+    this.path=d3.geoPath(this.proj);
+    const svg=d3.select(this._host).append('svg').attr('viewBox',`0 0 ${W} ${H}`).attr('preserveAspectRatio','xMidYMid meet');
+    this.defs=svg.append('defs');
+    this.g=svg.append('g');
+    this.gNode=this.g.node();
+    this.gNode.style.transformBox='view-box';
+    this.gNode.style.transformOrigin='0 0';
+    this.gProv=this.g.append('g');
+    this.gDist=this.g.append('g');
+    this.gMuni=this.g.append('g');
+    this.gTown=this.g.append('g');
+    this.gLabel=this.g.append('g');
+    [this.gDist,this.gMuni,this.gTown].forEach(l=>{ l.node().style.transition='opacity .5s ease'; });
+    this.curK=1; this.curT=[0,0];
+
+    // provinces (drawn once). non-WC borderless single landmass; WC outlined.
+    const accent=this.theme().accent;
+    this.gProv.selectAll('path').data(this.adm1.features).join('path')
+      .attr('d',this.path)
+      .attr('fill',d=> d.properties.shapeName==='Western Cape' ? this._color(this.provinceAgg().median,this._provExtent(),0) : '#e6e0d3')
+      .attr('stroke',d=> d.properties.shapeName==='Western Cape' ? '#1a1714' : 'none')
+      .attr('stroke-width',1.1).attr('vector-effect','non-scaling-stroke')
+      .attr('class',d=> d.properties.shapeName==='Western Cape' ? 'o-wc o-clickable':'o-other')
+      .each((d,i,n)=>{ if(d.properties.shapeName==='Western Cape'){
+        d3.select(n[i])
+          .on('click',()=>this.navigate('province',{}))
+          .on('mouseenter mousemove',(e)=>this._tipShow(e, 'Western Cape', this.provinceAgg(), true))
+          .on('mouseleave',()=>this._tipHide());
+      }});
+    this._renderLegend();
+  }
+
+  _provExtent(){ // extent across WC district medians for province-level color
+    const meds=Object.keys(this.DISTRICTS).map(l=>this.districtStat(l).median);
+    return [Math.min(...meds), Math.max(...meds)];
+  }
+  provinceAgg(){ return this.summarize(Object.keys(this.DISTRICTS).map(l=>this.districtStat(l))); }
+
+  _color(v, ext, idx){
+    const d3=window.d3; const [lo,hi]=ext; const t = hi>lo ? (v-lo)/(hi-lo) : .5;
+    return d3.interpolateRgbBasis(this.theme().ramp)(Math.max(0,Math.min(1,t)));
+  }
+
+  // ---- navigation --------------------------------------------------------
+  navigate(level, opts={}, animate=true){
+    const P={type:'province',name:'Western Cape',label:'Western Cape'};
+    let path=[];
+    if(level==='province') path=[P];
+    else if(level==='district'){ const dl=opts.district; path=[P,{type:'district',name:dl,label:dl}]; }
+    else if(level==='municipality'){ const dl=opts.district||this.districtOf(opts.municipality); path=[P,{type:'district',name:dl,label:dl},{type:'municipality',name:opts.municipality,label:opts.municipality}]; }
+    this._draw(path, animate);
+    this.setState({path, showResults:false, results:[]});
+    document.body.style.overflow = path.length ? 'auto' : 'hidden';
+    if(path.length===0) window.scrollTo({top:0,behavior:'auto'});
+  }
+  resetView=()=>{ if(this._search)this._search.value=''; this.navigate('country',{}); };
+  scrollCue=()=>{ if(this.state.path.length){ const h=window.innerHeight; window.scrollTo({top:h*0.96,behavior:'smooth'}); } };
+
+  _draw(path, animate){
+    const len=path.length;
+    this._lastPath=path;
+    if(len>=2) this._drawMunis(path[1].name, animate);
+    if(len>=3) this._drawTowns(path[2].name, animate);
+    if(len>=1) this._drawDistricts(animate);
+    this._setLayers(len);
+    this._zoom(len, path, animate);
+    this._labels(len, path, animate);
+  }
+
+  _drawDistricts(animate){
+    if(this._distDrawn) return; this._distDrawn=true;
+    const d3=window.d3; const ext=this._provExtent();
+    const feats=Object.keys(this.DISTRICTS).filter(l=>this.distF[l]).map(l=>({label:l, f:this.distF[l]}));
+    this.gDist.selectAll('path').data(feats).join('path')
+      .attr('d',d=>this.path(d.f))
+      .attr('fill',d=>this._color(this.districtStat(d.label).median, ext))
+      .attr('stroke','#fbf9f3').attr('stroke-width',1.1).attr('vector-effect','non-scaling-stroke')
+      .attr('class','o-clickable')
+      .on('click',(e,d)=>this.navigate('district',{district:d.label}))
+      .on('mouseenter mousemove',(e,d)=>this._tipShow(e,d.label,this.districtStat(d.label),true))
+      .on('mouseleave',()=>this._tipHide());
+  }
+
+  _drawMunis(district, animate){
+    if(this._muniDistrict===district) return; this._muniDistrict=district;
+    const d3=window.d3;
+    const munis=this.DISTRICTS[district].munis.filter(m=>this.muniF[m]).map(m=>this.muniStat(m));
+    const ext=[Math.min(...munis.map(m=>m.median)), Math.max(...munis.map(m=>m.median))];
+    this.gMuni.selectAll('path').data(munis,d=>d.name).join('path')
+      .attr('d',d=>this.path(this.muniF[d.name]))
+      .attr('fill',d=>this._color(d.median, ext))
+      .attr('stroke','#fbf9f3').attr('stroke-width',1).attr('vector-effect','non-scaling-stroke')
+      .attr('class','o-clickable')
+      .on('click',(e,d)=>this.navigate('municipality',{district,municipality:d.name}))
+      .on('mouseenter mousemove',(e,d)=>this._tipShow(e,d.name,d,true))
+      .on('mouseleave',()=>this._tipHide());
+  }
+
+  _drawTowns(muni, animate){
+    if(this._townMuni===muni) return; this._townMuni=muni;
+    const d3=window.d3; this.gTown.selectAll('*').remove();
+    const mf=this.muniF[muni]; if(!mf) return;
+    const towns=this.TOWNS[muni]||[];
+    const [bx0,by0,bx1,by1]=this._planarBounds(mf);
+    const r=this.rng(this.hash('seed:'+muni));
+    const seeds=[];
+    towns.forEach(t=>{
+      let pt=null; for(let k=0;k<600;k++){ const px=bx0+r()*(bx1-bx0), py=by0+r()*(by1-by0); if(this._containsPlanar(mf,[px,py])){ pt=[px,py]; break; } }
+      if(!pt) pt=[(bx0+bx1)/2,(by0+by1)/2];
+      seeds.push({town:t, xy:this.proj(pt)});
+    });
+    const stats=towns.map(t=>this.townStat(muni,t));
+    const ext=[Math.min(...stats.map(x=>x.median)), Math.max(...stats.map(x=>x.median))];
+    const b=this.path.bounds(mf);
+    const clipId='oclip-'+this.norm(muni);
+    this.defs.selectAll('#'+clipId).remove();
+    this.defs.append('clipPath').attr('id',clipId).append('path').attr('d',this.path(mf));
+    const layer=this.gTown.append('g').attr('clip-path','url(#'+clipId+')');
+    if(seeds.length>=2){
+      const del=d3.Delaunay.from(seeds.map(p=>p.xy));
+      const vor=del.voronoi([b[0][0]-2,b[0][1]-2,b[1][0]+2,b[1][1]+2]);
+      layer.selectAll('path').data(seeds).join('path')
+        .attr('d',(d,i)=>vor.renderCell(i))
+        .attr('fill',(d,i)=>this._color(stats[i].median,ext))
+        .attr('stroke','#fbf9f3').attr('stroke-width',1).attr('vector-effect','non-scaling-stroke')
+        .attr('class','o-clickable')
+        .on('mouseenter mousemove',(e,d)=>{ const st=this.townStat(muni,d.town); this._tipShow(e,d.town,st,false); })
+        .on('mouseleave',()=>this._tipHide());
+    }
+    // muni boundary on top
+    this.gTown.append('path').attr('d',this.path(mf)).attr('fill','none').attr('stroke','#1a1714').attr('stroke-width',1.2).attr('vector-effect','non-scaling-stroke').style('pointer-events','none');
+    this._townSeeds=seeds;
+  }
+
+  _setLayers(len){
+    const e=(g,op,pe,disp='block')=>g.style('display',disp).style('opacity',op).style('pointer-events',pe);
+    // provinces
+    this.gProv.selectAll('.o-wc').style('display','block');
+    this.gProv.style('display','block').style('opacity', len===0?1:0.5).style('pointer-events', len===0?'auto':'none');
+    this.gProv.selectAll('.o-wc').attr('fill', len===0 ? this._color(this.provinceAgg().median,this._provExtent()) : 'none');
+    if(this.gDist) this.gDist.node()&& e(this.gDist, len===1?1:(len>=2?0.16:0), len===1?'auto':'none', len>=1?'block':'none');
+    if(this._muniDistrict) e(this.gMuni, len===2?1:(len>=3?0.16:0), len===2?'auto':'none', len>=2?'block':'none');
+    if(this._townMuni) e(this.gTown, len>=3?1:0, len>=3?'auto':'none', len>=3?'block':'none');
+  }
+
+  _combine(feats){
+    let b=null; feats.forEach(f=>{ const bb=this.path.bounds(f); if(!b) b=bb; else { b=[[Math.min(b[0][0],bb[0][0]),Math.min(b[0][1],bb[0][1])],[Math.max(b[1][0],bb[1][0]),Math.max(b[1][1],bb[1][1])]]; } });
+    return b;
+  }
+  _zoom(len, path, animate){
+    const d3=window.d3, W=this.W, H=this.H;
+    let feats;
+    if(len===0) feats=this.adm1.features;
+    else if(len===1) feats=[this.wc];
+    else if(len===2) feats=[this.distF[path[1].name]||this.wc];
+    else feats=[this.muniF[path[2].name]||this.wc];
+    const b=this._combine(feats);
+    const dx=b[1][0]-b[0][0], dy=b[1][1]-b[0][1], cx=(b[0][0]+b[1][0])/2, cy=(b[0][1]+b[1][1])/2;
+    let k=Math.min(this.MAXK, 0.84/Math.max(dx/W,dy/H)); k=Math.max(1,k);
+    const tx=W/2-k*cx, ty=H/2-k*cy;
+    this.curK=k; this.curT=[tx,ty];
+    this.gNode.style.transition = animate ? 'transform .95s cubic-bezier(.4,0,.2,1)' : 'none';
+    this.gNode.style.transform = `translate(${tx}px,${ty}px) scale(${k})`;
+  }
+
+  _labels(len, path, animate){
+    const d3=window.d3; this.gLabel.selectAll('*').remove();
+    if(this.props.showLabels===false) return;
+    let items=[];
+    if(len===0){ const c=this.path.centroid(this.wc); items=[{t:'WESTERN CAPE',x:c[0],y:c[1],wc:true}]; }
+    else if(len===1){ items=Object.keys(this.DISTRICTS).filter(l=>this.distF[l]).map(l=>{ const c=this.path.centroid(this.distF[l]); return {t:l,x:c[0],y:c[1]}; }); }
+    else if(len===2){ items=this.DISTRICTS[path[1].name].munis.filter(m=>this.muniF[m]).map(m=>{ const c=this.path.centroid(this.muniF[m]); return {t:m,x:c[0],y:c[1]}; }); }
+    else { items=(this._townSeeds||[]).map(p=>({t:p.town,x:p.xy[0],y:p.xy[1]})); }
+    const k=this.curK; const fs=(len===0?13:11)/k;
+    const sel=this.gLabel.selectAll('text').data(items).join('text')
+      .attr('x',d=>d.x).attr('y',d=>d.y)
+      .attr('text-anchor','middle').attr('dy','.32em')
+      .attr('fill',d=>d.wc?'#1a1714':'#231f1a')
+      .attr('stroke','#f6f2e9').attr('stroke-width',3/k).attr('paint-order','stroke')
+      .attr('letter-spacing', d=>d.wc? (2/k)+'px':null)
+      .style('font-weight',d=>d.wc?700:600).style('font-size',fs+'px')
+      .text(d=>d.t).style('opacity',d=>d.wc?0.9:0.85);
+  }
+
+  // ---- tooltip -----------------------------------------------------------
+  _tipShow(e, name, st, drill){
+    if(!this._tip) return; const t=this._tip;
+    t.innerHTML = `<div style="font-family:'Newsreader',serif;font-size:16px;margin-bottom:7px">${name}</div>`
+      +`<div style="display:grid;grid-template-columns:auto auto;gap:2px 16px;font-size:12px">`
+      +`<span style="opacity:.6">Median</span><span style="text-align:right;font-variant-numeric:tabular-nums">${this.R(st.median)}</span>`
+      +`<span style="opacity:.6">Total roll</span><span style="text-align:right;font-variant-numeric:tabular-nums">${this.R(st.total)}</span>`
+      +`<span style="opacity:.6">Parcels</span><span style="text-align:right;font-variant-numeric:tabular-nums">${st.parcels.toLocaleString()}</span>`
+      +`</div>`
+      +(drill?`<div style="margin-top:8px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:${this.theme().accent};opacity:.95">Click to explore →</div>`:'');
+    t.style.opacity=1;
+    const pad=16; let x=e.clientX+pad, y=e.clientY+pad;
+    if(x+250>window.innerWidth) x=e.clientX-250; if(y+120>window.innerHeight) y=e.clientY-120;
+    t.style.left=x+'px'; t.style.top=y+'px';
+  }
+  _tipHide(){ if(this._tip) this._tip.style.opacity=0; }
+
+  _renderLegend(){ if(this._leg){ const r=this.theme().ramp; this._leg.style.background=`linear-gradient(90deg, ${r.join(',')})`; } }
+
+  componentDidUpdate(prev){
+    if(prev.colorTheme!==this.props.colorTheme || prev.showLabels!==this.props.showLabels){
+      if(this.g){ this._distDrawn=false; this._muniDistrict=null; this._townMuni=null; this.gDist.selectAll('*').remove(); this.gMuni.selectAll('*').remove(); this.gTown.selectAll('*').remove(); this._renderLegend(); this._draw(this.state.path, false); }
+    }
+  }
+
+  // ---- search ------------------------------------------------------------
+  _buildIndex(){
+    const out=[];
+    for(const dl in this.DISTRICTS){
+      out.push({label:dl, sub:'District', kind:'d', go:()=>this.navigate('district',{district:dl})});
+      this.DISTRICTS[dl].munis.forEach(m=>{
+        out.push({label:m, sub:dl, kind:'m', go:()=>this.navigate('municipality',{district:dl,municipality:m})});
+        (this.TOWNS[m]||[]).forEach(t=>out.push({label:t, sub:m, kind:'t', go:()=>this.navigate('municipality',{district:dl,municipality:m})}));
+      });
+    }
+    return out;
+  }
+  onSearchInput=(e)=>{ const q=this.norm(e.target.value); if(!this._idx) this._idx=this._buildIndex();
+    if(!q){ this.setState({results:[],showResults:false}); return; }
+    const res=this._idx.filter(x=>this.norm(x.label).includes(q)).slice(0,8)
+      .map(x=>({label:x.label, sub:x.sub, onClick:()=>{ if(this._search)this._search.value=x.label; x.go(); }}));
+    this.setState({results:res, showResults:true});
+  };
+  onSearchFocus=()=>{ if(this.state.results.length) this.setState({showResults:true}); };
+  onSearchBlur=()=>{ setTimeout(()=>this.setState({showResults:false}),160); };
+
+  // ---- render ------------------------------------------------------------
+  renderVals(){
+    const path=this.state.path||[]; const len=path.length; const len0=len===0;
+    const yearLabel=this.props.valuationYear||'2024 / 25';
+    const headline = len0 ? 'South Africa' : (len===1 ? 'Western Cape' : path[len-1].label);
+    const subline = len0 ? 'Tap the Western Cape to begin' : (len===1?'Six districts · '+yearLabel : (len===2?'Local municipalities · '+yearLabel:'Towns & suburbs · '+yearLabel));
+
+    // breadcrumb
+    const steps=[{label:'South Africa', nav:()=>this.navigate('country',{})}];
+    if(len>=1) steps.push({label:'Western Cape', nav:()=>this.navigate('province',{})});
+    if(len>=2) steps.push({label:path[1].label, nav:()=>this.navigate('district',{district:path[1].name})});
+    if(len>=3) steps.push({label:path[2].label, nav:()=>this.navigate('municipality',{district:path[1].name,municipality:path[2].name})});
+    const crumbs=steps.map((s,i)=>({label:s.label, sep:i?'›':'', onClick:s.nav}));
+
+    // legend
+    let ext, legTitle;
+    if(len>=3){ const m=path[2].name; const st=(this.TOWNS[m]||[]).map(t=>this.townStat(m,t).median); ext=[Math.min(...st),Math.max(...st)]; legTitle='Median value · town'; }
+    else if(len===2){ const ms=this.DISTRICTS[path[1].name].munis.map(m=>this.muniStat(m).median); ext=[Math.min(...ms),Math.max(...ms)]; legTitle='Median value · municipality'; }
+    else { ext=this.ready_ext(); legTitle='Median value · district'; }
+
+    // dashboard scope
+    let dash=null;
+    if(len>=1){
+      let children, scopeLabel, kindPlural, kindSingular, kicker;
+      if(len===1){ children=Object.keys(this.DISTRICTS).map(l=>this.districtStat(l)).map(s=>({...s, go:()=>this.navigate('district',{district:s.label})})); scopeLabel='Western Cape'; kindPlural='Districts'; kindSingular='district'; kicker='WESTERN CAPE PROVINCE'; }
+      else if(len===2){ const dl=path[1].name; children=this.DISTRICTS[dl].munis.map(m=>this.muniStat(m)).map(s=>({...s, go:()=>this.navigate('municipality',{district:dl,municipality:s.name})})); scopeLabel=dl; kindPlural='Municipalities'; kindSingular='municipality'; kicker=dl.toUpperCase()+' DISTRICT'; }
+      else { const m=path[2].name; children=(this.TOWNS[m]||[]).map(t=>this.townStat(m,t)).map(s=>({...s, go:null})); scopeLabel=m; kindPlural='Towns'; kindSingular='town'; kicker=m.toUpperCase()+' · '+path[1].label.toUpperCase(); }
+      const agg=this.summarize(children);
+      const sorted=[...children].sort((a,b)=>b.median-a.median);
+      const maxMed=sorted[0].median;
+      const ramp=this.theme().ramp;
+      const ranked=sorted.map(s=>({label:s.label, valStr:this.R(s.median), pctStr:Math.max(8,Math.round(s.median/maxMed*100))+'%', barColor:this._color(s.median, [sorted[sorted.length-1].median, maxMed]), onClick:s.go||(()=>{})}));
+      const top=sorted[0], bottom=sorted[sorted.length-1];
+      dash={ kicker, scopeLabel, scopeSub:children.length+' '+kindPlural.toLowerCase()+' · valuation roll '+yearLabel,
+        statMedian:this.R(agg.median), statAvg:this.R(agg.avg), statTotal:this.R(agg.total), statParcels:agg.parcels.toLocaleString(), statCount:children.length,
+        rankTitle:kindPlural+' ranked', ranked, topKind:kindSingular, topKindLower:kindPlural.toLowerCase(),
+        topLabel:top.label, topVal:this.R(top.median)+' median', bottomLabel:bottom.label, bottomVal:this.R(bottom.median)+' median' };
+    }
+
+    return {
+      mapRef:this.mapRef, tipRef:this.tipRef, legendRef:this.legendRef, searchRef:this.searchRef,
+      notReady:!this.state.ready, loadingMsg: this.state.err?'Could not reach the boundary service':'Drawing the boundaries…',
+      ready:this.state.ready, enteredWC:len>=1,
+      headline, subline, yearLabel,
+      crumbs, resetView:this.resetView, scrollCue:this.scrollCue,
+      legendTitle:legTitle, legendMin:this.R(ext[0]), legendMax:this.R(ext[1]),
+      onSearchInput:this.onSearchInput, onSearchFocus:this.onSearchFocus, onSearchBlur:this.onSearchBlur,
+      showResults:this.state.showResults, results:this.state.results,
+      dashKicker:dash?dash.kicker:'', scopeLabel:dash?dash.scopeLabel:'', scopeSub:dash?dash.scopeSub:'',
+      statMedian:dash?dash.statMedian:'', statAvg:dash?dash.statAvg:'', statTotal:dash?dash.statTotal:'', statParcels:dash?dash.statParcels:'', statCount:dash?dash.statCount:'',
+      rankTitle:dash?dash.rankTitle:'', ranked:dash?dash.ranked:[], topKind:dash?dash.topKind:'', topKindLower:dash?dash.topKindLower:'',
+      topLabel:dash?dash.topLabel:'', topVal:dash?dash.topVal:'', bottomLabel:dash?dash.bottomLabel:'', bottomVal:dash?dash.bottomVal:'',
+    };
+  }
+  ready_ext(){ if(!this.adm1) return [0,1]; const meds=Object.keys(this.DISTRICTS).map(l=>this.districtStat(l).median); return [Math.min(...meds),Math.max(...meds)]; }
+}
+</script>
+</body>
+</html>

@@ -1,29 +1,34 @@
-# Western Cape Property Valuations
+# Western Cape Property Valuation Atlas
 
-An interactive map of **municipal property valuations across the Western Cape**, South Africa.
-Zoom from the province → districts → municipalities, hover for totals, and search any address.
-All figures are public municipal valuation-roll data (values for *rates*, not market prices).
+An interactive, editorial-style choropleth map for exploring municipal **property valuations**
+across the Western Cape, South Africa. Drill **South Africa → Western Cape → district →
+municipality → town**, with fluid zoom, hover tooltips, search, and a scroll-reveal stats dashboard.
 
-**Live site:** https://calerio.github.io/western-cape-valuations/
+**Live:** https://calerio.github.io/western-cape-valuations/
 
 ## How it works
-- **Static site on GitHub Pages** — no server.
-- **Map:** D3 + GeoJSON boundaries, with smooth zoom-to-region drill-down.
-- **Stats** (`data/stats.json`): per-province / district / municipality totals, mean, median,
-  quartiles, min/max and residential average — **generated from the source database**, never
-  hardcoded. Re-running the export after a data update refreshes everything.
-- **Address search** (`data/search.db`): the valuation roll is queried *in the browser* with
-  [`sql.js-httpvfs`](https://github.com/phiresky/sql.js-httpvfs) — real SQL over a static SQLite
-  file via HTTP range requests, so only a few KB are fetched per query.
+- **Static site on GitHub Pages** — vanilla HTML/CSS/JS + **D3 v7**. No build step, no server.
+- **Map:** self-hosted boundary GeoJSON (provinces / WC districts / WC municipalities), rendered
+  with the planar-Mercator + `d3.geoIdentity()` approach (winding-agnostic) and CSS-transform zoom.
+  Towns are a **Voronoi tessellation** clipped to each municipality outline.
+- **Stats** (`data/stats.json`, `data/towns.json`): province / district / municipality / town
+  figures — totals, mean, **true median**, quartiles, min/max, residential average — **generated
+  from the source valuation database, never hardcoded.** Re-running the export refreshes everything.
+- **Search** (`data/db/`): area names (district / municipality / town) **plus** per-property
+  **address** search via [`sql.js-httpvfs`](https://github.com/phiresky/sql.js-httpvfs) — real SQL
+  over a chunked static SQLite file (HTTP range requests; only a few KB fetched per query).
 
 ## Data
-- 24 Western Cape local municipalities, ~514,000 properties, current/recent valuation cycles
-  (two municipalities — Witzenberg, Laingsburg — are on older cycles; no newer complete roll is
-  published). City of Cape Town is search-only at source, so it is not yet included.
-- Built from each municipality's official general valuation roll. Owner names are not stored.
+24 Western Cape local municipalities, ~514,000 properties, current/recent valuation cycles
+(Witzenberg & Laingsburg are on older cycles — no newer complete roll is published). City of Cape
+Town is search-only at source and shown as "no public roll". Owner names are not stored.
 
 ## Regenerating the data
-From the extraction project (separate repo): `python3 extract/build.py` then
-`python3 extract/export_site.py`, which writes `data/stats.json` + `data/search.db` here.
+From the extraction project: `python3 extract/build.py` then `python3 extract/export_site.py`,
+which writes `data/stats.json`, `data/towns.json`, and the chunked `data/db/` here.
+
+## Credits & design
+Built to the **WC Valuation Atlas** design handoff (see `design/`). Boundary data derived from the
+Municipal Demarcation Board (via HDX, CC BY). Fonts: Newsreader + Libre Franklin.
 
 *Public data, shared for transparency and ease of access.*

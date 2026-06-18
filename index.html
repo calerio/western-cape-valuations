@@ -2,47 +2,122 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-<title>Western Cape Property Valuations</title>
-<meta name="description" content="Explore municipal property valuations across the Western Cape — by district, municipality, and address. Public data." />
-<link rel="preconnect" href="https://cdn.jsdelivr.net" />
-<link rel="stylesheet" href="assets/style.css?v=2" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Western Cape Property Valuation Atlas</title>
+<meta name="description" content="An interactive atlas of municipal property valuations across the Western Cape — by district, municipality and town. Public data." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:#f3efe6;color:#1a1714;font-family:'Libre Franklin',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{overflow:hidden}              /* country level = just the map; unlocked once WC entered */
+  ::selection{background:#1f6f63;color:#fff}
+  @keyframes ohintpulse{0%,100%{opacity:.45}50%{opacity:1}}
+  #map svg{display:block;width:100%;height:100%}
+  #map path{cursor:default}
+  #map .o-clickable{cursor:pointer}
+  #map text{font-family:'Libre Franklin',sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none}
+  a{color:inherit}
+</style>
 </head>
 <body>
-<!-- fixed map stage -->
-<div id="stage">
-  <svg id="map" aria-label="Map of the Western Cape"></svg>
+<div style="position:relative;width:100%;background:#f3efe6">
 
-  <!-- top bar: title + breadcrumb + search -->
-  <header id="bar">
-    <div id="brand">
-      <span id="back" hidden>‹</span>
-      <h1>Western&nbsp;Cape <em>property valuations</em></h1>
+  <!-- ===== Screen 1 — map stage ===== -->
+  <section style="position:relative;width:100%;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 30% 0%,#f7f3ea 0%,#efe9dc 70%,#e9e2d2 100%)">
+    <div id="map" style="position:absolute;inset:0"></div>
+
+    <!-- title block -->
+    <div style="position:absolute;top:34px;left:38px;max-width:440px;z-index:6;pointer-events:none">
+      <div style="font-size:11px;letter-spacing:.22em;font-weight:600;color:#1f6f63;margin-bottom:10px">MUNICIPAL PROPERTY VALUATIONS</div>
+      <div id="headline" style="font-family:'Newsreader',serif;font-weight:400;font-size:54px;line-height:.96;letter-spacing:-.015em;color:#1a1714">South Africa</div>
+      <div id="subline" style="font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#6f685c;margin-top:10px"></div>
     </div>
-    <nav id="crumbs" aria-label="Breadcrumb"></nav>
-    <div id="searchwrap">
-      <input id="search" type="search" placeholder="Search an address…" autocomplete="off" spellcheck="false" disabled />
-      <ul id="results" hidden></ul>
+
+    <!-- search -->
+    <div style="position:absolute;top:38px;right:38px;width:312px;z-index:8">
+      <div style="position:relative">
+        <svg viewBox="0 0 24 24" width="16" height="16" style="position:absolute;left:14px;top:13px;opacity:.4" fill="none" stroke="#1a1714" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+        <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search a town, municipality or district" style="width:100%;padding:11px 14px 11px 40px;border:1px solid rgba(26,23,20,.16);border-radius:2px;background:rgba(251,249,243,.92);backdrop-filter:blur(6px);font-family:'Libre Franklin',sans-serif;font-size:13.5px;color:#1a1714;outline:none" />
+      </div>
+      <div id="results" hidden style="margin-top:6px;background:#fbf9f3;border:1px solid rgba(26,23,20,.12);border-radius:2px;box-shadow:0 14px 40px -18px rgba(26,23,20,.45);overflow:hidden"></div>
     </div>
-  </header>
 
-  <!-- hover tooltip -->
-  <div id="tip" hidden></div>
+    <!-- legend -->
+    <div style="position:absolute;left:38px;bottom:34px;z-index:6;background:rgba(251,249,243,.86);backdrop-filter:blur(6px);border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:13px 15px 14px;min-width:236px">
+      <div id="legendTitle" style="font-size:10px;letter-spacing:.13em;font-weight:600;color:#6f685c;text-transform:uppercase;margin-bottom:9px">MEDIAN VALUE · DISTRICT</div>
+      <div id="legendBar" style="height:9px;border-radius:1px;border:1px solid rgba(26,23,20,.1)"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11.5px;color:#1a1714;font-variant-numeric:tabular-nums">
+        <span id="legendMin"></span><span id="legendMax"></span>
+      </div>
+    </div>
 
-  <!-- intro hint at national level -->
-  <div id="hint"><p>Click the <strong>Western&nbsp;Cape</strong> to explore</p><span class="chev">⌄</span></div>
+    <!-- breadcrumb -->
+    <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:30px;z-index:7;display:flex;align-items:center;gap:14px">
+      <div id="crumbs" style="display:flex;align-items:center;gap:9px;background:rgba(251,249,243,.9);backdrop-filter:blur(6px);border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:8px 14px"></div>
+      <div id="reset" class="o-clickable" style="font-size:11.5px;letter-spacing:.04em;color:#1f6f63;font-weight:600;cursor:pointer;text-transform:uppercase">Reset</div>
+    </div>
 
-  <div id="loading">Loading map…</div>
+    <!-- tooltip -->
+    <div id="tip" style="position:fixed;z-index:20;pointer-events:none;opacity:0;transition:opacity .12s;background:#1a1714;color:#f3efe6;padding:10px 13px;border-radius:3px;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);max-width:240px"></div>
+
+    <!-- scroll cue -->
+    <div id="scrollcue" hidden class="o-clickable" style="position:absolute;right:40px;bottom:34px;z-index:6;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6f685c">
+      <span>Scroll for the valuation breakdown</span>
+      <span style="display:inline-block;animation:ohintpulse 1.8s infinite">↓</span>
+    </div>
+
+    <!-- loading -->
+    <div id="loading" style="position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:#efe9dc">
+      <div style="text-align:center">
+        <div id="loadingMsg" style="font-family:'Newsreader',serif;font-style:italic;font-size:22px;color:#6f685c;animation:ohintpulse 1.6s infinite">Drawing the boundaries…</div>
+        <div style="width:160px;height:2px;background:rgba(26,23,20,.12);margin:18px auto 0;overflow:hidden"><div style="width:40%;height:100%;background:#1f6f63;animation:ohintpulse 1.2s infinite"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Screen 2 — valuation breakdown ===== -->
+  <section id="dash" hidden style="position:relative;width:100%;min-height:100vh;background:#f3efe6;padding:78px 56px 90px;border-top:1px solid rgba(26,23,20,.1)">
+    <div style="max-width:1180px;margin:0 auto">
+      <div id="dashKicker" style="font-size:11px;letter-spacing:.2em;font-weight:600;color:#1f6f63;margin-bottom:12px"></div>
+      <div id="scopeLabel" style="font-family:'Newsreader',serif;font-size:46px;line-height:1;letter-spacing:-.015em;margin-bottom:6px"></div>
+      <div id="scopeSub" style="font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#6f685c;margin-bottom:42px"></div>
+
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(26,23,20,.14);border-bottom:1px solid rgba(26,23,20,.14)">
+        <div style="padding:24px 26px 26px;border-right:1px solid rgba(26,23,20,.1)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Median valuation</div><div id="statMedian" style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
+        <div style="padding:24px 26px 26px;border-right:1px solid rgba(26,23,20,.1)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Average valuation</div><div id="statAvg" style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
+        <div style="padding:24px 26px 26px;border-right:1px solid rgba(26,23,20,.1)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Total roll value</div><div id="statTotal" style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
+        <div style="padding:24px 26px 26px"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Registered parcels</div><div id="statParcels" style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1.15fr .85fr;gap:64px;margin-top:54px;align-items:start">
+        <div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px">
+            <div id="rankTitle" style="font-family:'Newsreader',serif;font-size:23px"></div>
+            <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286">by median value</div>
+          </div>
+          <div id="ranked"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:26px">
+          <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:24px 26px">
+            <div id="topKindHi" style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px"></div>
+            <div id="topLabel" style="font-family:'Newsreader',serif;font-size:27px;line-height:1.05;margin-bottom:4px"></div>
+            <div id="topVal" style="font-size:15px;color:#6f685c;font-variant-numeric:tabular-nums"></div>
+          </div>
+          <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:24px 26px">
+            <div id="topKindLo" style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#b8623c;margin-bottom:12px"></div>
+            <div id="bottomLabel" style="font-family:'Newsreader',serif;font-size:27px;line-height:1.05;margin-bottom:4px"></div>
+            <div id="bottomVal" style="font-size:15px;color:#6f685c;font-variant-numeric:tabular-nums"></div>
+          </div>
+          <div id="dashNote" style="font-size:12.5px;line-height:1.6;color:#9a9286;padding:0 2px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
-
-<!-- scroll-revealed stats (only scrollable once you enter the province) -->
-<main id="panel" aria-live="polite"></main>
-
-<footer id="foot">
-  <span>Public municipal valuation-roll data. Figures are municipal values for rates, not market prices.</span>
-  <span id="meta"></span>
-</footer>
-
-<script type="module" src="assets/app.js?v=2"></script>
+<script type="module" src="assets/atlas.js?v=1"></script>
 </body>
 </html>
