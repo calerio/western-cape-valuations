@@ -259,7 +259,7 @@ async function ensureDB() {
   const createDbWorker = mod.createDbWorker || mod.default.createDbWorker;
   const abs = p => new URL(p, location.href).href;   // worker resolves URLs against itself
   dbw = await createDbWorker(
-    [{ from: "inline", config: { serverMode: "full", url: abs("data/search.db"), requestChunkSize: 4096 } }],
+    [{ from: "jsonconfig", configUrl: abs("data/db/config.json") }],
     abs("assets/vendor/sqlite.worker.js"),
     abs("assets/vendor/sql-wasm.wasm")
   );
