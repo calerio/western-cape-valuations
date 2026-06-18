@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Western Cape Property Valuations</title>
+<meta name="description" content="Explore municipal property valuations across the Western Cape — by district, municipality, and address. Public data." />
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+<!-- fixed map stage -->
+<div id="stage">
+  <svg id="map" aria-label="Map of the Western Cape"></svg>
+
+  <!-- top bar: title + breadcrumb + search -->
+  <header id="bar">
+    <div id="brand">
+      <span id="back" hidden>‹</span>
+      <h1>Western&nbsp;Cape <em>property valuations</em></h1>
+    </div>
+    <nav id="crumbs" aria-label="Breadcrumb"></nav>
+    <div id="searchwrap">
+      <input id="search" type="search" placeholder="Search an address…" autocomplete="off" spellcheck="false" disabled />
+      <ul id="results" hidden></ul>
+    </div>
+  </header>
+
+  <!-- hover tooltip -->
+  <div id="tip" hidden></div>
+
+  <!-- intro hint at national level -->
+  <div id="hint"><p>Click the <strong>Western&nbsp;Cape</strong> to explore</p><span class="chev">⌄</span></div>
+
+  <div id="loading">Loading map…</div>
+</div>
+
+<!-- scroll-revealed stats (only scrollable once you enter the province) -->
+<main id="panel" aria-live="polite"></main>
+
+<footer id="foot">
+  <span>Public municipal valuation-roll data. Figures are municipal values for rates, not market prices.</span>
+  <span id="meta"></span>
+</footer>
+
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>
