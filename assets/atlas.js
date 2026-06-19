@@ -16,6 +16,7 @@ const R = v => { v = +v; if (!isFinite(v)) return "—";
   return "R" + Math.round(v); };
 const N = v => v == null ? "—" : (+v).toLocaleString("en-ZA").replace(/,/g, " ");
 const norm = s => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
 /* ============================ state ============================ */
 let STATS, TOWNS, PROV, DISTF, MUNIF;
@@ -44,6 +45,8 @@ let dbw = null, areaIndex = null;
   navigate([], false);
   wireSearch(); $("reset").onclick = () => { $("search").value = ""; navigate([], true); };
   $("scrollcue").onclick = () => statePath.length && scrollTo({ top: innerHeight * 0.96, behavior: "smooth" });
+  $("mback").onclick = () => { if (statePath.length) { navigate(statePath.slice(0, -1)); scrollTo({ top: 0, behavior: "smooth" }); } };
+  let rzT; addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(() => { if (statePath.length) renderDash(statePath); }, 200); });
 })();
 
 const name = f => f.properties.name;
@@ -200,7 +203,7 @@ function navigate(p, animate = true) {
   if (!feats.length) feats = [PROV.features.find(f => name(f) === "Western Cape")];
   zoom(feats, animate);
   labels(len, p);
-  document.body.style.overflow = len ? "auto" : "hidden";
+  document.body.style.overflowY = len ? "auto" : "hidden";
   $("scrollcue").style.display = len ? "flex" : "none";
   $("dash").hidden = !len;
   if (!len) scrollTo({ top: 0 });
@@ -214,6 +217,12 @@ function renderChrome(p) {
   $("headline").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;
   $("subline").textContent = len === 0 ? "Tap the Western Cape to begin"
     : len === 1 ? "Six districts · " + YEAR : len === 2 ? "Local municipalities · " + YEAR : "Municipal valuation roll · " + YEAR;
+
+  // mobile top bar — always shows where you are, with a back step up the hierarchy
+  $("mloc").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;
+  $("mkicker").textContent = len === 0 ? "Property valuations" : len === 1 ? "South Africa"
+    : len === 2 ? "Western Cape" : p[1].name + " · Western Cape";
+  $("mback").hidden = len === 0;
 
   // breadcrumb
   const steps = [{ label: "South Africa", go: () => navigate([]) }];
@@ -304,6 +313,21 @@ function renderHist(hist, total) {
   const el = $("distChart"); el.innerHTML = "";
   if (!hist) { el.innerHTML = `<div style="color:#9a9286;font-size:14px;padding:24px 0">No distribution data for this area.</div>`; return; }
   const labels = STATS.buckets, n = hist.length, max = Math.max(...hist, 1);
+
+  if (innerWidth <= 720) {   // mobile: horizontal bars read top-to-bottom — no x-label crowding
+    el.innerHTML = hist.map((cnt, i) => {
+      const w = Math.max(cnt ? 3 : 0, Math.round(cnt / max * 100));
+      const col = d3.interpolateRgbBasis(RAMP)(n > 1 ? i / (n - 1) : .5);
+      return `<div style="display:flex;align-items:center;gap:11px;padding:5px 0">
+        <div style="flex:0 0 84px;font-size:12px;color:#6f685c;text-align:right;font-variant-numeric:tabular-nums">${esc(labels[i])}</div>
+        <div style="flex:1;height:22px;background:rgba(26,23,20,.05);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${w}%;background:${col};border-radius:3px"></div></div>
+        <div style="flex:0 0 50px;font-size:12px;color:#1a1714;text-align:right;font-variant-numeric:tabular-nums">${N(cnt)}</div>
+      </div>`;
+    }).join("");
+    return;
+  }
+
   const VW = 1000, VH = 230, padL = 6, padR = 6, padT = 22, padB = 46, gap = 9;
   const chartW = VW - padL - padR, chartH = VH - padT - padB, bw = chartW / n - gap;
   const compact = v => v >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, "") + "m" : v >= 1e3 ? Math.round(v / 1e3) + "k" : "" + v;
@@ -323,7 +347,7 @@ function renderHist(hist, total) {
 }
 function tipHist(e, label, cnt, total) {
   const t = $("tip"), pct = total ? (cnt / total * 100) : 0;
-  t.innerHTML = `<div style="font-family:'Newsreader',serif;font-size:15px;margin-bottom:4px">${label}</div>` +
+  t.innerHTML = `<div style="font-family:'Newsreader',serif;font-size:15px;margin-bottom:4px">${esc(label)}</div>` +
     `<div style="font-size:12px"><span style="opacity:.6">Parcels </span><span style="font-variant-numeric:tabular-nums">${N(cnt)}</span> · ${pct.toFixed(1)}%</div>`;
   t.style.opacity = 1; let x = e.clientX + 16, y = e.clientY + 16;
   if (x + 220 > innerWidth) x = e.clientX - 220; if (y + 80 > innerHeight) y = e.clientY - 80;
@@ -342,14 +366,17 @@ function buildAreaIndex() {
   }
   return out;
 }
+const SEARCH_PAIRS = [["search", "results"], ["msearch", "mresults"]];
 function wireSearch() {
-  const inp = $("search"); let timer;
-  inp.addEventListener("input", () => { clearTimeout(timer); const q = inp.value.trim(); if (q.length < 2) return hideResults(); timer = setTimeout(() => runSearch(q), 150); });
-  inp.addEventListener("focus", () => { if (inp.value.trim().length >= 2) runSearch(inp.value.trim()); });
-  document.addEventListener("click", e => { if (!e.target.closest("#search,#results")) hideResults(); });
+  SEARCH_PAIRS.forEach(([inId, resId]) => {
+    const inp = $(inId); if (!inp) return; let timer;
+    inp.addEventListener("input", () => { clearTimeout(timer); const q = inp.value.trim(); if (q.length < 2) return hideResults(); timer = setTimeout(() => runSearch(q, inId, resId), 150); });
+    inp.addEventListener("focus", () => { if (inp.value.trim().length >= 2) runSearch(inp.value.trim(), inId, resId); });
+  });
+  document.addEventListener("click", e => { if (!e.target.closest("#search,#results,#msearch,#mresults")) hideResults(); });
 }
-function hideResults() { const r = $("results"); r.hidden = true; r.innerHTML = ""; }
-async function runSearch(q) {
+function hideResults() { ["results", "mresults"].forEach(id => { const r = $(id); if (r) { r.hidden = true; r.innerHTML = ""; } }); }
+async function runSearch(q, inId = "search", resId = "results") {
   if (!areaIndex) areaIndex = buildAreaIndex();
   const nq = norm(q);
   const areas = areaIndex.filter(x => norm(x.label).includes(nq)).slice(0, 6);
@@ -357,14 +384,15 @@ async function runSearch(q) {
   try { const db = (await ensureDB()).db;
     addrs = await db.query("SELECT muni,suburb,address,value FROM prop WHERE address LIKE ? COLLATE NOCASE AND value>0 ORDER BY value DESC LIMIT 6", [q + "%"]);
   } catch (e) { /* address search optional */ }
-  const box = $("results"); box.innerHTML = "";
-  const row = (label, sub, onClick, right) => {
+  const box = $(resId); box.innerHTML = "";
+  const select = go => { go(); const inp = $(inId); if (inp) inp.value = ""; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); hideResults(); };
+  const row = (label, sub, go, right) => {
     const d = document.createElement("div"); d.className = "o-clickable";
-    d.style.cssText = "display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(26,23,20,.06);cursor:pointer";
-    d.innerHTML = `<span style="font-size:13.5px;color:#1a1714">${label}</span><span style="font-size:10.5px;letter-spacing:.04em;color:#9a9286;text-transform:uppercase;white-space:nowrap">${right || sub}</span>`;
-    d.onmousedown = onClick; box.appendChild(d);
+    d.style.cssText = "display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(26,23,20,.06);cursor:pointer";
+    d.innerHTML = `<span style="font-size:14px;color:#1a1714">${esc(label)}</span><span style="font-size:10.5px;letter-spacing:.04em;color:#9a9286;text-transform:uppercase;white-space:nowrap">${esc(right || sub)}</span>`;
+    d.onmousedown = e => { e.preventDefault(); select(go); }; box.appendChild(d);
   };
-  areas.forEach(a => row(a.label, a.sub, () => { $("search").value = a.label; a.go(); }, a.sub));
+  areas.forEach(a => row(a.label, a.sub, a.go, a.sub));
   addrs.forEach(a => { const m = a.muni; row(a.address || "(erf)", m, () => {
     const f = muniByName[m]; if (f) navigate([wcCrumb(), { type: "district", name: f.properties.district }, { type: "municipality", name: m }]);
   }, R(a.value)); });
