@@ -4,6 +4,13 @@ Public GitHub Pages site (deploys to https://calerio.github.io/western-cape-valu
 Western Cape municipal property-valuation project. Static front-end (vanilla HTML/CSS/JS + D3 v7)
 reading exported JSON + a chunked static SQLite file. No build step, no server.
 
+## ⚠️ Before changing data: read DATA_CONTRACT.md
+**[`DATA_CONTRACT.md`](DATA_CONTRACT.md)** is the source of truth for how data reaches the site and
+the rules that keep it from breaking when the database is updated or incomplete. Read it before
+touching the database, `extract/export_site.py`, or anything under `data/`. Key points: every figure
+is recomputed by the export (never hardcoded); the site degrades gracefully on missing data; the
+export lives in the sibling project `~/projects/western-cape-property-valuations`.
+
 ## ⚠️ Conventions / rules
 
 - **Git authorship:** Do **NOT** add any Claude/AI authorship to commits or PRs in this repo —
