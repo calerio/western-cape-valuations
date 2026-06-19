@@ -26,7 +26,7 @@ let proj, path, gNode, gProv, gDist, gMuni, gLabel, defs, svg;
 let DISTRICTS = {};            // name -> {feature, munis:[name]}
 let muniByName = {};           // name -> feature
 let curK = 1, statePath = [];
-let dbw = null, areaIndex = null;
+let dbw = null, dbwPromise = null, areaIndex = null;
 
 /* ============================ boot ============================ */
 (async function () {
@@ -61,6 +61,7 @@ let dbw = null, areaIndex = null;
   $("tlScrim").onclick = closeTop;
   $("tlSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; tlN = +b.dataset.n; [...$("tlSeg").children].forEach(x => x.classList.toggle("on", x === b)); loadTop(); });
   addEventListener("keydown", e => { if (e.key === "Escape" && $("toplist").classList.contains("open")) closeTop(); });
+  ensureDB().catch(() => {});   // pre-warm the SQLite worker so the first search / top-N is instant
 })();
 
 const name = f => f.properties.name;
@@ -407,9 +408,11 @@ async function loadTop() {
   if (sc.where) { where += " AND " + sc.where; args = [...sc.args]; }
   if (kind === "lo") where += " AND value>=100000 AND UPPER(category) LIKE '%RES%'";
   const sql = `SELECT muni,suburb,erf,address,extent,value,tenure,category FROM prop WHERE ${where} ORDER BY value ${kind === "hi" ? "DESC" : "ASC"} LIMIT ${n}`;
-  let rows = [];
-  try { rows = await (await ensureDB()).db.query(sql, args); }
-  catch (e) { if (req === tlReq) body.innerHTML = `<div style="padding:34px 0;color:#b8623c;font-size:14px">Couldn't load the list — please try again.</div>`; return; }
+  let rows = null;
+  for (let attempt = 0; attempt < 2 && rows === null; attempt++) {
+    try { rows = await (await ensureDB()).db.query(sql, args); }
+    catch (e) { resetDB(); if (attempt === 1) { if (req === tlReq) body.innerHTML = `<div style="padding:34px 0;color:#b8623c;font-size:14px">Couldn't load the list — please try again.</div>`; return; } }
+  }
   if (req !== tlReq) return;   // a newer request superseded this one
   if (!rows.length) { body.innerHTML = `<div style="padding:34px 0;color:#9a9286;font-size:14px">No properties found for this area.</div>`; return; }
   const muniScope = statePath.length >= 3;
@@ -472,10 +475,15 @@ async function runSearch(q, inId = "search", resId = "results") {
 }
 async function ensureDB() {
   if (dbw) return dbw;
-  const mod = await import("https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/+esm");
-  const createDbWorker = mod.createDbWorker || mod.default.createDbWorker;
-  const abs = p => new URL(p, location.href).href;
-  dbw = await createDbWorker([{ from: "jsonconfig", configUrl: abs("data/db/config.json") }],
-    abs("assets/vendor/sqlite.worker.js"), abs("assets/vendor/sql-wasm.wasm"));
-  return dbw;
+  if (!dbwPromise) dbwPromise = (async () => {
+    const mod = await import("https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/+esm");
+    const createDbWorker = mod.createDbWorker || mod.default.createDbWorker;
+    const abs = p => new URL(p, location.href).href;
+    const w = await createDbWorker([{ from: "jsonconfig", configUrl: abs("data/db/config.json") }],
+      abs("assets/vendor/sqlite.worker.js"), abs("assets/vendor/sql-wasm.wasm"));
+    await w.db.query("SELECT 1");   // cold-start can hand back an empty wasm buffer — verify before caching
+    dbw = w; return w;
+  })().catch(e => { dbwPromise = null; throw e; });   // never cache a broken worker; allow a clean retry
+  return dbwPromise;
 }
+function resetDB() { dbw = null; dbwPromise = null; }
