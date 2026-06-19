@@ -281,6 +281,7 @@ function renderDash(p) {
   $("statParcels").textContent = scope ? N(scope.properties || scope.valued) : "—";
 
   renderHist(scope && scope.hist, scope ? (scope.properties || scope.valued) : 0);
+  renderCloser(scope);
 
   const rk = $("ranked"); rk.innerHTML = "";
   if (!isMuni && scope) {
@@ -327,6 +328,43 @@ function fillProp(id, pr) {
   $(id + "Val").textContent = R(pr.value);
   const ppm = pr.extent ? " · R" + N(Math.round(pr.value / pr.extent)) + "/m²" : "";
   $(id + "Meta").textContent = (pr.extent ? N(pr.extent) + " m²" : "extent n/a") + ppm;
+}
+
+/* ============================ "a closer look" — richer stats ============================ */
+const CATCOL = { res: "#2f7d6b", com: "#c0852f", agri: "#88b39a", state: "#8a8475", vacant: "#cdbb91", other: "#ddd6c6" };
+const CATLAB = { res: "Residential", com: "Business", agri: "Agricultural", state: "State / municipal", vacant: "Vacant", other: "Other" };
+const CATORDER = ["res", "com", "agri", "state", "vacant", "other"];
+function renderCloser(s) {
+  const sec = $("closer");
+  if (!s || s.gini == null) { sec.style.display = "none"; return; }   // hide where the roll lacks the data
+  sec.style.display = "block";
+  const prov = STATS.province, tiles = [];
+  if (s.q1 != null && s.q3 != null) tiles.push(["Typical home · middle 50%", R(s.q1) + " – " + R(s.q3), "the central half, ignoring extremes"]);
+  if (s.median) { const mm = s.mean / s.median; tiles.push(["Average ÷ median", mm.toFixed(1) + "×", mm >= 1.3 ? "a few pricey properties lift the average" : "the average tracks the typical home"]); }
+  if (s.std != null) tiles.push(["Standard deviation", R(s.std), s.cv ? "σ is " + s.cv.toFixed(1) + "× the average" : "spread of values"]);
+  tiles.push(["Value inequality · Gini", s.gini.toFixed(2), s.gini >= .6 ? "very concentrated" : s.gini >= .45 ? "concentrated" : "relatively even"]);
+  if (s.top1_share != null) tiles.push(["Top 1% of parcels hold", Math.round(s.top1_share * 100) + "%", "of the area's total value"]);
+  if (s.ppm_median) tiles.push(["Median home · per m²", "R" + N(s.ppm_median) + "/m²", "value per square metre"]);
+  if (s.erf_median) tiles.push(["Median home erf", N(s.erf_median) + " m²", "typical plot size"]);
+  if (s.vacant_share != null) tiles.push(["Vacant parcels", Math.round(s.vacant_share * 100) + "%", "undeveloped land"]);
+  if (s !== prov && s.median && prov.median) { const r = s.median / prov.median; tiles.push(["vs Western Cape median", r.toFixed(1) + "×", r >= 1 ? "pricier than the province" : "cheaper than the province"]); }
+  $("statTiles").innerHTML = tiles.map(([l, v, n]) => `<div class="stile"><div class="stl">${esc(l)}</div><div class="stv">${esc(v)}</div><div class="stn">${esc(n)}</div></div>`).join("");
+  renderCatMix(s);
+}
+function renderCatMix(s) {
+  const el = $("catMix"), mix = s.cat_mix;
+  if (!mix) { el.innerHTML = ""; return; }
+  const totC = CATORDER.reduce((a, k) => a + (mix[k] ? mix[k].count : 0), 0);
+  const totV = CATORDER.reduce((a, k) => a + (mix[k] ? mix[k].value : 0), 0);
+  if (!totC) { el.innerHTML = ""; return; }
+  const seg = (metric, tot) => CATORDER.filter(k => mix[k] && mix[k][metric] > 0)
+    .map(k => `<div style="width:${(mix[k][metric] / tot * 100).toFixed(2)}%;background:${CATCOL[k]}" title="${CATLAB[k]}"></div>`).join("");
+  const legend = CATORDER.filter(k => mix[k] && mix[k].count > 0).map(k =>
+    `<div class="clg"><span class="csw" style="background:${CATCOL[k]}"></span>${CATLAB[k]} <span class="cpct">${totC ? Math.round(mix[k].count / totC * 100) : 0}% parcels · ${totV ? Math.round(mix[k].value / totV * 100) : 0}% value</span></div>`).join("");
+  el.innerHTML = `<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Property mix</div>` +
+    `<div class="cmrow"><div class="cmlab">Share of parcels</div><div class="cmbar">${seg("count", totC)}</div></div>` +
+    `<div class="cmrow"><div class="cmlab">Share of value</div><div class="cmbar">${seg("value", totV)}</div></div>` +
+    `<div class="cmleg">${legend}</div>`;
 }
 
 function renderHist(hist, total) {
