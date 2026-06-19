@@ -488,28 +488,44 @@ function wireSearch() {
   document.addEventListener("click", e => { if (!e.target.closest("#search,#results,#msearch,#mresults")) hideResults(); });
 }
 function hideResults() { ["results", "mresults"].forEach(id => { const r = $(id); if (r) { r.hidden = true; r.innerHTML = ""; } }); }
+let searchSeq = 0;
+function searchRow(box, inId, label, sub, go, right) {
+  const d = document.createElement("div"); d.className = "o-clickable";
+  d.style.cssText = "display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(26,23,20,.06);cursor:pointer";
+  d.innerHTML = `<span style="font-size:14px;color:#1a1714">${esc(label)}</span><span style="font-size:10.5px;letter-spacing:.04em;color:#9a9286;text-transform:uppercase;white-space:nowrap">${esc(right || sub)}</span>`;
+  d.onmousedown = e => { e.preventDefault(); go(); const inp = $(inId); if (inp) inp.value = ""; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); hideResults(); };
+  box.appendChild(d);
+}
+function searchNote(box, text) {
+  const d = document.createElement("div"); d.dataset.note = "1";
+  d.style.cssText = "padding:11px 14px;font-size:11.5px;color:#9a9286;border-bottom:1px solid rgba(26,23,20,.06)";
+  d.textContent = text; box.appendChild(d); return d;
+}
 async function runSearch(q, inId = "search", resId = "results") {
   if (!areaIndex) areaIndex = buildAreaIndex();
-  const nq = norm(q);
+  const seq = ++searchSeq, nq = norm(q), box = $(resId);
   const areas = areaIndex.filter(x => norm(x.label).includes(nq)).slice(0, 6);
-  let addrs = [];
-  try { const db = (await ensureDB()).db;
-    addrs = await db.query("SELECT muni,suburb,address,value FROM prop WHERE address LIKE ? COLLATE NOCASE AND value>0 ORDER BY value DESC LIMIT 6", [q + "%"]);
-  } catch (e) { /* address search optional */ }
-  const box = $(resId); box.innerHTML = "";
-  const select = go => { go(); const inp = $(inId); if (inp) inp.value = ""; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); hideResults(); };
-  const row = (label, sub, go, right) => {
-    const d = document.createElement("div"); d.className = "o-clickable";
-    d.style.cssText = "display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(26,23,20,.06);cursor:pointer";
-    d.innerHTML = `<span style="font-size:14px;color:#1a1714">${esc(label)}</span><span style="font-size:10.5px;letter-spacing:.04em;color:#9a9286;text-transform:uppercase;white-space:nowrap">${esc(right || sub)}</span>`;
-    d.onmousedown = e => { e.preventDefault(); select(go); }; box.appendChild(d);
-  };
-  areas.forEach(a => row(a.label, a.sub, a.go, a.sub));
-  addrs.forEach(a => { const m = a.muni; row(a.address || "(erf)", m, () => {
+  // 1) render area-name matches INSTANTLY (no waiting on the property DB)
+  box.innerHTML = "";
+  areas.forEach(a => searchRow(box, inId, a.label, a.sub, a.go, a.sub));
+  const ph = searchNote(box, "Searching addresses…");
+  box.hidden = false;
+  // 2) per-property address search over the chunked DB, with one retry for cold-start
+  let addrs = null;
+  for (let attempt = 0; attempt < 2 && addrs === null; attempt++) {
+    try { addrs = await (await ensureDB()).db.query("SELECT muni,suburb,address,value FROM prop WHERE address LIKE ? COLLATE NOCASE AND value>0 ORDER BY value DESC LIMIT 6", [q + "%"]); }
+    catch (e) { resetDB(); }
+  }
+  if (seq !== searchSeq) return;            // a newer keystroke superseded this query
+  if (ph.parentNode) ph.remove();
+  if (addrs === null) {                      // DB momentarily unavailable — keep area results, don't blank out
+    if (!areas.length) searchNote(box, "Address search is still loading — try again in a moment.");
+    return;
+  }
+  addrs.forEach(a => { const m = a.muni; searchRow(box, inId, a.address || "(erf)", m, () => {
     const f = muniByName[m]; if (f) navigate([wcCrumb(), { type: "district", name: f.properties.district }, { type: "municipality", name: m }]);
   }, R(a.value)); });
-  if (!box.children.length) row("No matches", "", () => {}, "");
-  box.hidden = false;
+  if (!box.children.length) searchNote(box, "No matches");
 }
 async function ensureDB() {
   if (dbw) return dbw;
