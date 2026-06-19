@@ -45,6 +45,27 @@ git push
 Then verify live: load the site, drill country → WC → district → municipality, and open the
 "most valuable property" overlay (that last step proves the chunked DB + indexes are intact).
 
+### Sanity-check the rebuild BEFORE exporting (avoid double-counting)
+
+`build.py` deletes and rebuilds `wc-valuations.db` from whatever source files are present, so adding
+an **overlapping** source roll (e.g. a combined roll *and* its per-town files, or a re-downloaded
+file) silently duplicates properties and inflates every total. After `build.py`, before
+`export_site.py`, check for duplicates:
+
+```bash
+cd extract && python3 - <<'PY'
+import sqlite3; c=sqlite3.connect('wc-valuations.db').cursor()
+cols="roll_id,municipality_id,town,suburb,tenure_type,erf_no,portion,ss_scheme,unit_no,category,site_address,extent_m2,market_value_r,page"
+dups=c.execute(f"SELECT COALESCE(SUM(n-1),0) FROM (SELECT COUNT(*) n FROM property GROUP BY {cols} HAVING n>1)").fetchone()[0]
+print("identical-row duplicates:", dups, "(should be ~0)")
+print("total properties:", c.execute("SELECT COUNT(*) FROM property").fetchone()[0])
+PY
+```
+
+If duplicates are non-zero, **do not export** — remove the overlapping source file(s) and re-run
+`build.py`, or de-duplicate, until the count is ~0. Run **`extract/field_coverage.py`** any time to
+see per-municipality field richness (writes `FIELD-COVERAGE.md`; pairs with `STRUCTURE-ANALYSIS.md`).
+
 ---
 
 ## 3. Database schema the export depends on (`wc-valuations.db`)
