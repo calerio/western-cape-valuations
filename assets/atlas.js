@@ -17,6 +17,8 @@ const R = v => { v = +v; if (!isFinite(v)) return "—";
 const N = v => v == null ? "—" : (+v).toLocaleString("en-ZA").replace(/,/g, " ");
 const norm = s => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const clAddr = s => (s || "").replace(/\s+/g, " ").trim();                 // collapse OCR padding
+const clSub = s => clAddr(s).replace(/(\s+\d{3,})+$/, "");                 // strip trailing data codes
 
 /* ============================ state ============================ */
 let STATS, TOWNS, PROV, DISTF, MUNIF;
@@ -47,6 +49,18 @@ let dbw = null, areaIndex = null;
   $("scrollcue").onclick = () => statePath.length && scrollTo({ top: innerHeight * 0.96, behavior: "smooth" });
   $("mback").onclick = () => { if (statePath.length) { navigate(statePath.slice(0, -1)); scrollTo({ top: 0, behavior: "smooth" }); } };
   let rzT; addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(() => { if (statePath.length) renderDash(statePath); }, 200); });
+
+  // top-N properties overlay
+  const cardKey = id => id === "hiCard" ? "hi" : "lo";
+  ["hiCard", "loCard"].forEach(id => {
+    const el = $(id);
+    el.onclick = () => openTop(cardKey(id));
+    el.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openTop(cardKey(id)); } };
+  });
+  $("tlClose").onclick = closeTop;
+  $("tlScrim").onclick = closeTop;
+  $("tlSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; tlN = +b.dataset.n; [...$("tlSeg").children].forEach(x => x.classList.toggle("on", x === b)); loadTop(); });
+  addEventListener("keydown", e => { if (e.key === "Escape" && $("toplist").classList.contains("open")) closeTop(); });
 })();
 
 const name = f => f.properties.name;
@@ -294,6 +308,10 @@ function renderDash(p) {
 
   fillProp("hi", scope && scope.hi);
   fillProp("lo", scope && scope.lo);
+  tlEnabled = !!scope;
+  ["hiCard", "loCard"].forEach(id => { const el = $(id); if (el) { el.style.cursor = scope ? "pointer" : "default"; el.style.pointerEvents = scope ? "auto" : "none"; } });
+  $("hiHint").style.display = scope ? "block" : "none";
+  $("loHint").style.display = scope ? "block" : "none";
   $("dashNote").textContent = !scope
     ? "The City of Cape Town does not publish a downloadable valuation roll — values are available only through its per-property online search, so it can't be aggregated here."
     : isMuni
@@ -353,6 +371,58 @@ function tipHist(e, label, cnt, total) {
   t.style.opacity = 1; let x = e.clientX + 16, y = e.clientY + 16;
   if (x + 220 > innerWidth) x = e.clientX - 220; if (y + 80 > innerHeight) y = e.clientY - 80;
   t.style.left = x + "px"; t.style.top = y + "px";
+}
+
+/* ============================ top-N properties (live DB query) ============================ */
+let tlKind = "hi", tlN = 10, tlEnabled = false, tlReq = 0;
+function scopeFilter() {
+  const p = statePath, len = p.length;
+  if (len >= 3) return { where: "muni = ?", args: [p[2].name], name: p[2].name };
+  if (len === 2) { const ms = DISTRICTS[p[1].name].munis; return { where: `muni IN (${ms.map(() => "?").join(",")})`, args: ms, name: p[1].name }; }
+  return { where: "", args: [], name: "the Western Cape" };
+}
+function openTop(kind) {
+  if (!tlEnabled) return;
+  tlKind = kind; tlN = 10;
+  const sc = scopeFilter();
+  $("tlKicker").textContent = (kind === "hi" ? "Most valuable" : "Most affordable") + " · " + sc.name;
+  $("tlTitle").textContent = kind === "hi" ? "Most valuable properties" : "Most affordable homes";
+  $("tlNote").textContent = kind === "hi"
+    ? "All categories, ranked by municipal market value. Tags: RES home · AGRI farm · COM/BUS business · PSP/PSI state or institutional · VAC vacant."
+    : "Residential only, excluding nominal/placeholder valuations under R100 000. Lowest market value first.";
+  [...$("tlSeg").children].forEach(b => b.classList.toggle("on", +b.dataset.n === tlN));
+  $("toplist").classList.add("open"); $("toplist").setAttribute("aria-hidden", "false");
+  document.documentElement.style.overflow = "hidden";
+  loadTop();
+}
+function closeTop() {
+  $("toplist").classList.remove("open"); $("toplist").setAttribute("aria-hidden", "true");
+  document.documentElement.style.overflow = "";
+}
+async function loadTop() {
+  const body = $("tlBody"); body.innerHTML = `<div style="padding:34px 0;color:#9a9286;font-size:14px">Finding properties…</div>`;
+  $("tlCount").textContent = "";
+  const kind = tlKind, n = tlN, req = ++tlReq, sc = scopeFilter();
+  let where = "value>0", args = [];
+  if (sc.where) { where += " AND " + sc.where; args = [...sc.args]; }
+  if (kind === "lo") where += " AND value>=100000 AND UPPER(category) LIKE '%RES%'";
+  const sql = `SELECT muni,suburb,erf,address,extent,value,tenure,category FROM prop WHERE ${where} ORDER BY value ${kind === "hi" ? "DESC" : "ASC"} LIMIT ${n}`;
+  let rows = [];
+  try { rows = await (await ensureDB()).db.query(sql, args); }
+  catch (e) { if (req === tlReq) body.innerHTML = `<div style="padding:34px 0;color:#b8623c;font-size:14px">Couldn't load the list — please try again.</div>`; return; }
+  if (req !== tlReq) return;   // a newer request superseded this one
+  if (!rows.length) { body.innerHTML = `<div style="padding:34px 0;color:#9a9286;font-size:14px">No properties found for this area.</div>`; return; }
+  const muniScope = statePath.length >= 3;
+  body.innerHTML = rows.map((r, i) => {
+    const addr = esc(clAddr(r.address) || "Unnamed erf");
+    const sub = esc((muniScope ? [clSub(r.suburb)] : [clSub(r.suburb), r.muni]).filter(Boolean).join(" · "));
+    const cat = r.category ? `<span class="tlCat">${esc(r.category)}</span>` : "";
+    const meta = (r.extent ? N(Math.round(r.extent)) + " m²" : "extent n/a") + (r.extent ? " · R" + N(Math.round(r.value / r.extent)) + "/m²" : "");
+    return `<div class="tlRow"><div class="tlRank">${i + 1}</div>` +
+      `<div class="tlMain"><div class="tlAddr">${addr}${cat}</div><div class="tlSub">${sub}</div></div>` +
+      `<div class="tlRight"><div class="tlVal">${R(r.value)}</div><div class="tlMeta">${meta}</div></div></div>`;
+  }).join("");
+  $("tlCount").textContent = "Top " + rows.length;
 }
 
 /* ============================ search (area names + addresses) ============================ */

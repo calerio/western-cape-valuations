@@ -23,6 +23,46 @@
   a{color:inherit}
   input,button{font-family:inherit}
 
+  /* ---- clickable extreme-property cards ---- */
+  .propcard{cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .12s;outline:none}
+  .propcard:hover{border-color:rgba(26,23,20,.24);box-shadow:0 12px 32px -20px rgba(26,23,20,.45)}
+  .propcard:active{transform:scale(.992)}
+  .propcard:focus-visible{border-color:#1f6f63;box-shadow:0 0 0 3px rgba(31,111,99,.25)}
+  .tlOpen{font-size:11.5px;letter-spacing:.04em;font-weight:600;color:#1f6f63;margin-top:14px}
+  #loHint{color:#b8623c}
+
+  /* ---- top-N properties overlay ---- */
+  #toplist{position:fixed;inset:0;z-index:60;display:none}
+  #toplist.open{display:block}
+  #tlScrim{position:absolute;inset:0;background:rgba(26,23,20,.46);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+  #tlPanel{position:absolute;background:#f6f2e9;display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:0 30px 80px -30px rgba(26,23,20,.6);opacity:0;transition:opacity .22s ease,transform .22s ease}
+  #toplist.open #tlPanel{opacity:1}
+  #tlHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 14px;border-bottom:1px solid rgba(26,23,20,.1)}
+  #tlKicker{font-size:10.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:#1f6f63;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tlTitle{font-family:'Newsreader',serif;font-size:26px;line-height:1.05;letter-spacing:-.01em}
+  #tlClose{appearance:none;-webkit-appearance:none;border:1px solid rgba(26,23,20,.16);background:#fbf9f3;width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:#1a1714;flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
+  #tlControls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid rgba(26,23,20,.08)}
+  #tlSeg{display:inline-flex;background:rgba(26,23,20,.06);border-radius:9px;padding:3px}
+  #tlSeg button{appearance:none;-webkit-appearance:none;border:none;background:transparent;color:#6f685c;font-size:13px;font-weight:600;padding:9px 15px;border-radius:7px;cursor:pointer}
+  #tlSeg button.on{background:#1f6f63;color:#fff}
+  #tlCount{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9a9286;white-space:nowrap}
+  #tlBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 24px 6px;flex:1}
+  #tlNote{padding:12px 24px calc(env(safe-area-inset-bottom,0px) + 16px);font-size:12px;line-height:1.5;color:#9a9286;border-top:1px solid rgba(26,23,20,.08)}
+  .tlRow{display:flex;align-items:flex-start;gap:13px;padding:14px 0;border-bottom:1px solid rgba(26,23,20,.08)}
+  .tlRank{flex:0 0 24px;font-family:'Newsreader',serif;font-size:17px;color:#9a9286;font-variant-numeric:tabular-nums;text-align:right;padding-top:2px}
+  .tlMain{flex:1;min-width:0}
+  .tlAddr{font-family:'Newsreader',serif;font-size:18px;line-height:1.2}
+  .tlSub{font-size:12px;color:#9a9286;margin-top:3px}
+  .tlRight{flex:0 0 auto;text-align:right;padding-left:6px}
+  .tlVal{font-family:'Newsreader',serif;font-size:18px;font-variant-numeric:tabular-nums}
+  .tlMeta{font-size:11.5px;color:#6f685c;font-variant-numeric:tabular-nums;margin-top:3px}
+  .tlCat{display:inline-block;font-size:9px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:#6f685c;border:1px solid rgba(26,23,20,.18);border-radius:4px;padding:1px 5px;margin-left:7px;vertical-align:middle;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+  @media (min-width:721px){
+    #tlPanel{top:50%;left:50%;transform:translate(-50%,-46%);width:min(720px,92vw);max-height:86vh;border-radius:8px}
+    #toplist.open #tlPanel{transform:translate(-50%,-50%)}
+  }
+
   /* ---- mobile header (hidden on desktop) ---- */
   #mbar{display:none}
 
@@ -73,6 +113,17 @@
     .dsec{margin-top:34px !important}
     .dh{font-size:20px !important}
     .dgrid{grid-template-columns:1fr !important;gap:34px !important;margin-top:34px !important}
+
+    /* top-N overlay = full-screen sheet on phones */
+    #tlPanel{inset:0;transform:translateY(16px)}
+    #toplist.open #tlPanel{transform:translateY(0)}
+    #tlHead{padding-top:calc(env(safe-area-inset-top,0px) + 16px)}
+    #tlTitle{font-size:23px}
+    #tlControls{padding:13px 18px}
+    #tlHead{padding-left:18px;padding-right:18px}
+    #tlBody{padding-left:18px;padding-right:18px}
+    #tlNote{padding-left:18px;padding-right:18px}
+    .tlRow{padding:13px 0}
   }
   @media (max-width:380px){ .kpis{grid-template-columns:1fr !important} .kpis>div{border-right:none !important} }
 </style>
@@ -183,19 +234,21 @@
           <div id="ranked"></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:22px">
-          <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:22px 24px">
+          <div id="hiCard" class="propcard" role="button" tabindex="0" aria-label="View the most valuable properties" style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:22px 24px">
             <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px">Most valuable property</div>
             <div id="hiAddr" style="font-family:'Newsreader',serif;font-size:22px;line-height:1.15;margin-bottom:3px"></div>
             <div id="hiSub" style="font-size:12.5px;color:#9a9286;margin-bottom:12px"></div>
             <div id="hiVal" style="font-family:'Newsreader',serif;font-size:26px;font-variant-numeric:tabular-nums"></div>
             <div id="hiMeta" style="font-size:12.5px;color:#6f685c;font-variant-numeric:tabular-nums;margin-top:3px"></div>
+            <div id="hiHint" class="tlOpen">See the top valued properties →</div>
           </div>
-          <div style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:22px 24px">
+          <div id="loCard" class="propcard" role="button" tabindex="0" aria-label="View the most affordable homes" style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:22px 24px">
             <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#b8623c;margin-bottom:12px">Most affordable home</div>
             <div id="loAddr" style="font-family:'Newsreader',serif;font-size:22px;line-height:1.15;margin-bottom:3px"></div>
             <div id="loSub" style="font-size:12.5px;color:#9a9286;margin-bottom:12px"></div>
             <div id="loVal" style="font-family:'Newsreader',serif;font-size:26px;font-variant-numeric:tabular-nums"></div>
             <div id="loMeta" style="font-size:12.5px;color:#6f685c;font-variant-numeric:tabular-nums;margin-top:3px"></div>
+            <div id="loHint" class="tlOpen">See the most affordable homes →</div>
           </div>
           <div id="dashNote" style="font-size:12.5px;line-height:1.6;color:#9a9286;padding:0 2px"></div>
         </div>
@@ -204,6 +257,31 @@
   </section>
 
 </div>
-<script type="module" src="assets/atlas.js?v=5"></script>
+
+<!-- ===== Top-N properties overlay (live DB query) ===== -->
+<div id="toplist" aria-hidden="true">
+  <div id="tlScrim"></div>
+  <div id="tlPanel" role="dialog" aria-modal="true" aria-labelledby="tlTitle">
+    <div id="tlHead">
+      <div style="min-width:0">
+        <div id="tlKicker"></div>
+        <div id="tlTitle"></div>
+      </div>
+      <button id="tlClose" aria-label="Close">×</button>
+    </div>
+    <div id="tlControls">
+      <div id="tlSeg" role="tablist" aria-label="How many to show">
+        <button data-n="10" class="on">Top 10</button>
+        <button data-n="20">Top 20</button>
+        <button data-n="30">Top 30</button>
+      </div>
+      <div id="tlCount"></div>
+    </div>
+    <div id="tlBody"></div>
+    <div id="tlNote"></div>
+  </div>
+</div>
+
+<script type="module" src="assets/atlas.js?v=6"></script>
 </body>
 </html>
