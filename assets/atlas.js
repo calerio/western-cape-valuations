@@ -2,7 +2,7 @@ import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 
 /* ============================ config / tokens ============================ */
 const W = 1000, H = 760, MAXK = 46;
-const RAMP = ["#eef0e3", "#bcd9c7", "#6cab95", "#2f7d6b", "#16524a"];
+const RAMP = ["#dbe5c6", "#a8cdb2", "#5fa286", "#2f7d6b", "#15514a"];   // deeper steps = clearer on small screens
 const ACCENT = "#1f6f63";
 const LAND = "#e6e0d3", NODATA = "#d9d2c2";
 const YEAR = "2024 / 25";
@@ -177,7 +177,8 @@ function labels(len, p) {
 }
 
 /* ============================ tooltip ============================ */
-function tip(e, nm, st, drill) { const t = $("tip");
+function tip(e, nm, st, drill) { if (innerWidth <= 720) return;   // phones: tap drills in, no off-screen tooltip
+  const t = $("tip");
   t.innerHTML = `<div style="font-family:'Newsreader',serif;font-size:16px;margin-bottom:7px">${nm}</div>` +
     (st ? `<div style="display:grid;grid-template-columns:auto auto;gap:2px 16px;font-size:12px">` +
       `<span style="opacity:.6">Median</span><span style="text-align:right;font-variant-numeric:tabular-nums">${R(st.median)}</span>` +
@@ -216,7 +217,7 @@ function renderChrome(p) {
   const len = p.length;
   $("headline").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;
   $("subline").textContent = len === 0 ? "Tap the Western Cape to begin"
-    : len === 1 ? "Six districts · " + YEAR : len === 2 ? "Local municipalities · " + YEAR : "Municipal valuation roll · " + YEAR;
+    : len === 1 ? "Five districts and a metro" : len === 2 ? "Local municipalities" : "Municipal valuation roll";
 
   // mobile top bar — always shows where you are, with a back step up the hierarchy
   $("mloc").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;
@@ -257,8 +258,8 @@ function renderDash(p) {
   $("dashKicker").textContent = kicker;
   $("scopeLabel").textContent = scopeName;
   $("scopeSub").textContent = !scope ? "No public valuation roll"
-    : isMuni ? "Municipal valuation roll · " + YEAR
-    : children.filter(c => c.s).length + " " + kindP.toLowerCase() + " · valuation roll " + YEAR;
+    : isMuni ? "Valuation roll · " + (scope.cycle || YEAR)
+    : children.filter(c => c.s).length + " " + kindP.toLowerCase() + " · current valuation rolls";
   $("statMedian").textContent = scope ? R(scope.median) : "—";
   $("statAvg").textContent = scope ? R(scope.mean ?? scope.avg) : "—";
   $("statTotal").textContent = scope ? R(scope.total) : "—";
@@ -297,7 +298,7 @@ function renderDash(p) {
     ? "The City of Cape Town does not publish a downloadable valuation roll — values are available only through its per-property online search, so it can't be aggregated here."
     : isMuni
     ? "Municipality is the finest level with reliable public boundaries — suburb/town borders aren't published as open data, so we don't subdivide further."
-    : "Figures are recomputed live from the underlying valuation roll · refreshed for " + YEAR + ".";
+    : "Figures are recomputed live from each area's most recent published valuation roll. Cycles differ by municipality.";
 }
 
 function fillProp(id, pr) {

@@ -56,9 +56,11 @@
       overflow:hidden auto;box-shadow:0 18px 40px -20px rgba(26,23,20,.5);max-height:54vh}
     #mresults[hidden]{display:none}
 
-    /* map stage clears the header; legend pinned, compact, full-width */
+    /* map stage clears the header; legend pinned, compact, full-width (override desktop inline left/bottom) */
     #stage{height:100dvh}
-    #legendBox{left:14px;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);min-width:0}
+    #legendBox{left:14px !important;right:14px !important;bottom:calc(env(safe-area-inset-bottom,0px) + 14px) !important;min-width:0 !important;padding:12px 15px 13px !important}
+    #legendBar{height:14px !important}
+    #legendTitle{margin-bottom:8px !important}
 
     /* dashboard: fluid, everything stacked under each other */
     #dash{padding:calc(env(safe-area-inset-top,0px) + 132px) 16px calc(env(safe-area-inset-bottom,0px) + 56px) !important}
@@ -202,6 +204,6 @@
   </section>
 
 </div>
-<script type="module" src="assets/atlas.js?v=4"></script>
+<script type="module" src="assets/atlas.js?v=5"></script>
 </body>
 </html>
