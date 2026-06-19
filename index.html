@@ -78,6 +78,36 @@
     #toplist.open #tlPanel{transform:translate(-50%,-50%)}
   }
 
+  /* ---- property detail + rates estimator ---- */
+  #propdetail{position:fixed;inset:0;z-index:70;display:none}
+  #propdetail.open{display:block}
+  #pdScrim{position:absolute;inset:0;background:rgba(26,23,20,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+  #pdPanel{position:absolute;background:#f6f2e9;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px -30px rgba(26,23,20,.6);opacity:0;transition:opacity .2s ease,transform .2s ease}
+  #propdetail.open #pdPanel{opacity:1}
+  #pdHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 16px;border-bottom:1px solid rgba(26,23,20,.1)}
+  #pdKicker{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:#1f6f63;margin-bottom:5px}
+  #pdAddr{font-family:'Newsreader',serif;font-size:25px;line-height:1.12}
+  #pdClose{appearance:none;-webkit-appearance:none;border:1px solid rgba(26,23,20,.16);background:#fbf9f3;width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:#1a1714;flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
+  #pdBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 24px calc(env(safe-area-inset-bottom,0px) + 22px)}
+  .pdVal{font-family:'Newsreader',serif;font-size:34px;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 2px}
+  .pdStat{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid rgba(26,23,20,.08);font-size:14px}
+  .pdStat .k{color:#6f685c}
+  .pdStat .v{font-variant-numeric:tabular-nums;text-align:right}
+  .pdTax{margin-top:20px;background:#fbf9f3;border:1px solid rgba(26,23,20,.12);border-radius:3px;padding:16px 18px}
+  #pdRate{width:84px;padding:8px 10px;border:1px solid rgba(26,23,20,.2);border-radius:6px;font-size:15px;font-family:inherit;font-variant-numeric:tabular-nums;outline:none}
+  #pdRate:focus{border-color:#1f6f63}
+  #pdGo{margin-top:18px;font-size:12.5px;font-weight:600;letter-spacing:.04em;color:#1f6f63;cursor:pointer}
+  @media (min-width:721px){
+    #pdPanel{top:50%;left:50%;transform:translate(-50%,-46%);width:min(560px,92vw);max-height:88vh;border-radius:8px}
+    #propdetail.open #pdPanel{transform:translate(-50%,-50%)}
+  }
+  @media (max-width:720px){
+    #pdPanel{inset:0;transform:translateY(16px)}
+    #propdetail.open #pdPanel{transform:translateY(0)}
+    #pdHead{padding-top:calc(env(safe-area-inset-top,0px) + 16px)}
+    #pdAddr{font-size:23px}
+  }
+
   /* ---- mobile header (hidden on desktop) ---- */
   #mbar{display:none}
 
@@ -310,6 +340,21 @@
   </div>
 </div>
 
-<script type="module" src="assets/atlas.js?v=9"></script>
+<!-- ===== Property detail + rates estimator ===== -->
+<div id="propdetail" aria-hidden="true">
+  <div id="pdScrim"></div>
+  <div id="pdPanel" role="dialog" aria-modal="true" aria-labelledby="pdAddr">
+    <div id="pdHead">
+      <div style="min-width:0">
+        <div id="pdKicker"></div>
+        <div id="pdAddr"></div>
+      </div>
+      <button id="pdClose" aria-label="Close">×</button>
+    </div>
+    <div id="pdBody"></div>
+  </div>
+</div>
+
+<script type="module" src="assets/atlas.js?v=10"></script>
 </body>
 </html>

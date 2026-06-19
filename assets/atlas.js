@@ -60,7 +60,9 @@ let dbw = null, dbwPromise = null, areaIndex = null;
   $("tlClose").onclick = closeTop;
   $("tlScrim").onclick = closeTop;
   $("tlSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; tlN = +b.dataset.n; [...$("tlSeg").children].forEach(x => x.classList.toggle("on", x === b)); loadTop(); });
-  addEventListener("keydown", e => { if (e.key === "Escape" && $("toplist").classList.contains("open")) closeTop(); });
+  $("pdClose").onclick = closeProp;
+  $("pdScrim").onclick = closeProp;
+  addEventListener("keydown", e => { if (e.key !== "Escape") return; if ($("propdetail").classList.contains("open")) closeProp(); else if ($("toplist").classList.contains("open")) closeTop(); });
   ensureDB().catch(() => {});   // pre-warm the SQLite worker so the first search / top-N is instant
 })();
 
@@ -489,6 +491,14 @@ function wireSearch() {
 }
 function hideResults() { ["results", "mresults"].forEach(id => { const r = $(id); if (r) { r.hidden = true; r.innerHTML = ""; } }); }
 let searchSeq = 0;
+const SEARCH_NOISE = new Set(["street", "st", "straat", "str", "road", "rd", "weg", "avenue", "ave",
+  "av", "laan", "lane", "ln", "drive", "dr", "rylaan", "crescent", "cres", "close", "cl", "way",
+  "singel", "boulevard", "blvd", "the", "erf", "no", "nr"]);
+// build an FTS5 prefix-AND query from free text: tokens become prefix terms, noise words dropped
+function ftsQuery(q) {
+  const toks = q.toLowerCase().split(/[^a-z0-9]+/).filter(t => t && (t.length > 1 || /[0-9]/.test(t)) && !SEARCH_NOISE.has(t));
+  return toks.length ? toks.map(t => t + "*").join(" ") : null;
+}
 function searchRow(box, inId, label, sub, go, right) {
   const d = document.createElement("div"); d.className = "o-clickable";
   d.style.cssText = "display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(26,23,20,.06);cursor:pointer";
@@ -510,23 +520,67 @@ async function runSearch(q, inId = "search", resId = "results") {
   areas.forEach(a => searchRow(box, inId, a.label, a.sub, a.go, a.sub));
   const ph = searchNote(box, "Searching addresses…");
   box.hidden = false;
-  // 2) per-property address search over the chunked DB, with one retry for cold-start
-  let addrs = null;
-  for (let attempt = 0; attempt < 2 && addrs === null; attempt++) {
-    try { addrs = await (await ensureDB()).db.query("SELECT muni,suburb,address,value FROM prop WHERE address LIKE ? COLLATE NOCASE AND value>0 ORDER BY value DESC LIMIT 6", [q + "%"]); }
-    catch (e) { resetDB(); }
+  // 2) full-text property search (matches address/suburb/erf tokens in any order), with cold-start retry
+  const fts = ftsQuery(q);
+  let rows = fts ? null : [];
+  for (let attempt = 0; attempt < 2 && rows === null; attempt++) {
+    try {
+      rows = await (await ensureDB()).db.query(
+        "SELECT p.muni,p.suburb,p.address,p.erf,p.extent,p.value,p.category FROM psearch f " +
+        "JOIN prop p ON p.id=f.rowid WHERE psearch MATCH ? AND p.value>0 ORDER BY p.value DESC LIMIT 8", [fts]);
+    } catch (e) { resetDB(); }
   }
   if (seq !== searchSeq) return;            // a newer keystroke superseded this query
   if (ph.parentNode) ph.remove();
-  if (addrs === null) {                      // DB momentarily unavailable — keep area results, don't blank out
+  if (rows === null) {                        // DB momentarily unavailable — keep area results, don't blank out
     if (!areas.length) searchNote(box, "Address search is still loading — try again in a moment.");
     return;
   }
-  addrs.forEach(a => { const m = a.muni; searchRow(box, inId, a.address || "(erf)", m, () => {
-    const f = muniByName[m]; if (f) navigate([wcCrumb(), { type: "district", name: f.properties.district }, { type: "municipality", name: m }]);
-  }, R(a.value)); });
+  rows.forEach(r => searchRow(box, inId, clAddr(r.address) || "Unnamed erf",
+    [clSub(r.suburb), r.muni].filter(Boolean).join(" · "), () => openProp(r), R(r.value)));
   if (!box.children.length) searchNote(box, "No matches");
 }
+/* ============================ property detail + rates estimator ============================ */
+const DEFAULT_RATE = 0.9;   // cents per Rand — typical WC residential rate-in-the-rand (editable)
+const RZA = v => "R" + N(Math.round(v));   // full-precision Rand (no k/m abbreviation) for rates
+function openProp(r) {
+  $("pdKicker").textContent = [clSub(r.suburb), r.muni].filter(Boolean).join(" · ");
+  $("pdAddr").textContent = clAddr(r.address) || "Unnamed erf";
+  const ppm = r.extent ? "R" + N(Math.round(r.value / r.extent)) + " / m²" : "—";
+  const stats = [
+    ["Erf / unit", r.erf || "—"],
+    ["Category", r.category || "—"],
+    ["Extent", r.extent ? N(Math.round(r.extent)) + " m²" : "—"],
+    ["Value per m²", ppm],
+    ["Municipality", r.muni || "—"],
+  ];
+  $("pdBody").innerHTML =
+    `<div class="pdVal">${R(r.value)}</div>` +
+    `<div style="font-size:12px;color:#9a9286;margin-bottom:14px">municipal market value · ${YEAR}</div>` +
+    stats.map(([k, v]) => `<div class="pdStat"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("") +
+    `<div class="pdTax">
+       <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px">Estimated annual rates</div>
+       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+         <label for="pdRate" style="font-size:13px;color:#6f685c">Rate-in-the-rand (cents per R)</label>
+         <input id="pdRate" type="number" step="0.01" min="0" inputmode="decimal" value="${DEFAULT_RATE}">
+       </div>
+       <div class="pdStat" style="margin-top:12px"><span class="k">≈ per year</span><span id="pdAnnual" class="v" style="font-family:'Newsreader',serif;font-size:21px"></span></div>
+       <div class="pdStat" style="border-bottom:none"><span class="k">≈ per month</span><span id="pdMonthly" class="v"></span></div>
+       <div style="font-size:11px;line-height:1.55;color:#9a9286;margin-top:10px">Estimate only. Annual rates = market value × the municipal rate-in-the-rand for the property's category, minus any rebate. The default is a typical Western Cape residential rate — enter ${esc(r.muni || "the municipality")}'s actual tariff (from its rates policy) for an exact figure.</div>
+     </div>` +
+    `<div id="pdGo" class="o-clickable">View ${esc(r.muni || "area")} on the map →</div>`;
+  const calc = () => { const rate = parseFloat($("pdRate").value) || 0, ann = r.value * rate / 100;
+    $("pdAnnual").textContent = RZA(ann); $("pdMonthly").textContent = RZA(ann / 12); };
+  calc();
+  $("pdRate").addEventListener("input", calc);
+  $("pdGo").onclick = () => { const f = muniByName[r.muni]; closeProp();
+    if (f) navigate([wcCrumb(), { type: "district", name: f.properties.district }, { type: "municipality", name: r.muni }]);
+    scrollTo({ top: 0 }); };
+  $("propdetail").classList.add("open"); $("propdetail").setAttribute("aria-hidden", "false");
+  document.documentElement.style.overflow = "hidden";
+}
+function closeProp() { $("propdetail").classList.remove("open"); $("propdetail").setAttribute("aria-hidden", "true"); document.documentElement.style.overflow = ""; }
+
 async function ensureDB() {
   if (dbw) return dbw;
   if (!dbwPromise) dbwPromise = (async () => {
