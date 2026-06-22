@@ -25,7 +25,9 @@ municipality**, with fluid zoom, hover tooltips, search, and a scroll-reveal sta
 - **Search** (`data/db/`): area names (district / municipality) and suburb names (which jump to the
   parent municipality) **plus** per-property **address** search via
   [`sql.js-httpvfs`](https://github.com/phiresky/sql.js-httpvfs) — real SQL over a chunked static
-  SQLite file (HTTP range requests; only a few KB fetched per query).
+  SQLite file (HTTP range requests; only a few KB fetched per query). The SQLite file is served from
+  **Supabase Storage** rather than GitHub Pages, which gzips responses and corrupts range requests
+  (see `DATA_CONTRACT.md` §8).
 
 ## Data
 24 Western Cape local municipalities, ~514,000 properties, current/recent valuation cycles

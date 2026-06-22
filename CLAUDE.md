@@ -2,7 +2,8 @@
 
 Public GitHub Pages site (deploys to https://calerio.github.io/western-cape-valuations/) for the
 Western Cape municipal property-valuation project. Static front-end (vanilla HTML/CSS/JS + D3 v7)
-reading exported JSON + a chunked static SQLite file. No build step, no server.
+reading exported JSON (from this repo) + a chunked static SQLite search DB (served from **Supabase
+Storage**, not this repo — see DATA_CONTRACT.md §8). No build step, no server.
 
 ## ⚠️ Before changing data: read DATA_CONTRACT.md
 **[`DATA_CONTRACT.md`](DATA_CONTRACT.md)** is the source of truth for how data reaches the site and
@@ -32,4 +33,6 @@ export lives in the sibling project `~/projects/western-cape-property-valuations
 - `assets/atlas.js` — all logic (map, zoom, dashboard, histogram, search). Bump the `?v=` on its
   `<script>` tag when changing it so GitHub Pages' CDN serves the new file.
 - `data/` — `stats.json`, `towns.json`, `geo/*.geojson`, `db/` (chunked SQLite + `config.json`).
+  **`db/` is the *upload source* for Supabase Storage — the live site fetches the search DB from
+  Supabase, not from here.** After regenerating it, re-upload the 4 files (DATA_CONTRACT.md §2/§8).
 - `assets/vendor/` — vendored `sqlite.worker.js` + `sql-wasm.wasm` (sql.js-httpvfs).

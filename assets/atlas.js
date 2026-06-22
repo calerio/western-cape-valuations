@@ -587,7 +587,13 @@ async function ensureDB() {
     const mod = await import("https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/+esm");
     const createDbWorker = mod.createDbWorker || mod.default.createDbWorker;
     const abs = p => new URL(p, location.href).href;
-    const w = await createDbWorker([{ from: "jsonconfig", configUrl: abs("data/db/config.json") }],
+    // The search DB is served from Supabase Storage, NOT GitHub Pages. sql.js-httpvfs reads the
+    // DB via HTTP Range requests; GitHub Pages (and jsDelivr) gzip responses and serve ranges
+    // against the COMPRESSED bytes, so SQLite reads garbage and every search returns nothing.
+    // Supabase Storage serves raw byte-ranges (no transfer compression) with CORS — verified.
+    // config.json's urlPrefix ("search.db.") resolves the chunks relative to this configUrl.
+    const DB_CONFIG = "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/config.json";
+    const w = await createDbWorker([{ from: "jsonconfig", configUrl: DB_CONFIG }],
       abs("assets/vendor/sqlite.worker.js"), abs("assets/vendor/sql-wasm.wasm"));
     await w.db.query("SELECT 1");   // cold-start can hand back an empty wasm buffer — verify before caching
     dbw = w; return w;
