@@ -79,6 +79,19 @@ If duplicates are non-zero, **do not export** — remove the overlapping source 
 `build.py`, or de-duplicate, until the count is ~0. Run **`extract/field_coverage.py`** any time to
 see per-municipality field richness (writes `FIELD-COVERAGE.md`; pairs with `STRUCTURE-ANALYSIS.md`).
 
+> **⚠️ "byte-identical" must mean a true duplicate, not a distinct unit.** `dedup()` keys on
+> `DEDUP_COLS` (which includes `unit_no`), so each parser MUST give every sectional unit a unique
+> `unit_no` — otherwise identical-value units in one scheme (e.g. 49 identical flats, or 561 storage
+> units) become one byte-identical row and dedup silently deletes the rest. This was happening across
+> the sectional-heavy municipalities and had quietly removed **~6,987 rows / ~R7.8bn** before it was
+> caught. Fixed 2026-06-26 in the `qhawekazi` (Bitou) and `pensoft` (Drakenstein/Saldanha/Breede
+> Valley/Bergrivier/Overstrand) parsers — `unit_no` now carries the SG code / section number, and the
+> total rose from R876.5bn to **R884.18bn**. **Known residual (~R162m, tracked, NOT yet fixed):** a
+> freehold/farm *portion*-capture gap on rural ("RD") erven (Drakenstein, Breede Valley) plus five
+> low-volume engines (Knysna, Oudtshoorn, Hessequa, Matzikama, Theewaterskloof) — some of those
+> remaining collapses are *genuine* duplicates that are correct to drop. When adding/altering a parser,
+> confirm sectional units get a distinct `unit_no`: `cd extract && PYTHONPATH=. python3 test_sectional_identity.py`.
+
 ---
 
 ## 3. Database schema the export depends on (`wc-valuations.db`)
