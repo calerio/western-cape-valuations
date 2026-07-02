@@ -116,10 +116,12 @@ field is optional and is consumed defensively (see §5). New municipalities just
    hides that piece of UI.
 2. **`data/db/`** — `search.db` split into 32 MB chunks + `config.json`. **Served from Supabase
    Storage, not this repo** (see §8) — these committed files are the *upload source*. Table
-   `prop(muni, suburb, erf, address, extent, value, tenure, category)` + an FTS5 index `psearch`
-   (address/suburb/erf, for in-any-order token search) with indexes
-   `idx_addr, idx_sub, idx_muni_value, idx_value`. `config.json.databaseLengthBytes` **must equal**
-   the summed byte size of the chunk files (export computes this — don't touch it).
+   `prop(muni, suburb, erf, address, extent, value, tenure, category, erf_int)` + an FTS5 index
+   `psearch` (address/suburb/erf, for in-any-order token search) with indexes
+   `idx_addr, idx_sub, idx_muni_value, idx_value, idx_erf_int`. `erf_int` is the numeric core of
+   `erf` ('SB17324' / '00017324' / '17324' → 17324) — the **map view's cadastre join key** (see §9).
+   `config.json.databaseLengthBytes` **must equal** the summed byte size of the chunk files
+   (export computes this — don't touch it).
 3. **`data/geo/*.geojson`** — province / WC districts / WC municipalities.
 
 ---
@@ -155,9 +157,12 @@ So a partial data update = a quieter page, not a broken one.
    West Coast.)
 3. `search.db` must keep the `prop` columns above **and the value indexes** — without
    `idx_value` / `idx_muni_value` the top-N query scans the whole table and downloads the entire DB
-   over the network instead of a few KB.
+   over the network instead of a few KB. The same applies to `idx_erf_int` for the map view's
+   click-to-valuation lookup (map.js falls back to an FTS erf-token match if the hosted DB predates
+   `erf_int`, so an old upload degrades rather than breaks — but don't remove the column/index).
 4. `config.json.databaseLengthBytes` must match the chunk total (re-running the export guarantees this).
-5. Bump `assets/atlas.js?v=N` in `index.html` whenever `atlas.js` changes (GitHub Pages caches assets).
+5. Bump `assets/atlas.js?v=N` in `index.html` whenever `atlas.js` changes, and
+   `assets/map.js?v=N` in `map.html` whenever `map.js` changes (GitHub Pages caches assets).
 6. Always re-run `export_site.py` after any DB change (it rewrites all data files together).
 7. **The search DB must stay reachable on Supabase Storage** (see §8). `atlas.js` `ensureDB()` hard-codes
    the absolute `configUrl` to the `valuations` bucket; if you rename the bucket/paths or rotate the
@@ -209,3 +214,28 @@ files at the bucket root. `atlas.js` `ensureDB()` points `configUrl` at
 `config.json`'s `urlPrefix`. Chunking is retained because each chunk (≤32 MB) stays under Supabase's
 50 MB-per-file upload limit. The vendored `sqlite.worker.js` + `sql-wasm.wasm` still load from this
 repo (full GETs, so gzip is fine).
+
+---
+
+## 9. The map view's data path (map.html + assets/map.js)
+
+The satellite map draws **cadastral parcels live** from the WC Surveyor-General planning cadastre
+(`gis.westerncape.gov.za/...SG_PlanningCadastre/MapServer/1`, CORS-verified) — fetched per viewport
+at zoom ≥ 15.5, never stored in this repo. Clicking a parcel joins its erf number (`TAG_VALUE`) to
+valuations via `prop.erf_int` (§4.2) and ranks matches by the cadastre `Town_name` against
+`prop.suburb` (town evidence) then `prop.muni` — town-level matches are the parcel's own rows;
+muni-level-only matches are labelled as "other townships" in the UI, honestly.
+
+Degradation rules (keep these):
+- Cadastre down / CORS broken → hint "Erf boundaries unavailable", imagery keeps working.
+- No valuation match → an explicit "No valuation found" card, never a fabricated match.
+- Hosted search.db older than the `erf_int` schema → FTS erf-token fallback (bare + 8-digit
+  zero-padded), confirmed client-side; Stellenbosch-style prefixed erven ('SB17324') only resolve
+  once the new DB is uploaded.
+- Parcel geometry has **no published open licence**: attribution "Surveyor-General / Western Cape
+  Government (as-is)" is required on the parcels source (see MAP-FEASIBILITY.md in the extraction
+  repo). Do not ingest owner names from cadastre services.
+- `?db=<configUrl>` on map.html overrides the search-DB location for local testing.
+
+If the live service ever becomes a bottleneck, the pre-built PMTiles pipeline sketched in
+MAP-FEASIBILITY.md is the upgrade path — swap `addParcels()`'s source, keep everything else.

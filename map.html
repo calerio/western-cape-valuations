@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Western Cape Property Valuation Atlas — Satellite map</title>
+<meta name="description" content="Satellite map view of Western Cape municipal property valuations. Public data." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:#0c1512;color:#1a1714;
+    font-family:'Libre Franklin',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  #map{position:fixed;inset:0}
+
+  /* overlay chrome — translucent paper panels matching the Atlas */
+  .ovl{position:fixed;z-index:10}
+  #brand{top:calc(env(safe-area-inset-top,0px) + 16px);left:16px;max-width:70vw;
+    background:rgba(243,239,230,.9);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px solid rgba(26,23,20,.12);border-radius:3px;padding:11px 15px 12px}
+  #brandKick{font-size:9.5px;letter-spacing:.16em;font-weight:600;color:#1f6f63;
+    text-transform:uppercase;margin-bottom:3px}
+  #brandTitle{font-family:'Newsreader',serif;font-size:21px;line-height:1.05;letter-spacing:-.01em;color:#1a1714}
+  #toggle{top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;
+    display:inline-flex;align-items:center;gap:8px;text-decoration:none;
+    background:rgba(243,239,230,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px solid rgba(26,23,20,.16);border-radius:3px;padding:11px 15px;
+    font-size:11.5px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:#1f6f63}
+  #toggle:hover{border-color:rgba(31,111,99,.5)}
+
+  #mapfail{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    background:#efe9dc;text-align:center;padding:24px}
+  #mapfail[hidden]{display:none}   /* id selector would otherwise beat the UA hidden rule */
+  #mapfail a{color:#1f6f63;font-weight:600}
+
+  /* zoom/loading hint chip */
+  #maphint{bottom:calc(env(safe-area-inset-bottom,0px) + 34px);left:50%;transform:translateX(-50%);
+    background:rgba(12,21,18,.72);color:rgba(243,239,230,.92);border-radius:999px;
+    padding:7px 15px;font-size:11.5px;letter-spacing:.05em;white-space:nowrap;pointer-events:none}
+  #maphint[hidden]{display:none}
+
+  /* parcel valuation panel — paper card; right rail on desktop, bottom sheet on phones */
+  #ppanel{top:calc(env(safe-area-inset-top,0px) + 74px);right:16px;width:330px;max-width:calc(100vw - 32px);
+    max-height:calc(100dvh - 140px);overflow:auto;background:rgba(243,239,230,.96);
+    backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px solid rgba(26,23,20,.16);border-radius:3px;padding:16px 18px 14px;
+    box-shadow:0 14px 40px -18px rgba(12,21,18,.65)}
+  #ppanel[hidden]{display:none}
+  @media (max-width:640px){
+    #ppanel{top:auto;right:8px;left:8px;width:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+      max-height:55dvh}
+  }
+  #pclose{position:absolute;top:8px;right:10px;border:0;background:none;font-size:19px;line-height:1;
+    color:#6f685c;cursor:pointer;padding:4px}
+  .pKick{font-size:9.5px;letter-spacing:.16em;font-weight:600;color:#1f6f63;text-transform:uppercase;
+    margin:0 18px 4px 0}
+  .pAddr{font-family:'Newsreader',serif;font-size:19px;line-height:1.15;color:#1a1714;margin-bottom:2px}
+  .pVal{font-family:'Newsreader',serif;font-size:30px;letter-spacing:-.01em;color:#1a1714;margin-top:10px}
+  .pSub{font-size:11.5px;color:#9a9286;margin-bottom:10px}
+  .pRow{display:flex;justify-content:space-between;gap:12px;padding:7px 0;
+    border-bottom:1px solid rgba(26,23,20,.08);font-size:13px}
+  .pRow .k{color:#6f685c}
+  .pRow .v{color:#1a1714;text-align:right}
+  .pPick{cursor:pointer}
+  .pPick:hover{background:rgba(31,111,99,.07)}
+  .pNote{font-size:11px;line-height:1.55;color:#9a9286;margin-top:10px}
+  .pLink{font-size:11.5px;letter-spacing:.05em;font-weight:600;color:#1f6f63;text-transform:uppercase;
+    cursor:pointer;margin-bottom:10px}
+
+  /* tone MapLibre's default controls toward the site palette */
+  .maplibregl-ctrl-group{border-radius:3px;overflow:hidden;box-shadow:0 6px 18px -10px rgba(26,23,20,.5)}
+  .maplibregl-ctrl button{background:#fbf9f3}
+  .maplibregl-ctrl-attrib.maplibregl-compact{background:rgba(243,239,230,.9)}
+</style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <a id="toggle" class="ovl" href="index.html" aria-label="Switch to the Atlas view">← Atlas</a>
+  <div id="brand" class="ovl">
+    <div id="brandKick">Municipal valuations · Satellite</div>
+    <div id="brandTitle">Western Cape</div>
+  </div>
+
+  <div id="maphint" class="ovl" hidden></div>
+
+  <aside id="ppanel" class="ovl" hidden aria-label="Property valuation">
+    <button id="pclose" aria-label="Close">×</button>
+    <div id="pbody"></div>
+  </aside>
+
+  <div id="mapfail" hidden>
+    <div>
+      <div style="font-family:'Newsreader',serif;font-style:italic;font-size:22px;color:#6f685c;margin-bottom:10px">The map couldn’t load.</div>
+      <div style="font-size:14px;color:#6f685c">View the <a href="index.html">Atlas</a> instead.</div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/map.js?v=4"></script>
+</body>
+</html>
