@@ -2,6 +2,7 @@
  *
  * Increment #1: the map shell — aerial-imagery basemap, WC bounds, controls.
  * Increment #2+#3 (this file now implements both): cadastral parcels + click-to-valuation.
+ * Increment #4: ward-boundary overlay (MDB wards, dashed amber + labels + panel row).
  *
  * Parcels are fetched LIVE per viewport from the WC Surveyor-General planning cadastre
  * (ArcGIS REST, CORS-enabled, validated in MAP-FEASIBILITY.md) once you zoom close enough
@@ -91,6 +92,77 @@ async function addBoundaries(map) {
       paint: { 'line-color': 'rgba(243,239,230,.55)', 'line-width': 1 },
     });
   } catch (e) { console.warn('muni boundaries unavailable', e); }
+}
+
+/* ───────────────────────────── wards (increment #4) ───────────────────────────── */
+
+// Municipal ward boundaries (Municipal Demarcation Board, current delimitation) —
+// an ORIENTATION overlay: dashed amber lines + "Ward N" labels, plus a transparent
+// fill so a parcel click can name the ward it falls in. One committed GeoJSON
+// (data/geo/wc-wards.geojson, 406 wards) serves this map and the Atlas.
+// Failure to load degrades quietly: no wards, everything else keeps working.
+const WARD_LAYERS = ['ward-fill', 'ward-lines', 'ward-labels'];
+
+async function addWards(map) {
+  try {
+    const gj = await (await fetch('data/geo/wc-wards.geojson')).json();
+    map.addSource('wards', {
+      type: 'geojson', data: gj,
+      attribution: 'Wards: Municipal Demarcation Board',
+    });
+    // transparent hit-layer: lets the click handler resolve "which ward is this
+    // point in" at any zoom without ever drawing (or intercepting) anything.
+    map.addLayer({
+      id: 'ward-fill', type: 'fill', source: 'wards',
+      paint: { 'fill-opacity': 0 },
+    });
+    map.addLayer({
+      id: 'ward-lines', type: 'line', source: 'wards',
+      minzoom: 8.5,                       // below this, municipalities are the story
+      paint: {
+        'line-color': '#e8b93c',          // amber, distinct from the white parcel lines
+        'line-dasharray': [2.5, 2],
+        'line-width': ['interpolate', ['linear'], ['zoom'], 8.5, 0.8, 13, 1.4, 18, 2.2],
+        'line-opacity': ['interpolate', ['linear'], ['zoom'], 8.5, 0.5, 11, 0.8],
+      },
+    });
+    map.addLayer({
+      id: 'ward-labels', type: 'symbol', source: 'wards',
+      minzoom: 10.5,
+      layout: {
+        'text-field': ['concat', 'Ward ', ['get', 'ward']],
+        'text-size': ['interpolate', ['linear'], ['zoom'], 10.5, 10, 16, 13],
+        'text-letter-spacing': 0.08,
+        'text-transform': 'uppercase',
+      },
+      paint: {
+        'text-color': '#f3dfa0',
+        'text-halo-color': 'rgba(12,21,18,.85)',
+        'text-halo-width': 1.3,
+      },
+    });
+    initWardChip(map);
+  } catch (e) { console.warn('ward boundaries unavailable', e); }
+}
+
+function initWardChip(map) {
+  const chip = $('wardchip');
+  if (!chip) return;
+  chip.hidden = false;
+  chip.addEventListener('click', () => {
+    const on = !chip.classList.contains('on');
+    chip.classList.toggle('on', on);
+    chip.setAttribute('aria-checked', String(on));
+    WARD_LAYERS.forEach(id =>
+      map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
+  });
+}
+
+// Ward containing a clicked point (null when wards are off/unavailable).
+function wardAt(map, point) {
+  if (!map.getLayer('ward-fill')) return null;
+  const hit = map.queryRenderedFeatures(point, { layers: ['ward-fill'] })[0];
+  return hit ? hit.properties.ward : null;
 }
 
 /* ───────────────────────────── parcels (increment #2) ───────────────────────────── */
@@ -187,7 +259,7 @@ function onParcelClick(map) {
     if (selId !== null) map.setFeatureState({ source: 'parcels', id: selId }, { sel: false });
     selId = f.id;
     map.setFeatureState({ source: 'parcels', id: selId }, { sel: true });
-    await showValuation(f.properties);
+    await showValuation({ ...f.properties, _ward: wardAt(map, e.point) });
   });
 }
 
@@ -273,6 +345,7 @@ function renderDetail(r, props, backList, backSub) {
     `<div class="pVal">${R(r.value)}</div>` +
     `<div class="pSub">municipal market value</div>` +
     statRow('Erf / unit', r.erf || '—') +
+    (props._ward != null ? statRow('Ward', props._ward) : '') +
     statRow('Category', r.category || '—') +
     statRow('Extent', r.extent ? N(Math.round(r.extent)) + ' m²' : '—') +
     statRow('Value per m²', ppm) +
@@ -285,7 +358,8 @@ function renderDetail(r, props, backList, backSub) {
 
 function renderList(rows, props, subText) {
   $('pbody').innerHTML =
-    `<div class="pKick">${esc(props.Town_name || '')}</div>` +
+    `<div class="pKick">${esc([props.Town_name, props._ward != null ? 'Ward ' + props._ward : null]
+      .filter(Boolean).join(' · '))}</div>` +
     `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')} — ${rows.length} valuations</div>` +
     `<div class="pSub">${esc(subText || 'portions or sectional-title units share this parcel')}</div>` +
     rows.slice(0, 40).map((r, i) =>
@@ -365,6 +439,7 @@ function boot() {
   map.on('load', () => {
     addBasemap(map);
     addBoundaries(map);
+    addWards(map);
     addParcels(map);
     onParcelClick(map);
   });

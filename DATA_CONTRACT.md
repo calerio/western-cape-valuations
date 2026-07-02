@@ -130,7 +130,12 @@ field is optional and is consumed defensively (see §5). New municipalities just
    `erf` ('SB17324' / '00017324' / '17324' → 17324) — the **map view's cadastre join key** (see §9).
    `config.json.databaseLengthBytes` **must equal** the summed byte size of the chunk files
    (export computes this — don't touch it).
-3. **`data/geo/*.geojson`** — province / WC districts / WC municipalities.
+3. **`data/geo/*.geojson`** — province / WC districts / WC municipalities /
+   WC wards (`wc-wards.geojson`: 406 MDB wards, properties `ward`/`ward_id`/`muni`;
+   `muni` matches the DB municipality names exactly — it drives the Atlas's per-municipality
+   ward overlay and the satellite map's ward layer + click panel's "Ward" row. Refresh it from
+   the WC SpatialDataWarehouse `AfriGIS_MainAdminBoundaries/MapServer/10` after a ward
+   re-delimitation; both maps degrade quietly if it's missing).
 
 ---
 

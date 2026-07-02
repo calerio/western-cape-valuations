@@ -31,6 +31,17 @@
     font-size:11.5px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:#1f6f63}
   #toggle:hover{border-color:rgba(31,111,99,.5)}
 
+  /* ward-boundary toggle chip (sits under the brand card) */
+  #wardchip{top:calc(env(safe-area-inset-top,0px) + 84px);left:16px;
+    display:inline-flex;align-items:center;gap:7px;cursor:pointer;user-select:none;
+    background:rgba(243,239,230,.92);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+    border:1px solid rgba(26,23,20,.16);border-radius:3px;padding:8px 12px;
+    font-size:10.5px;letter-spacing:.08em;font-weight:600;text-transform:uppercase;color:#6f685c}
+  #wardchip:hover{border-color:rgba(31,111,99,.5)}
+  #wardchip .sw{width:16px;height:0;border-top:2px dashed #b8860b;opacity:.4}
+  #wardchip.on{color:#1f6f63}
+  #wardchip.on .sw{opacity:1}
+
   #mapfail{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
     background:#efe9dc;text-align:center;padding:24px}
   #mapfail[hidden]{display:none}   /* id selector would otherwise beat the UA hidden rule */
@@ -84,6 +95,9 @@
     <div id="brandKick">Municipal valuations · Satellite</div>
     <div id="brandTitle">Western Cape</div>
   </div>
+  <div id="wardchip" class="ovl on" role="switch" aria-checked="true" aria-label="Toggle ward boundaries" hidden>
+    <span class="sw"></span>Wards
+  </div>
 
   <div id="maphint" class="ovl" hidden></div>
 
@@ -99,6 +113,6 @@
     </div>
   </div>
 
-  <script type="module" src="assets/map.js?v=4"></script>
+  <script type="module" src="assets/map.js?v=5"></script>
 </body>
 </html>

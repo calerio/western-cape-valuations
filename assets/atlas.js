@@ -22,7 +22,7 @@ const clSub = s => clAddr(s).replace(/(\s+\d{3,})+$/, "");                 // st
 
 /* ============================ state ============================ */
 let STATS, TOWNS, PROV, DISTF, MUNIF;
-let proj, path, gNode, gProv, gDist, gMuni, gLabel, defs, svg;
+let proj, path, gNode, gProv, gDist, gMuni, gWard, gLabel, defs, svg;
 let DISTRICTS = {};            // name -> {feature, munis:[name]}
 let muniByName = {};           // name -> feature
 let curK = 1, statePath = [];
@@ -87,12 +87,14 @@ function clipMainland() {
       if (k.length) { if (k.length === 1) { g.type = "Polygon"; g.coordinates = k[0]; } else g.coordinates = k; } } });
   [PROV, DISTF, MUNIF].forEach(fix);
 }
-function toPlanar() {
+function planarize(fc) {   // lon/lat -> the Web-Mercator plane every layer renders in
   const conv = a => { if (typeof a[0] === "number") { const lng = a[0], lat = a[1];
       a[0] = lng * Math.PI / 180; a[1] = Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)); }
     else a.forEach(conv); };
-  [PROV, DISTF, MUNIF].forEach(fc => fc.features.forEach(f => f.geometry && conv(f.geometry.coordinates)));
+  fc.features.forEach(f => f.geometry && conv(f.geometry.coordinates));
+  return fc;
 }
+function toPlanar() { [PROV, DISTF, MUNIF].forEach(planarize); }
 /* ============================ stats accessors (REAL data) ============================ */
 const provStat = () => STATS.province;
 const distStat = n => STATS.districts[n] || null;
@@ -111,7 +113,8 @@ function initMap() {
   defs = svg.append("defs");
   const g = svg.append("g"); gNode = g.node();
   gNode.style.transformBox = "view-box"; gNode.style.transformOrigin = "0 0";
-  gProv = g.append("g"); gDist = g.append("g"); gMuni = g.append("g"); gLabel = g.append("g");
+  gProv = g.append("g"); gDist = g.append("g"); gMuni = g.append("g"); gWard = g.append("g"); gLabel = g.append("g");
+  gWard.style("pointer-events", "none");   // orientation only — hover/click stays on the municipality
   [gDist, gMuni].forEach(l => l.node().style.transition = "opacity .5s ease");
 
   const provExt = ext(Object.keys(DISTRICTS).map(d => med(distStat(d))));
@@ -157,6 +160,39 @@ function drawMunis(district) {
     .on("mouseenter mousemove", (ev, d) => tip(ev, name(d), muniStat(name(d)), true))
     .on("mouseleave", tipHide);
 }
+/* Ward boundaries (Municipal Demarcation Board, current delimitation) — shown as an
+ * orientation overlay when drilled into a municipality. The ~1 MB GeoJSON is fetched
+ * lazily on the FIRST municipality drill and cached; fetch failure just means no
+ * ward lines (degrade quietly, per the data contract). */
+let wardsPromise = null;
+const fetchWards = () => wardsPromise ||
+  (wardsPromise = fetch("data/geo/wc-wards.geojson").then(r => r.json()).then(planarize)
+    .catch(e => { console.warn("wards unavailable", e); return { features: [] }; }));
+
+async function drawWards(muni) {
+  const gj = await fetchWards();
+  // a slow fetch may resolve after the user has drilled elsewhere — recheck state
+  if (!(statePath.length === 3 && statePath[2].name === muni)) return;
+  const feats = gj.features.filter(f => f.properties.muni === muni);
+  const k = curK;
+  // paper-white like the muni borders — the choropleth fill underneath can be
+  // near-black green, so a dark stroke would vanish; dashing tells wards apart.
+  gWard.selectAll("path").data(feats, f => f.properties.ward_id).join("path")
+    .attr("d", path)
+    .attr("fill", "none")
+    .attr("stroke", "#fbf9f3").attr("stroke-opacity", .6)
+    .attr("stroke-width", 0.8).attr("vector-effect", "non-scaling-stroke")
+    .attr("stroke-dasharray", `${4 / k} ${3 / k}`);
+  gWard.selectAll("text").data(feats, f => f.properties.ward_id).join("text")
+    .attr("x", f => path.centroid(f)[0]).attr("y", f => path.centroid(f)[1])
+    .attr("text-anchor", "middle").attr("dy", ".32em")
+    .attr("fill", "#fbf9f3").attr("fill-opacity", .8)
+    .attr("stroke", "rgba(26,23,20,.55)").attr("stroke-width", 2.5 / k).attr("paint-order", "stroke")
+    .style("font-weight", 600).style("font-size", 9 / k + "px")
+    .text(f => f.properties.ward);
+}
+const clearWards = () => gWard.selectAll("*").remove();
+
 function setLayers(len) {
   gProv.style("opacity", len === 0 ? 1 : 0.5).style("pointer-events", len === 0 ? "auto" : "none");
   gProv.selectAll(".o-wc").attr("fill", len === 0 ? color(med(provStat()), ext(Object.keys(DISTRICTS).map(d => med(distStat(d))))) : "none");
@@ -220,6 +256,7 @@ function navigate(p, animate = true) {
     : len === 2 ? [DISTRICTS[p[1].name].feature] : [muniByName[p[2].name]].filter(Boolean);
   if (!feats.length) feats = [PROV.features.find(f => name(f) === "Western Cape")];
   zoom(feats, animate);
+  if (len === 3) drawWards(p[2].name); else clearWards();
   labels(len, p);
   document.body.style.overflowY = len ? "auto" : "hidden";
   $("scrollcue").style.display = len ? "flex" : "none";
@@ -319,7 +356,7 @@ function renderDash(p) {
   $("dashNote").textContent = !scope
     ? "The City of Cape Town does not publish a downloadable valuation roll — values are available only through its per-property online search, so it can't be aggregated here."
     : isMuni
-    ? "Municipality is the finest level with reliable public boundaries — suburb/town borders aren't published as open data, so we don't subdivide further."
+    ? "Municipality is the finest level with public valuation stats. The dashed lines on the map are the municipality's WARD boundaries (Municipal Demarcation Board) — shown for orientation; suburb/town borders aren't published as open data."
     : "Figures are recomputed live from each area's most recent published valuation roll. Cycles differ by municipality.";
 }
 
