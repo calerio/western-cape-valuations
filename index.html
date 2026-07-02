@@ -3,8 +3,36 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>Western Cape Property Valuation Atlas</title>
-<meta name="description" content="An interactive atlas of municipal property valuations across the Western Cape — by district and municipality, with price distributions and standout properties. Public data." />
+<title>Western Cape Property Valuation Atlas — search municipal property values</title>
+<meta name="description" content="Free interactive atlas of official municipal property valuations across the Western Cape. Search any address or erf, explore districts and municipalities, see price distributions." />
+<link rel="canonical" href="https://calerio.github.io/western-cape-valuations/" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Western Cape Property Valuation Atlas" />
+<meta property="og:title" content="Western Cape Property Valuation Atlas" />
+<meta property="og:description" content="Free interactive atlas of official municipal property valuations across the Western Cape. Search any address or erf, explore districts and municipalities, see price distributions." />
+<meta property="og:url" content="https://calerio.github.io/western-cape-valuations/" />
+<meta property="og:image" content="https://calerio.github.io/western-cape-valuations/assets/og-card.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Western Cape Property Valuation Atlas" />
+<meta name="twitter:description" content="Free interactive atlas of official municipal property valuations across the Western Cape." />
+<meta name="twitter:image" content="https://calerio.github.io/western-cape-valuations/assets/og-card.jpg" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@graph":[
+ {"@type":"WebSite","name":"Western Cape Property Valuation Atlas",
+  "url":"https://calerio.github.io/western-cape-valuations/",
+  "description":"Free interactive atlas of official municipal property valuations across the Western Cape, South Africa."},
+ {"@type":"Dataset","name":"Western Cape municipal property valuations",
+  "description":"Property valuations extracted from the official municipal valuation rolls of the Western Cape's local municipalities, normalised and made searchable. Valuation rolls are public documents published under the Municipal Property Rates Act.",
+  "url":"https://calerio.github.io/western-cape-valuations/",
+  "spatialCoverage":"Western Cape, South Africa",
+  "creator":{"@type":"Person","name":"Valerio Costa"},
+  "isBasedOn":"Official municipal general valuation rolls (Municipal Property Rates Act, Act 6 of 2004)",
+  "license":"Public data; parcels attributed to the Surveyor-General / Western Cape Government (as-is)",
+  "distribution":{"@type":"DataDownload","contentUrl":"https://github.com/calerio/western-cape-valuations"}}
+]}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -177,6 +205,14 @@
 </style>
 </head>
 <body>
+<noscript>
+  <p>The Western Cape Property Valuation Atlas is an interactive map of official municipal
+  property valuations across the Western Cape's 24 local municipalities, South Africa —
+  searchable by address, suburb or erf number, with district and municipality dashboards.
+  It requires JavaScript. See also the <a href="map.html">satellite map with clickable
+  cadastral parcels</a> or the <a href="https://github.com/calerio/western-cape-valuations">
+  project on GitHub</a>.</p>
+</noscript>
 
 <!-- ===== Mobile-only top bar: persistent location + search ===== -->
 <header id="mbar">
@@ -204,8 +240,8 @@
     <!-- title block (desktop) -->
     <div class="desk" style="position:absolute;top:34px;left:38px;max-width:440px;z-index:6;pointer-events:none">
       <div style="font-size:11px;letter-spacing:.22em;font-weight:600;color:#1f6f63;margin-bottom:10px">MUNICIPAL PROPERTY VALUATIONS</div>
-      <div id="headline" style="font-family:'Newsreader',serif;font-weight:400;font-size:54px;line-height:.96;letter-spacing:-.015em;color:#1a1714">South Africa</div>
-      <div id="subline" style="font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#6f685c;margin-top:10px"></div>
+      <h1 id="headline" style="margin:0;font-family:'Newsreader',serif;font-weight:400;font-size:54px;line-height:.96;letter-spacing:-.015em;color:#1a1714">South Africa</h1>
+      <p id="subline" style="margin:10px 0 0;font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#6f685c">Official municipal property valuations across the Western Cape's 24 local municipalities — mapped, searchable, free.</p>
     </div>
 
     <!-- search (desktop) -->
@@ -257,7 +293,7 @@
   <section id="dash" hidden style="position:relative;width:100%;min-height:100vh;background:#f3efe6;padding:78px 56px 90px;border-top:1px solid rgba(26,23,20,.1)">
     <div style="max-width:1180px;margin:0 auto">
       <div id="dashKicker" style="font-size:11px;letter-spacing:.2em;font-weight:600;color:#1f6f63;margin-bottom:12px"></div>
-      <div id="scopeLabel" style="font-family:'Newsreader',serif;font-size:46px;line-height:1;letter-spacing:-.015em;margin-bottom:6px"></div>
+      <h2 id="scopeLabel" style="margin:0 0 6px;font-family:'Newsreader',serif;font-weight:400;font-size:46px;line-height:1;letter-spacing:-.015em"></h2>
       <div id="scopeSub" style="font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#6f685c;margin-bottom:42px"></div>
 
       <div class="kpis" style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(26,23,20,.14);border-bottom:1px solid rgba(26,23,20,.14)">
@@ -270,7 +306,7 @@
       <!-- price distribution -->
       <div class="dsec" style="margin-top:50px">
         <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:20px">
-          <div class="dh" style="font-family:'Newsreader',serif;font-size:23px">Price distribution</div>
+          <h3 class="dh" style="margin:0;font-family:'Newsreader',serif;font-weight:400;font-size:23px">Price distribution</h3>
           <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286;text-align:right">parcels by value band</div>
         </div>
         <div id="distChart"></div>
@@ -279,7 +315,7 @@
       <!-- a closer look: richer distribution statistics -->
       <div class="dsec" id="closer" style="margin-top:50px">
         <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:22px">
-          <div class="dh" style="font-family:'Newsreader',serif;font-size:23px">A closer look</div>
+          <h3 class="dh" style="margin:0;font-family:'Newsreader',serif;font-weight:400;font-size:23px">A closer look</h3>
           <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286;text-align:right">how values are distributed</div>
         </div>
         <div class="statgrid" id="statTiles"></div>
@@ -290,7 +326,7 @@
       <div class="dgrid" style="display:grid;grid-template-columns:1.1fr .9fr;gap:64px;margin-top:56px;align-items:start">
         <div>
           <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:22px">
-            <div id="rankTitle" class="dh" style="font-family:'Newsreader',serif;font-size:23px"></div>
+            <h3 id="rankTitle" class="dh" style="margin:0;font-family:'Newsreader',serif;font-weight:400;font-size:23px"></h3>
             <div id="rankSub" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286;text-align:right">by median value</div>
           </div>
           <div id="ranked"></div>

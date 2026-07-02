@@ -1,0 +1,8 @@
+# NB: on a *project* GitHub Pages site this file is served at
+# /western-cape-valuations/robots.txt, which crawlers do NOT consult (they read
+# only the domain root). Nothing is blocked either way; the sitemap is submitted
+# directly in Search Console. Kept for the day a root calerio.github.io repo exists.
+User-agent: *
+Allow: /
+
+Sitemap: https://calerio.github.io/western-cape-valuations/sitemap.xml
