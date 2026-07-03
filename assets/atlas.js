@@ -406,6 +406,13 @@ function renderDash(p) {
     : isMuni
     ? "Dashed lines on the map are ward boundaries (Municipal Demarcation Board), for orientation."
     : "Recomputed from each area's latest published valuation roll.";
+
+  // richer stat sections (each auto-hides when its data is absent)
+  renderValueDist(scope);
+  renderComposition(scope);
+  renderStanding(p, scope, isMuni);
+  renderGrowth(scope);
+  renderAfford(scope);
 }
 
 function fillProp(id, pr) {
@@ -469,6 +476,98 @@ function renderHist(hist, total) {
       <div style="flex:0 0 48px;font-size:11.5px;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums">${N(cnt)}</div>
     </div>`;
   }).join("");
+}
+
+/* ============================ richer place-panel sections (M5) ============================ */
+// Each reuses the existing design system (.stile tiles, hairline rows, .kpinum hero, one accent)
+// and auto-hides its whole .dsec wrapper when the data is absent — modelled on renderCloser.
+function showSec(id, on) { const el = $(id); if (el) el.style.display = on ? "block" : "none"; return on; }
+// value `v` is escaped, exactly like renderCloser's tiles (safe by default)
+const tilesHTML = tiles => `<div class="statgrid">` + tiles.map(([l, v, n]) =>
+  `<div class="stile"><div class="stl">${esc(l)}</div><div class="stv">${esc(v)}</div><div class="stn">${esc(n || "")}</div></div>`).join("") + `</div>`;
+// hairline label→value row; `v` is raw HTML (caller escapes any user-derived text)
+const hairRow = (l, v) => `<div style="display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--sep);font-size:14px">` +
+  `<span style="color:var(--ink2)">${esc(l)}</span><span style="font-variant-numeric:tabular-nums;text-align:right">${v}</span></div>`;
+
+// Value distribution — P10–P90 spread hero + residential R/m² & land-size middle-50%
+function renderValueDist(s) {
+  if (!showSec("secValueDist", !!(s && s.p10 != null && s.p90 != null))) return;
+  const ratio = s.p90_p10_ratio ? ` · the 90th percentile is ${s.p90_p10_ratio}× the 10th` : "";
+  const hero = `<div style="margin-bottom:16px"><div class="kpinum" style="font-size:24px">${R(s.p10)} – ${R(s.p90)}</div>` +
+    `<div style="font-size:12px;color:var(--label2);margin-top:8px;line-height:1.5">the middle 80% of valuations (10th–90th percentile)${ratio}</div></div>`;
+  const tiles = [];
+  if (s.ppm_q1 != null && s.ppm_q3 != null) tiles.push(["Home R/m² · middle 50%", "R" + N(s.ppm_q1) + " – R" + N(s.ppm_q3),
+    s.ppm_p90 ? "top-decile homes ≈ R" + N(s.ppm_p90) + "/m²" : "residential price per m²"]);
+  if (s.erf_q1 != null && s.erf_q3 != null) tiles.push(["Home erf · middle 50%", N(s.erf_q1) + " – " + N(s.erf_q3) + " m²", "typical residential plot range"]);
+  $("secValueDistBody").innerHTML = hero + (tiles.length ? tilesHTML(tiles) : "");
+}
+
+// Composition — per-category medians, vacant-land value, outlier counts
+function renderComposition(s) {
+  const tiles = [], mix = s && s.cat_mix;
+  if (mix) ["res", "com", "agri", "state"].forEach(k => {
+    const c = mix[k]; if (c && c.count > 0 && c.median != null) tiles.push([CATLAB[k] + " · median", R(c.median), N(c.count) + " parcels"]);
+  });
+  if (s && s.vacant_median != null) tiles.push(["Vacant land · median", R(s.vacant_median),
+    s.vacant_ppm_median ? "R" + N(s.vacant_ppm_median) + "/m² undeveloped" : "undeveloped stands"]);
+  if (s && s.n_under_250k != null) tiles.push(["Parcels under R250k", N(s.n_under_250k), "lowest-value band"]);
+  if (s && s.n_over_10m != null) tiles.push(["Parcels over R10m", N(s.n_over_10m), s.n_over_50m != null ? N(s.n_over_50m) + " over R50m" : "high-value band"]);
+  if (!showSec("secComposition", tiles.length > 0)) return;
+  $("secCompositionBody").innerHTML = tilesHTML(tiles);
+}
+
+// Standing — this municipality's rank within its district + biggest suburb / category by value
+function renderStanding(p, s, isMuni) {
+  if (!showSec("secStanding", !!(isMuni && s && p.length >= 3))) return;
+  const muni = p[2].name, dist = p[1].name;
+  const sibs = DISTRICTS[dist] ? DISTRICTS[dist].munis.map(muniStat).filter(Boolean) : [];
+  const rankOf = key => { const mine = s[key]; if (mine == null) return null;
+    const vals = sibs.map(x => x[key]).filter(v => v != null); if (vals.length < 2) return null;
+    return "#" + (vals.filter(v => v > mine).length + 1) + " of " + vals.length; };
+  const rows = [];
+  const add = (l, key) => { const r = rankOf(key); if (r) rows.push([l, r]); };
+  add("Median value", "median"); add("Total roll value", "total");
+  if (s.ppm_median != null) add("Home price per m²", "ppm_median");
+  if (s.vacant_share != null) add("Vacant-land share", "vacant_share");
+  let topTown = null; townsOf(muni).forEach(t => { if (!topTown || t.total > topTown.total) topTown = t; });
+  let topCat = null; if (s.cat_mix) CATORDER.forEach(k => { const c = s.cat_mix[k]; if (c && c.value > 0 && (!topCat || c.value > topCat.value)) topCat = { k, value: c.value }; });
+  let html = `<div style="font-size:12px;color:var(--label2);margin-bottom:6px">Rank among the ${sibs.length} municipalities in ${esc(dist)}</div>`;
+  html += rows.map(([l, v]) => hairRow(l, v)).join("");
+  if (topTown) html += hairRow("Biggest suburb by value", esc(topTown.name) + " · " + R(topTown.total));
+  if (topCat) html += hairRow("Largest category by value", CATLAB[topCat.k] + " · " + R(topCat.value));
+  $("secStandingBody").innerHTML = html;
+}
+
+// Change over time — growth + CAGR vs the previous roll (absent until a 2nd roll exists → hidden)
+function renderGrowth(s) {
+  const on = !!(s && (s.median_growth != null || s.total_growth != null || s.res_median_growth != null || s.cagr != null));
+  if (!showSec("secGrowth", on)) return;
+  const pct = v => (v >= 0 ? "+" : "") + (v * 100).toFixed(1) + "%";
+  const col = v => v >= 0 ? "var(--ok)" : "var(--bad)";
+  const gt = (l, v, n) => v == null ? "" :
+    `<div class="stile"><div class="stl">${esc(l)}</div><div class="stv" style="color:${col(v)}">${pct(v)}</div><div class="stn">${esc(n || "")}</div></div>`;
+  const since = s.growth_from ? "since the " + s.growth_from + " roll" : "since the previous roll";
+  $("secGrowthBody").innerHTML = `<div style="font-size:12px;color:var(--label2);margin-bottom:16px">${esc(since)}</div>` +
+    `<div class="statgrid">` + gt("Median value", s.median_growth) + gt("Total roll value", s.total_growth) +
+    gt("Residential median", s.res_median_growth) + gt("Annualised · CAGR", s.cagr, "compound, per year") + `</div>`;
+}
+
+// Affordability — estimated monthly bond + income needed for the median home (clearly an estimate)
+function renderAfford(s) {
+  const prime = RATESDATA && RATESDATA.prime_rate;
+  const home = s && (s.res_median || s.median);
+  if (!showSec("secAfford", !!(prime && prime.pct > 0 && home > 0))) return;
+  const r = prime.pct / 100 / 12, n = 240;
+  const monthly = home * r / (1 - Math.pow(1 + r, -n));   // 20-yr bond, full value, at prime
+  const income = monthly / 0.30;                          // banks cap the bond at ~30% of gross income
+  const src = prime.source ? ` · <a href="${esc(prime.source)}" target="_blank" rel="noopener">SARB ↗</a>` : "";
+  $("secAffordBody").innerHTML =
+    `<div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">Illustrative estimate</div>` +
+    `<div class="kpinum" style="font-size:26px">R${N(Math.round(monthly))}<span style="font-size:14px;font-weight:600;color:var(--label2)"> /mo</span></div>` +
+    `<div style="font-size:12px;color:var(--label2);margin-top:8px;line-height:1.5">estimated bond on the median home of ${R(home)}</div>` +
+    tilesHTML([["Gross income needed", "R" + N(Math.round(income)) + "/mo", "at 30% of income on the bond"],
+               ["Key assumptions", "prime " + prime.pct + "%", "20-year bond, no deposit"]]) +
+    `<div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:12px">A rough guide only — your actual rate depends on credit, deposit and bank. Prime ${esc(String(prime.pct))}% eff. ${esc(prime.effective || prime.year || "")}${src}</div>`;
 }
 
 /* ============================ top-N properties (live DB query) ============================ */
