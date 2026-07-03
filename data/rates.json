@@ -2,6 +2,14 @@
   "year": "2025/26",
   "updated": "2026-07-03",
   "_contract": "DATA_CONTRACT.md §10 — the site's ONE hand-curated data file. Every entry transcribed from the cited official document; rates are Rand-per-Rand as gazetted; residential_reduction is the TOTAL value excluded for an ordinary residential property (statutory R15,000 MPRA s17(1)(h) included). A municipality absent here (Overstrand: no 2025/26 randage published online; Breede Valley: municipal site bot-blocked) shows NO rates figure on the site.",
+  "prime_rate": {
+    "pct": 10.5,
+    "repo_pct": 7.0,
+    "effective": "2026-05-28",
+    "year": "2026",
+    "source": "https://www.resbank.co.za/en/home/what-we-do/statistics/key-statistics/current-market-rates",
+    "quote": "SARB prime lending rate = repo policy rate 7.00% + 3.50% margin = 10.50%, effective 28 May 2026 (repo raised 25 bps at the May 2026 MPC meeting, the first hike since 2023; prime = repo + 3.5% is the standard SA relationship). Used only for the labelled affordability estimate."
+  },
   "munis": {
     "Beaufort West": {
       "rates": { "res": 0.015, "business": 0.03, "agricultural": 0.00131, "vacant": 0.018 },

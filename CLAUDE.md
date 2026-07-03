@@ -21,6 +21,10 @@ export lives in the sibling project `~/projects/western-cape-property-valuations
   regenerated from the source valuation database by `extract/export_site.py` in the sibling
   extraction project (`~/projects/western-cape-property-valuations`). To change figures, re-run the
   export there — don't edit the JSON by hand.
+- **`data/rates.json` is the ONE hand-curated file** (DATA_CONTRACT.md §10): municipal rate-in-the-rand
+  tariffs + a top-level `prime_rate` (SARB) used only for the labelled affordability estimate. Every
+  entry needs `year`/`source`/`quote`. **Re-verify `prime_rate` after each SARB MPC meeting** (roughly
+  every 2 months) and each tariff annually on 1 July. Currently prime 10.50% (repo 7.00%), eff. 2026-05-28.
 - **No fabricated geography.** Municipality is the finest map level — it's the smallest area with
   reliable openly-published boundaries. Suburb/town borders aren't open data, so we don't invent a
   finer subdivision (the old Voronoi "town" level was removed). Suburb names still power search

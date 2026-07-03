@@ -288,6 +288,10 @@ Rules that keep it honest:
 6. When editing rates.json, **bump the `?v=` in assets/rates.js's fetch** (Pages CDN caches it),
    and re-verify one hand-computed example per changed municipality.
 7. Refresh cycle: tariffs change every 1 July (municipal financial year) — re-verify annually.
+8. **Top-level `prime_rate`** (`{pct, repo_pct, effective, year, source, quote}`) is the SARB prime
+   lending rate, used **only** for the labelled affordability estimate (est. monthly bond + income
+   needed for the median home). Same honesty rules: it needs `source`/`quote`; absent → the panel's
+   Affordability block simply hides. **Re-verify after each SARB MPC meeting** (~every 2 months).
 
 ---
 
