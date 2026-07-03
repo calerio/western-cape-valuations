@@ -1,11 +1,17 @@
-import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
 import { getRates, computeRates } from "./rates.js?v=1";
+
+// d3 comes from the UMD bundle loaded in <head> — importing the jsdelivr +esm build
+// as well would fetch the whole ~30-module d3 graph a second time (and trigger a wall
+// of phantom /npm/* preload 404s against our own origin).
+const d3 = window.d3;
 
 /* ============================ config / tokens ============================ */
 const W = 1000, H = 760, MAXK = 46;
-const RAMP = ["#dbe5c6", "#a8cdb2", "#5fa286", "#2f7d6b", "#15514a"];   // deeper steps = clearer on small screens
-const ACCENT = "#1f6f63";
-const LAND = "#e6e0d3", NODATA = "#d9d2c2";
+// design tokens (assets/tokens.css) — read once at boot
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const RAMP = [1, 2, 3, 4, 5].map(i => cssVar(`--ramp-${i}`));
+const ACCENT = cssVar("--accent");
+const LAND = cssVar("--land"), NODATA = cssVar("--nodata");
 const YEAR = "2024 / 25";
 const $ = s => document.getElementById(s);
 
@@ -122,7 +128,7 @@ function initMap() {
   gProv.selectAll("path").data(PROV.features).join("path")
     .attr("d", path)
     .attr("fill", d => name(d) === "Western Cape" ? color(med(provStat()), provExt) : LAND)
-    .attr("stroke", d => name(d) === "Western Cape" ? "#1a1714" : "none")
+    .attr("stroke", d => name(d) === "Western Cape" ? cssVar("--map-outline") : "none")
     .attr("stroke-width", 1.1).attr("vector-effect", "non-scaling-stroke")
     .attr("class", d => name(d) === "Western Cape" ? "o-clickable o-wc" : "o-other")
     .each(function (d) { if (name(d) === "Western Cape") d3.select(this)
@@ -142,7 +148,7 @@ function drawDistricts() {
   gDist.selectAll("path").data(DISTF.features).join("path")
     .attr("d", path)
     .attr("fill", d => color(med(distStat(name(d))), e))
-    .attr("stroke", "#fbf9f3").attr("stroke-width", 1.1).attr("vector-effect", "non-scaling-stroke")
+    .attr("stroke", cssVar("--map-stroke")).attr("stroke-width", 1.1).attr("vector-effect", "non-scaling-stroke")
     .attr("class", "o-clickable")
     .on("click", (ev, d) => navigate([wcCrumb(), { type: "district", name: name(d) }]))
     .on("mouseenter mousemove", (ev, d) => tip(ev, name(d), distStat(name(d)), true))
@@ -155,7 +161,7 @@ function drawMunis(district) {
   gMuni.selectAll("path").data(munis.map(m => muniByName[m]).filter(Boolean), d => name(d)).join("path")
     .attr("d", path)
     .attr("fill", d => color(med(muniStat(name(d))), e))
-    .attr("stroke", "#fbf9f3").attr("stroke-width", 1).attr("vector-effect", "non-scaling-stroke")
+    .attr("stroke", cssVar("--map-stroke")).attr("stroke-width", 1).attr("vector-effect", "non-scaling-stroke")
     .attr("class", "o-clickable")
     .on("click", (ev, d) => navigate([wcCrumb(), { type: "district", name: district }, { type: "municipality", name: name(d) }]))
     .on("mouseenter mousemove", (ev, d) => tip(ev, name(d), muniStat(name(d)), true))
@@ -181,14 +187,14 @@ async function drawWards(muni) {
   gWard.selectAll("path").data(feats, f => f.properties.ward_id).join("path")
     .attr("d", path)
     .attr("fill", "none")
-    .attr("stroke", "#fbf9f3").attr("stroke-opacity", .6)
+    .attr("stroke", cssVar("--map-stroke")).attr("stroke-opacity", .7)
     .attr("stroke-width", 0.8).attr("vector-effect", "non-scaling-stroke")
     .attr("stroke-dasharray", `${4 / k} ${3 / k}`);
   gWard.selectAll("text").data(feats, f => f.properties.ward_id).join("text")
     .attr("x", f => path.centroid(f)[0]).attr("y", f => path.centroid(f)[1])
     .attr("text-anchor", "middle").attr("dy", ".32em")
-    .attr("fill", "#fbf9f3").attr("fill-opacity", .8)
-    .attr("stroke", "rgba(26,23,20,.55)").attr("stroke-width", 2.5 / k).attr("paint-order", "stroke")
+    .attr("fill", cssVar("--map-outline")).attr("fill-opacity", .8)
+    .attr("stroke", cssVar("--map-halo")).attr("stroke-width", 2.5 / k).attr("paint-order", "stroke")
     .style("font-weight", 600).style("font-size", 9 / k + "px")
     .text(f => f.properties.ward);
 }
@@ -223,8 +229,8 @@ function labels(len, p) {
   const k = curK, fs = (len === 0 ? 13 : 11) / k;
   gLabel.selectAll("text").data(items).join("text")
     .attr("x", d => d.x).attr("y", d => d.y).attr("text-anchor", "middle").attr("dy", ".32em")
-    .attr("fill", d => d.wc ? "#1a1714" : "#231f1a")
-    .attr("stroke", "#f6f2e9").attr("stroke-width", 3 / k).attr("paint-order", "stroke")
+    .attr("fill", cssVar("--map-outline"))
+    .attr("stroke", cssVar("--map-halo")).attr("stroke-width", 3 / k).attr("paint-order", "stroke")
     .attr("letter-spacing", d => d.wc ? (2 / k) + "px" : null)
     .style("font-weight", d => d.wc ? 700 : 600).style("font-size", fs + "px")
     .style("opacity", d => d.wc ? .9 : .85).text(d => d.t);
@@ -233,7 +239,7 @@ function labels(len, p) {
 /* ============================ tooltip ============================ */
 function tip(e, nm, st, drill) { if (innerWidth <= 720) return;   // phones: tap drills in, no off-screen tooltip
   const t = $("tip");
-  t.innerHTML = `<div style="font-family:'Newsreader',serif;font-size:16px;margin-bottom:7px">${nm}</div>` +
+  t.innerHTML = `<div style="font-family:var(--font-ui);font-size:16px;margin-bottom:7px">${nm}</div>` +
     (st ? `<div style="display:grid;grid-template-columns:auto auto;gap:2px 16px;font-size:12px">` +
       `<span style="opacity:.6">Median</span><span style="text-align:right;font-variant-numeric:tabular-nums">${R(st.median)}</span>` +
       `<span style="opacity:.6">Total roll</span><span style="text-align:right;font-variant-numeric:tabular-nums">${R(st.total)}</span>` +
@@ -271,8 +277,7 @@ function navigate(p, animate = true) {
 function renderChrome(p) {
   const len = p.length;
   $("headline").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;
-  $("subline").textContent = len === 0 ? "Tap the Western Cape to begin"
-    : len === 1 ? "Five districts and a metro" : len === 2 ? "Local municipalities" : "Municipal valuation roll";
+  $("subline").textContent = len === 0 ? "Tap the Western Cape to begin" : "";
 
   // mobile top bar — always shows where you are, with a back step up the hierarchy
   $("mloc").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;
@@ -287,9 +292,9 @@ function renderChrome(p) {
   if (len >= 3) steps.push({ label: p[2].name, go: () => navigate(p) });
   $("crumbs").innerHTML = "";
   steps.forEach((s, i) => {
-    if (i) { const sep = document.createElement("span"); sep.textContent = "›"; sep.style.cssText = "font-size:13px;color:#bdb6a8"; $("crumbs").appendChild(sep); }
+    if (i) { const sep = document.createElement("span"); sep.textContent = "›"; sep.style.cssText = "font-size:13px;color:var(--label3)"; $("crumbs").appendChild(sep); }
     const a = document.createElement("span"); a.textContent = s.label; a.className = "o-clickable";
-    a.style.cssText = "font-size:13px;font-weight:500;color:#1a1714;cursor:pointer"; a.onclick = s.go; $("crumbs").appendChild(a);
+    a.style.cssText = "font-size:13px;font-weight:500;color:var(--ink);cursor:pointer"; a.onclick = s.go; $("crumbs").appendChild(a);
   });
 
   // legend (extent of currently displayed set)
@@ -310,7 +315,6 @@ function renderDash(p) {
     children = DISTRICTS[dl].munis.map(m => ({ name: m, s: muniStat(m), go: () => navigate([wcCrumb(), { type: "district", name: dl }, { type: "municipality", name: m }]) })); }
   else { const m = p[2].name; scope = muniStat(m); scopeName = m; kicker = m.toUpperCase() + " · " + p[1].name.toUpperCase(); }
 
-  $("dashKicker").textContent = kicker;
   $("scopeLabel").textContent = scopeName;
   $("scopeSub").textContent = !scope ? "No public valuation roll"
     : isMuni ? "Valuation roll · " + (scope.cycle || YEAR)
@@ -325,40 +329,38 @@ function renderDash(p) {
 
   const rk = $("ranked"); rk.innerHTML = "";
   if (!isMuni && scope) {
-    $("rankTitle").textContent = kindP + " ranked"; $("rankSub").textContent = "by median value";
+    $("rankTitle").textContent = kindP + " ranked";
     const sorted = children.filter(c => c.s && c.s.median != null).sort((a, b) => b.s.median - a.s.median);
     const maxMed = sorted.length ? sorted[0].s.median : 1, minMed = sorted.length ? sorted[sorted.length - 1].s.median : 0;
     sorted.forEach(c => {
       const row = document.createElement("div"); row.className = "o-clickable";
-      row.style.cssText = "padding:13px 0;border-bottom:1px solid rgba(26,23,20,.09);cursor:pointer";
+      row.style.cssText = "padding:13px 0;border-bottom:1px solid var(--sep);cursor:pointer";
       row.innerHTML = `<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
           <span style="font-size:15px">${c.name}</span><span style="font-size:14px;font-variant-numeric:tabular-nums">${R(c.s.median)}</span></div>
-        <div style="height:5px;background:rgba(26,23,20,.07);border-radius:3px;overflow:hidden">
+        <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
           <div style="height:100%;width:${Math.max(8, Math.round(c.s.median / maxMed * 100))}%;background:${color(c.s.median, [minMed, maxMed])};border-radius:3px"></div></div>`;
       row.onclick = () => { c.go(); scrollTo({ top: 0, behavior: "smooth" }); };
       rk.appendChild(row);
     });
   } else {
-    $("rankTitle").textContent = "Valuation spread"; $("rankSub").textContent = scope ? (scope.cycle || "") : "";
+    $("rankTitle").textContent = "Valuation spread";
     if (scope) [["Lower quartile (Q1)", R(scope.q1)], ["Median", R(scope.median)], ["Upper quartile (Q3)", R(scope.q3)],
       ["Average residential", R(scope.residential_avg)]]
       .forEach(([k, v]) => { const d = document.createElement("div");
-        d.style.cssText = "display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid rgba(26,23,20,.09);font-size:15px";
+        d.style.cssText = "display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--sep);font-size:15px";
         d.innerHTML = `<span>${k}</span><span style="font-variant-numeric:tabular-nums">${v}</span>`; rk.appendChild(d); });
-    else rk.innerHTML = `<div style="color:#9a9286;font-size:14px;padding-top:6px">City of Cape Town publishes valuations only via per-property online search.</div>`;
+    else rk.innerHTML = `<div style="color:var(--label2);font-size:14px;padding-top:6px">City of Cape Town publishes valuations only via per-property online search.</div>`;
   }
 
   fillProp("hi", scope && scope.hi);
   fillProp("lo", scope && scope.lo);
   tlEnabled = !!scope;
   ["hiCard", "loCard"].forEach(id => { const el = $(id); if (el) { el.style.cursor = scope ? "pointer" : "default"; el.style.pointerEvents = scope ? "auto" : "none"; } });
-  $("hiHint").style.display = scope ? "block" : "none";
-  $("loHint").style.display = scope ? "block" : "none";
   $("dashNote").textContent = !scope
-    ? "The City of Cape Town does not publish a downloadable valuation roll — values are available only through its per-property online search, so it can't be aggregated here."
+    ? "Cape Town publishes no downloadable roll — values are search-only at the City, so it can't be aggregated here."
     : isMuni
-    ? "Municipality is the finest level with public valuation stats. The dashed lines on the map are the municipality's WARD boundaries (Municipal Demarcation Board) — shown for orientation; suburb/town borders aren't published as open data."
-    : "Figures are recomputed live from each area's most recent published valuation roll. Cycles differ by municipality.";
+    ? "Dashed lines on the map are ward boundaries (Municipal Demarcation Board), for orientation."
+    : "Recomputed from each area's latest published valuation roll.";
 }
 
 function fillProp(id, pr) {
@@ -371,7 +373,7 @@ function fillProp(id, pr) {
 }
 
 /* ============================ "a closer look" — richer stats ============================ */
-const CATCOL = { res: "#2f7d6b", com: "#c0852f", agri: "#88b39a", state: "#8a8475", vacant: "#cdbb91", other: "#ddd6c6" };
+const CATCOL = { res: cssVar("--cat-res"), com: cssVar("--cat-com"), agri: cssVar("--cat-agri"), state: cssVar("--cat-state"), vacant: cssVar("--cat-vacant"), other: cssVar("--cat-other") };
 const CATLAB = { res: "Residential", com: "Business", agri: "Agricultural", state: "State / municipal", vacant: "Vacant", other: "Other" };
 const CATORDER = ["res", "com", "agri", "state", "vacant", "other"];
 function renderCloser(s) {
@@ -401,7 +403,7 @@ function renderCatMix(s) {
     .map(k => `<div style="width:${(mix[k][metric] / tot * 100).toFixed(2)}%;background:${CATCOL[k]}" title="${CATLAB[k]}"></div>`).join("");
   const legend = CATORDER.filter(k => mix[k] && mix[k].count > 0).map(k =>
     `<div class="clg"><span class="csw" style="background:${CATCOL[k]}"></span>${CATLAB[k]} <span class="cpct">${totC ? Math.round(mix[k].count / totC * 100) : 0}% parcels · ${totV ? Math.round(mix[k].value / totV * 100) : 0}% value</span></div>`).join("");
-  el.innerHTML = `<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Property mix</div>` +
+  el.innerHTML = `<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">Property mix</div>` +
     `<div class="cmrow"><div class="cmlab">Share of parcels</div><div class="cmbar">${seg("count", totC)}</div></div>` +
     `<div class="cmrow"><div class="cmlab">Share of value</div><div class="cmbar">${seg("value", totV)}</div></div>` +
     `<div class="cmleg">${legend}</div>`;
@@ -409,7 +411,7 @@ function renderCatMix(s) {
 
 function renderHist(hist, total) {
   const el = $("distChart"); el.innerHTML = "";
-  if (!hist) { el.innerHTML = `<div style="color:#9a9286;font-size:14px;padding:24px 0">No distribution data for this area.</div>`; return; }
+  if (!hist) { el.innerHTML = `<div style="color:var(--label2);font-size:14px;padding:24px 0">No distribution data for this area.</div>`; return; }
   const labels = STATS.buckets, n = hist.length, max = Math.max(...hist, 1);
 
   if (innerWidth <= 720) {   // mobile: horizontal bars read top-to-bottom — no x-label crowding
@@ -417,10 +419,10 @@ function renderHist(hist, total) {
       const w = Math.max(cnt ? 3 : 0, Math.round(cnt / max * 100));
       const col = d3.interpolateRgbBasis(RAMP)(n > 1 ? i / (n - 1) : .5);
       return `<div style="display:flex;align-items:center;gap:11px;padding:5px 0">
-        <div style="flex:0 0 84px;font-size:12px;color:#6f685c;text-align:right;font-variant-numeric:tabular-nums">${esc(labels[i])}</div>
-        <div style="flex:1;height:22px;background:rgba(26,23,20,.05);border-radius:3px;overflow:hidden">
+        <div style="flex:0 0 84px;font-size:12px;color:var(--ink2);text-align:right;font-variant-numeric:tabular-nums">${esc(labels[i])}</div>
+        <div style="flex:1;height:22px;background:var(--bg3);border-radius:3px;overflow:hidden">
           <div style="height:100%;width:${w}%;background:${col};border-radius:3px"></div></div>
-        <div style="flex:0 0 50px;font-size:12px;color:#1a1714;text-align:right;font-variant-numeric:tabular-nums">${N(cnt)}</div>
+        <div style="flex:0 0 50px;font-size:12px;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums">${N(cnt)}</div>
       </div>`;
     }).join("");
     return;
@@ -430,22 +432,24 @@ function renderHist(hist, total) {
   const chartW = VW - padL - padR, chartH = VH - padT - padB, bw = chartW / n - gap;
   const compact = v => v >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, "") + "m" : v >= 1e3 ? Math.round(v / 1e3) + "k" : "" + v;
   const s = d3.select(el).append("svg").attr("viewBox", `0 0 ${VW} ${VH}`).attr("preserveAspectRatio", "xMidYMid meet").style("width", "100%").style("display", "block");
-  s.append("line").attr("x1", padL).attr("x2", VW - padR).attr("y1", padT + chartH).attr("y2", padT + chartH).attr("stroke", "rgba(26,23,20,.18)");
+  s.append("line").attr("x1", padL).attr("x2", VW - padR).attr("y1", padT + chartH).attr("y2", padT + chartH).attr("stroke", cssVar("--sep"));
   hist.forEach((cnt, i) => {
     const x = padL + i * (bw + gap) + gap / 2, bh = cnt / max * chartH, y = padT + chartH - bh;
     const g = s.append("g");
     g.append("rect").attr("x", x).attr("y", y).attr("width", bw).attr("height", Math.max(0, bh)).attr("rx", 1.5)
       .attr("fill", d3.interpolateRgbBasis(RAMP)(n > 1 ? i / (n - 1) : .5))
       .on("mouseenter mousemove", e => tipHist(e, labels[i], cnt, total)).on("mouseleave", tipHide);
+    // cssVar(), not "var(--…)": var() inside an SVG presentation attribute is nonstandard
+    // (Chrome resolves it, Safari/Firefox can't be relied on) — bake the value in.
     if (cnt) g.append("text").attr("x", x + bw / 2).attr("y", y - 6).attr("text-anchor", "middle")
-      .style("font-size", "11px").style("font-variant-numeric", "tabular-nums").attr("fill", "#6f685c").text(compact(cnt));
+      .style("font-size", "11px").style("font-variant-numeric", "tabular-nums").attr("fill", cssVar("--ink2")).text(compact(cnt));
     g.append("text").attr("x", x + bw / 2).attr("y", padT + chartH + 18).attr("text-anchor", "middle")
-      .style("font-size", "10.5px").attr("fill", "#9a9286").text(labels[i]);
+      .style("font-size", "10.5px").attr("fill", cssVar("--label2")).text(labels[i]);
   });
 }
 function tipHist(e, label, cnt, total) {
   const t = $("tip"), pct = total ? (cnt / total * 100) : 0;
-  t.innerHTML = `<div style="font-family:'Newsreader',serif;font-size:15px;margin-bottom:4px">${esc(label)}</div>` +
+  t.innerHTML = `<div style="font-family:var(--font-ui);font-size:15px;margin-bottom:4px">${esc(label)}</div>` +
     `<div style="font-size:12px"><span style="opacity:.6">Parcels </span><span style="font-variant-numeric:tabular-nums">${N(cnt)}</span> · ${pct.toFixed(1)}%</div>`;
   t.style.opacity = 1; let x = e.clientX + 16, y = e.clientY + 16;
   if (x + 220 > innerWidth) x = e.clientX - 220; if (y + 80 > innerHeight) y = e.clientY - 80;
@@ -467,8 +471,8 @@ function openTop(kind) {
   $("tlKicker").textContent = (kind === "hi" ? "Most valuable" : "Most affordable") + " · " + sc.name;
   $("tlTitle").textContent = kind === "hi" ? "Most valuable properties" : "Most affordable homes";
   $("tlNote").textContent = kind === "hi"
-    ? "All categories, ranked by municipal market value. Tags: RES home · AGRI farm · COM/BUS business · PSP/PSI state or institutional · VAC vacant."
-    : "Residential only, excluding nominal/placeholder valuations under R100 000. Lowest market value first.";
+    ? "All categories, ranked by municipal market value."
+    : "Residential only · nominal values under R100 000 excluded.";
   [...$("tlSeg").children].forEach(b => b.classList.toggle("on", +b.dataset.n === tlN));
   $("toplist").classList.add("open"); $("toplist").setAttribute("aria-hidden", "false");
   document.documentElement.style.overflow = "hidden";
@@ -479,7 +483,7 @@ function closeTop() {
   document.documentElement.style.overflow = "";
 }
 async function loadTop() {
-  const body = $("tlBody"); body.innerHTML = `<div style="padding:34px 0;color:#9a9286;font-size:14px">Finding properties…</div>`;
+  const body = $("tlBody"); body.innerHTML = `<div style="padding:34px 0;color:var(--label2);font-size:14px">Finding properties…</div>`;
   $("tlCount").textContent = "";
   const kind = tlKind, n = tlN, req = ++tlReq, sc = scopeFilter();
   let where = "value>0", args = [];
@@ -489,10 +493,10 @@ async function loadTop() {
   let rows = null;
   for (let attempt = 0; attempt < 2 && rows === null; attempt++) {
     try { rows = await (await ensureDB()).db.query(sql, args); }
-    catch (e) { resetDB(); if (attempt === 1) { if (req === tlReq) body.innerHTML = `<div style="padding:34px 0;color:#b8623c;font-size:14px">Couldn't load the list — please try again.</div>`; return; } }
+    catch (e) { resetDB(); if (attempt === 1) { if (req === tlReq) body.innerHTML = `<div style="padding:34px 0;color:var(--bad);font-size:14px">Couldn't load the list — please try again.</div>`; return; } }
   }
   if (req !== tlReq) return;   // a newer request superseded this one
-  if (!rows.length) { body.innerHTML = `<div style="padding:34px 0;color:#9a9286;font-size:14px">No properties found for this area.</div>`; return; }
+  if (!rows.length) { body.innerHTML = `<div style="padding:34px 0;color:var(--label2);font-size:14px">No properties found for this area.</div>`; return; }
   const muniScope = statePath.length >= 3;
   body.innerHTML = rows.map((r, i) => {
     const addr = esc(clAddr(r.address) || "Unnamed erf");
@@ -539,14 +543,14 @@ function ftsQuery(q) {
 }
 function searchRow(box, inId, label, sub, go, right) {
   const d = document.createElement("div"); d.className = "o-clickable";
-  d.style.cssText = "display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid rgba(26,23,20,.06);cursor:pointer";
-  d.innerHTML = `<span style="font-size:14px;color:#1a1714">${esc(label)}</span><span style="font-size:10.5px;letter-spacing:.04em;color:#9a9286;text-transform:uppercase;white-space:nowrap">${esc(right || sub)}</span>`;
+  d.style.cssText = "display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--sep);cursor:pointer";
+  d.innerHTML = `<span style="font-size:14px;color:var(--ink)">${esc(label)}</span><span style="font-size:10.5px;letter-spacing:.04em;color:var(--label2);text-transform:uppercase;white-space:nowrap">${esc(right || sub)}</span>`;
   d.onmousedown = e => { e.preventDefault(); go(); const inp = $(inId); if (inp) inp.value = ""; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); hideResults(); };
   box.appendChild(d);
 }
 function searchNote(box, text) {
   const d = document.createElement("div"); d.dataset.note = "1";
-  d.style.cssText = "padding:11px 14px;font-size:11.5px;color:#9a9286;border-bottom:1px solid rgba(26,23,20,.06)";
+  d.style.cssText = "padding:11px 14px;font-size:11.5px;color:var(--label2);border-bottom:1px solid var(--sep)";
   d.textContent = text; box.appendChild(d); return d;
 }
 async function runSearch(q, inId = "search", resId = "results") {
@@ -591,10 +595,10 @@ function ratesBlock(r) {
   if (!rr) return "";
   const cents = (rr.rate * 100).toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
   return `<div class="pdTax">
-      <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px">Municipal rates · ${esc(rr.year)}</div>
-      <div class="pdStat"><span class="k">Per year</span><span class="v" style="font-family:'Newsreader',serif;font-size:21px">${RZA(rr.annual)}</span></div>
+      <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px">Municipal rates · ${esc(rr.year)}</div>
+      <div class="pdStat"><span class="k">Per year</span><span class="v" style="font-family:var(--font-ui);font-weight:600;font-size:19px">${RZA(rr.annual)}</span></div>
       <div class="pdStat" style="border-bottom:none"><span class="k">Per month</span><span class="v">${RZA(rr.monthly)}</span></div>
-      <div style="font-size:11px;line-height:1.55;color:#9a9286;margin-top:10px">${esc(cents)}c/R${rr.reduction ? " on value above " + RZA(rr.reduction) : ""}${rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">Official tariff ↗</a>` : ""}</div>
+      <div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:10px">${esc(cents)}c/R${rr.reduction ? " on value above " + RZA(rr.reduction) : ""}${rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">Official tariff ↗</a>` : ""}</div>
     </div>`;
 }
 function openProp(r) {
@@ -610,7 +614,7 @@ function openProp(r) {
   ];
   $("pdBody").innerHTML =
     `<div class="pdVal">${R(r.value)}</div>` +
-    `<div style="font-size:12px;color:#9a9286;margin-bottom:14px">municipal market value · ${YEAR}</div>` +
+    `<div style="font-size:12px;color:var(--label2);margin-bottom:14px">municipal market value · ${YEAR}</div>` +
     stats.map(([k, v]) => `<div class="pdStat"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("") +
     ratesBlock(r) +
     `<div id="pdGo" class="o-clickable">View ${esc(r.muni || "area")} on the map →</div>`;

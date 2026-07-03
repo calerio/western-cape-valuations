@@ -35,96 +35,96 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,400&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+<link href="assets/tokens.css?v=1" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <style>
   *{box-sizing:border-box}
   html{overflow-x:hidden}
-  html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden;background:#f3efe6;color:#1a1714;font-family:'Libre Franklin',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden;background:var(--bg);color:var(--ink);font-family:var(--font-ui);-webkit-font-smoothing:antialiased}
   body{overflow-y:hidden}             /* country level = just the map; unlocked once WC entered */
-  ::selection{background:#1f6f63;color:#fff}
+  ::selection{background:var(--accent);color:#fff}
   @keyframes ohintpulse{0%,100%{opacity:.45}50%{opacity:1}}
   #map svg{display:block;width:100%;height:100%}
   #map path{cursor:default}
   #map .o-clickable{cursor:pointer}
-  #map text{font-family:'Libre Franklin',sans-serif;pointer-events:none;-webkit-user-select:none;user-select:none}
+  #map text{font-family:var(--font-ui);pointer-events:none;-webkit-user-select:none;user-select:none}
   a{color:inherit}
   input,button{font-family:inherit}
 
   /* ---- "a closer look" stat tiles + property-mix bars ---- */
   .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-  .stile{border:1px solid rgba(26,23,20,.12);border-radius:2px;padding:16px 16px 18px;background:#fbf9f3}
-  .stl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#9a9286;margin-bottom:10px;line-height:1.3}
-  .stv{font-family:'Newsreader',serif;font-size:27px;line-height:1.02;font-variant-numeric:tabular-nums;margin-bottom:7px}
-  .stn{font-size:11.5px;line-height:1.4;color:#6f685c}
+  .stile{border:1px solid var(--hairline);border-radius:var(--r-card);padding:18px 18px 20px;background:var(--bg2);box-shadow:var(--shadow-card)}
+  .stl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:10px;line-height:1.3}
+  .stv{font-family:var(--font-ui);font-weight:600;letter-spacing:-.01em;font-size:26px;line-height:1.02;font-variant-numeric:tabular-nums;margin-bottom:7px}
+  .stn{font-size:11.5px;line-height:1.4;color:var(--ink2)}
   .cmrow{display:flex;align-items:center;gap:14px;margin-bottom:10px}
-  .cmlab{flex:0 0 110px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9a9286;text-align:right}
-  .cmbar{flex:1;display:flex;height:22px;border-radius:3px;overflow:hidden;background:rgba(26,23,20,.05)}
+  .cmlab{flex:0 0 110px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);text-align:right}
+  .cmbar{flex:1;display:flex;height:22px;border-radius:3px;overflow:hidden;background:var(--bg3)}
   .cmbar>div{height:100%}
   .cmleg{display:flex;flex-wrap:wrap;gap:9px 22px;margin-top:16px}
-  .clg{font-size:12px;color:#1a1714;display:flex;align-items:center;gap:7px}
+  .clg{font-size:12px;color:var(--ink);display:flex;align-items:center;gap:7px}
   .csw{width:11px;height:11px;border-radius:2px;display:inline-block;flex:0 0 auto}
-  .cpct{color:#9a9286;font-variant-numeric:tabular-nums}
+  .cpct{color:var(--label2);font-variant-numeric:tabular-nums}
 
   /* ---- clickable extreme-property cards ---- */
-  .propcard{cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .12s;outline:none}
-  .propcard:hover{border-color:rgba(26,23,20,.24);box-shadow:0 12px 32px -20px rgba(26,23,20,.45)}
+  .propcard{position:relative;cursor:pointer;transition:border-color .2s ease-out,box-shadow .2s ease-out,transform .12s ease-out;outline:none}
+  .propcard::after{content:"›";position:absolute;top:18px;right:20px;font-size:20px;line-height:1;color:var(--label3)}
+  .propcard:hover{border-color:var(--accent);box-shadow:var(--shadow-card)}
   .propcard:active{transform:scale(.992)}
-  .propcard:focus-visible{border-color:#1f6f63;box-shadow:0 0 0 3px rgba(31,111,99,.25)}
-  .tlOpen{font-size:11.5px;letter-spacing:.04em;font-weight:600;color:#1f6f63;margin-top:14px}
-  #loHint{color:#b8623c}
+  .propcard:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,132,255,.3)}
 
   /* ---- top-N properties overlay ---- */
   #toplist{position:fixed;inset:0;z-index:60;display:none}
   #toplist.open{display:block}
-  #tlScrim{position:absolute;inset:0;background:rgba(26,23,20,.46);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-  #tlPanel{position:absolute;background:#f6f2e9;display:flex;flex-direction:column;overflow:hidden;
-    box-shadow:0 30px 80px -30px rgba(26,23,20,.6);opacity:0;transition:opacity .22s ease,transform .22s ease}
+  #tlScrim{position:absolute;inset:0;background:var(--scrim);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+  #tlPanel{position:absolute;background:var(--bg2);display:flex;flex-direction:column;overflow:hidden;
+    box-shadow:var(--shadow-overlay);opacity:0;transition:opacity .22s ease-out,transform .22s ease-out;border:1px solid var(--sep)}
   #toplist.open #tlPanel{opacity:1}
-  #tlHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 14px;border-bottom:1px solid rgba(26,23,20,.1)}
-  #tlKicker{font-size:10.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:#1f6f63;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #tlTitle{font-family:'Newsreader',serif;font-size:26px;line-height:1.05;letter-spacing:-.01em}
-  #tlClose{appearance:none;-webkit-appearance:none;border:1px solid rgba(26,23,20,.16);background:#fbf9f3;width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:#1a1714;flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
-  #tlControls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid rgba(26,23,20,.08)}
-  #tlSeg{display:inline-flex;background:rgba(26,23,20,.06);border-radius:9px;padding:3px}
-  #tlSeg button{appearance:none;-webkit-appearance:none;border:none;background:transparent;color:#6f685c;font-size:13px;font-weight:600;padding:9px 15px;border-radius:7px;cursor:pointer}
-  #tlSeg button.on{background:#1f6f63;color:#fff}
-  #tlCount{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#9a9286;white-space:nowrap}
+  #tlHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 14px;border-bottom:1px solid var(--sep)}
+  #tlKicker{font-size:10.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--accent);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tlTitle{font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:24px;line-height:1.05;letter-spacing:-.01em}
+  #tlClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
+  #tlControls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid var(--sep)}
+  #tlSeg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:3px}
+  #tlSeg button{appearance:none;-webkit-appearance:none;border:none;background:transparent;color:var(--ink2);font-size:13px;font-weight:600;padding:9px 15px;border-radius:7px;cursor:pointer}
+  #tlSeg button.on{background:var(--accent);color:var(--accent-ink)}
+  #tlCount{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);white-space:nowrap}
   #tlBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 24px 6px;flex:1}
-  #tlNote{padding:12px 24px calc(env(safe-area-inset-bottom,0px) + 16px);font-size:12px;line-height:1.5;color:#9a9286;border-top:1px solid rgba(26,23,20,.08)}
-  .tlRow{display:flex;align-items:flex-start;gap:13px;padding:14px 0;border-bottom:1px solid rgba(26,23,20,.08)}
-  .tlRank{flex:0 0 24px;font-family:'Newsreader',serif;font-size:17px;color:#9a9286;font-variant-numeric:tabular-nums;text-align:right;padding-top:2px}
+  #tlNote{padding:12px 24px calc(env(safe-area-inset-bottom,0px) + 16px);font-size:12px;line-height:1.5;color:var(--label2);border-top:1px solid var(--sep)}
+  .tlRow{display:flex;align-items:flex-start;gap:13px;padding:14px 0;border-bottom:1px solid var(--sep)}
+  .tlRank{flex:0 0 24px;font-family:var(--font-ui);font-size:15px;color:var(--label2);font-variant-numeric:tabular-nums;text-align:right;padding-top:2px}
   .tlMain{flex:1;min-width:0}
-  .tlAddr{font-family:'Newsreader',serif;font-size:18px;line-height:1.2}
-  .tlSub{font-size:12px;color:#9a9286;margin-top:3px}
+  .tlAddr{font-family:var(--font-ui);font-weight:600;font-size:16.5px;line-height:1.2}
+  .tlSub{font-size:12px;color:var(--label2);margin-top:3px}
   .tlRight{flex:0 0 auto;text-align:right;padding-left:6px}
-  .tlVal{font-family:'Newsreader',serif;font-size:18px;font-variant-numeric:tabular-nums}
-  .tlMeta{font-size:11.5px;color:#6f685c;font-variant-numeric:tabular-nums;margin-top:3px}
-  .tlCat{display:inline-block;font-size:9px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:#6f685c;border:1px solid rgba(26,23,20,.18);border-radius:4px;padding:1px 5px;margin-left:7px;vertical-align:middle;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+  .tlVal{font-family:var(--font-ui);font-weight:600;font-size:16.5px;font-variant-numeric:tabular-nums}
+  .tlMeta{font-size:11.5px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px}
+  .tlCat{display:inline-block;font-size:9px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:var(--ink2);border:1px solid var(--sep);border-radius:4px;padding:1px 5px;margin-left:7px;vertical-align:middle;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
   @media (min-width:721px){
-    #tlPanel{top:50%;left:50%;transform:translate(-50%,-46%);width:min(720px,92vw);max-height:86vh;border-radius:8px}
+    #tlPanel{top:50%;left:50%;transform:translate(-50%,-46%);width:min(720px,92vw);max-height:86vh;border-radius:var(--r-panel)}
     #toplist.open #tlPanel{transform:translate(-50%,-50%)}
   }
 
   /* ---- property detail + rates estimator ---- */
   #propdetail{position:fixed;inset:0;z-index:70;display:none}
   #propdetail.open{display:block}
-  #pdScrim{position:absolute;inset:0;background:rgba(26,23,20,.5);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-  #pdPanel{position:absolute;background:#f6f2e9;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px -30px rgba(26,23,20,.6);opacity:0;transition:opacity .2s ease,transform .2s ease}
+  #pdScrim{position:absolute;inset:0;background:var(--scrim);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+  #pdPanel{position:absolute;background:var(--bg2);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-overlay);opacity:0;transition:opacity .2s ease-out,transform .2s ease-out;border:1px solid var(--sep)}
   #propdetail.open #pdPanel{opacity:1}
-  #pdHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 16px;border-bottom:1px solid rgba(26,23,20,.1)}
-  #pdKicker{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:#1f6f63;margin-bottom:5px}
-  #pdAddr{font-family:'Newsreader',serif;font-size:25px;line-height:1.12}
-  #pdClose{appearance:none;-webkit-appearance:none;border:1px solid rgba(26,23,20,.16);background:#fbf9f3;width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:#1a1714;flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
+  #pdHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 16px;border-bottom:1px solid var(--sep)}
+  #pdKicker{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+  #pdAddr{font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:23px;line-height:1.12}
+  #pdClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
   #pdBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 24px calc(env(safe-area-inset-bottom,0px) + 22px)}
-  .pdVal{font-family:'Newsreader',serif;font-size:34px;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 2px}
-  .pdStat{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid rgba(26,23,20,.08);font-size:14px}
-  .pdStat .k{color:#6f685c}
+  .pdVal{font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:34px;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 2px}
+  .pdStat{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--sep);font-size:14px}
+  .pdStat .k{color:var(--ink2)}
   .pdStat .v{font-variant-numeric:tabular-nums;text-align:right}
-  .pdTax{margin-top:20px;background:#fbf9f3;border:1px solid rgba(26,23,20,.12);border-radius:3px;padding:16px 18px}
-  #pdGo{margin-top:18px;font-size:12.5px;font-weight:600;letter-spacing:.04em;color:#1f6f63;cursor:pointer}
+  .pdTax{margin-top:20px;background:var(--bg3);border:1px solid var(--hairline);border-radius:12px;padding:16px 18px}
+  #pdGo{margin-top:18px;font-size:12.5px;font-weight:600;letter-spacing:.04em;color:var(--accent);cursor:pointer}
   @media (min-width:721px){
-    #pdPanel{top:50%;left:50%;transform:translate(-50%,-46%);width:min(560px,92vw);max-height:88vh;border-radius:8px}
+    #pdPanel{top:50%;left:50%;transform:translate(-50%,-46%);width:min(560px,92vw);max-height:88vh;border-radius:var(--r-panel)}
     #propdetail.open #pdPanel{transform:translate(-50%,-50%)}
   }
   @media (max-width:720px){
@@ -145,26 +145,26 @@
 
     /* persistent top bar: always shows where you are + search */
     #mbar{display:block;position:fixed;top:0;left:0;right:0;z-index:40;
-      background:rgba(243,239,230,.93);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
-      border-bottom:1px solid rgba(26,23,20,.12);
+      background:var(--platter-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--sep);
       padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 11px}
     #mbar .mrow{display:flex;align-items:center;gap:11px}
-    #mback{appearance:none;-webkit-appearance:none;border:1px solid rgba(26,23,20,.16);background:#fbf9f3;
-      width:40px;height:40px;border-radius:9px;font-size:22px;line-height:1;color:#1a1714;
+    #mback{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);
+      width:40px;height:40px;border-radius:9px;font-size:22px;line-height:1;color:var(--ink);
       display:flex;align-items:center;justify-content:center;flex:0 0 auto;padding-bottom:2px}
     #mback[hidden]{display:none}
     #mtext{min-width:0;flex:1}
-    #mkicker{font-size:9.5px;letter-spacing:.16em;font-weight:600;color:#1f6f63;text-transform:uppercase;
+    #mkicker{font-size:9.5px;letter-spacing:.16em;font-weight:600;color:var(--accent);text-transform:uppercase;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
-    #mloc{font-family:'Newsreader',serif;font-size:25px;line-height:1.04;letter-spacing:-.01em;
+    #mloc{font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:22px;line-height:1.04;letter-spacing:-.01em;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     #msearchWrap{position:relative;margin-top:11px}
     #msearchWrap svg{position:absolute;left:13px;top:13px;opacity:.4}
-    #msearch{width:100%;padding:12px 14px 12px 40px;border:1px solid rgba(26,23,20,.16);border-radius:11px;
-      background:#fbf9f3;font-size:16px;color:#1a1714;outline:none}     /* 16px = no iOS auto-zoom */
-    #msearch:focus{border-color:#1f6f63}
-    #mresults{margin-top:9px;background:#fbf9f3;border:1px solid rgba(26,23,20,.12);border-radius:11px;
-      overflow:hidden auto;box-shadow:0 18px 40px -20px rgba(26,23,20,.5);max-height:54vh}
+    #msearch{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--sep);border-radius:11px;
+      background:var(--bg2);font-size:16px;color:var(--ink);outline:none}     /* 16px = no iOS auto-zoom */
+    #msearch:focus{border-color:var(--accent)}
+    #mresults{margin-top:9px;background:var(--bg2);border:1px solid var(--sep);border-radius:11px;
+      overflow:hidden auto;box-shadow:0 18px 40px -20px var(--scrim);max-height:54vh}
     #mresults[hidden]{display:none}
 
     /* map stage clears the header; legend pinned, compact, full-width (override desktop inline left/bottom) */
@@ -220,102 +220,93 @@
       <div id="mkicker">Property valuations</div>
       <div id="mloc">South Africa</div>
     </div>
-    <a id="mmap" href="map.html" aria-label="Satellite map" style="margin-left:auto;flex:0 0 auto;text-decoration:none;font-size:10px;letter-spacing:.08em;font-weight:600;text-transform:uppercase;color:#1f6f63;border:1px solid rgba(26,23,20,.16);background:#fbf9f3;border-radius:8px;padding:9px 11px">Map</a>
+    <a id="mmap" href="map.html" aria-label="Satellite map" style="margin-left:auto;flex:0 0 auto;text-decoration:none;font-size:10px;letter-spacing:.08em;font-weight:600;text-transform:uppercase;color:var(--accent);border:1px solid var(--sep);background:var(--bg2);border-radius:8px;padding:9px 11px">Map</a>
   </div>
   <div id="msearchWrap">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#1a1714" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
     <input id="msearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search a town or municipality" />
   </div>
   <div id="mresults" hidden></div>
 </header>
 
-<div style="position:relative;width:100%;background:#f3efe6">
+<div style="position:relative;width:100%;background:var(--bg)">
 
   <!-- ===== Screen 1 — map stage ===== -->
-  <section id="stage" style="position:relative;width:100%;height:100vh;overflow:hidden;background:radial-gradient(120% 90% at 30% 0%,#f7f3ea 0%,#efe9dc 70%,#e9e2d2 100%)">
+  <section id="stage" style="position:relative;width:100%;height:100vh;overflow:hidden;background:var(--bg)">
     <div id="map" style="position:absolute;inset:0"></div>
 
     <!-- title block (desktop) -->
     <div class="desk" style="position:absolute;top:34px;left:38px;max-width:440px;z-index:6;pointer-events:none">
-      <div style="font-size:11px;letter-spacing:.22em;font-weight:600;color:#1f6f63;margin-bottom:10px">MUNICIPAL PROPERTY VALUATIONS</div>
-      <h1 id="headline" style="margin:0;font-family:'Newsreader',serif;font-weight:400;font-size:54px;line-height:.96;letter-spacing:-.015em;color:#1a1714">South Africa</h1>
-      <p id="subline" style="margin:10px 0 0;font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#6f685c">Official municipal property valuations across the Western Cape's 24 local municipalities — mapped, searchable, free.</p>
+      <h1 id="headline" style="margin:0;font-family:var(--font-ui);font-weight:800;font-size:clamp(40px,5vw,62px);line-height:1.02;letter-spacing:-.02em;color:var(--ink)">South Africa</h1>
+      <p id="subline" style="margin:12px 0 0;font-family:var(--font-ui);font-size:16px;line-height:1.5;max-width:400px;color:var(--label2)">Official municipal property valuations across the Western Cape's 24 local municipalities — mapped, searchable, free.</p>
     </div>
 
     <!-- search (desktop) -->
     <div class="desk" style="position:absolute;top:38px;right:38px;width:312px;z-index:8">
       <div style="text-align:right;margin-bottom:9px">
-        <a href="map.html" style="text-decoration:none;font-size:11px;letter-spacing:.08em;font-weight:600;text-transform:uppercase;color:#1f6f63">◎ Satellite map →</a>
+        <a href="map.html" style="text-decoration:none;font-size:11px;letter-spacing:.08em;font-weight:600;text-transform:uppercase;color:var(--accent)">◎ Satellite map →</a>
       </div>
       <div style="position:relative">
-        <svg viewBox="0 0 24 24" width="16" height="16" style="position:absolute;left:14px;top:13px;opacity:.4" fill="none" stroke="#1a1714" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-        <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search a town, municipality or district" style="width:100%;padding:11px 14px 11px 40px;border:1px solid rgba(26,23,20,.16);border-radius:2px;background:rgba(251,249,243,.92);backdrop-filter:blur(6px);font-size:13.5px;color:#1a1714;outline:none" />
+        <svg viewBox="0 0 24 24" width="16" height="16" style="position:absolute;left:14px;top:13px;opacity:.4" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+        <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search a town, municipality or district" style="width:100%;padding:11px 14px 11px 40px;border:1px solid var(--sep);border-radius:10px;background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);font-size:13.5px;color:var(--ink);outline:none" />
       </div>
-      <div id="results" hidden style="margin-top:6px;background:#fbf9f3;border:1px solid rgba(26,23,20,.12);border-radius:2px;box-shadow:0 14px 40px -18px rgba(26,23,20,.45);overflow:hidden"></div>
+      <div id="results" hidden style="margin-top:8px;background:var(--bg2);border:1px solid var(--sep);border-radius:12px;box-shadow:var(--shadow-overlay);overflow:hidden"></div>
     </div>
 
     <!-- legend -->
-    <div id="legendBox" style="position:absolute;left:38px;bottom:34px;z-index:6;background:rgba(251,249,243,.86);backdrop-filter:blur(6px);border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:13px 15px 14px;min-width:236px">
-      <div id="legendTitle" style="font-size:10px;letter-spacing:.13em;font-weight:600;color:#6f685c;text-transform:uppercase;margin-bottom:9px">MEDIAN VALUE · DISTRICT</div>
-      <div id="legendBar" style="height:9px;border-radius:1px;border:1px solid rgba(26,23,20,.1)"></div>
-      <div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11.5px;color:#1a1714;font-variant-numeric:tabular-nums">
+    <div id="legendBox" style="position:absolute;left:38px;bottom:34px;z-index:6;background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--sep);border-radius:var(--r-panel);box-shadow:var(--shadow-platter);padding:14px 16px 15px;min-width:236px">
+      <div id="legendTitle" style="font-size:10px;letter-spacing:.13em;font-weight:600;color:var(--ink2);text-transform:uppercase;margin-bottom:9px">MEDIAN VALUE · DISTRICT</div>
+      <div id="legendBar" style="height:9px;border-radius:1px;border:1px solid var(--sep)"></div>
+      <div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11.5px;color:var(--ink);font-variant-numeric:tabular-nums">
         <span id="legendMin"></span><span id="legendMax"></span>
       </div>
     </div>
 
     <!-- breadcrumb (desktop) -->
     <div class="desk" style="position:absolute;left:50%;transform:translateX(-50%);bottom:30px;z-index:7;display:flex;align-items:center;gap:14px">
-      <div id="crumbs" style="display:flex;align-items:center;gap:9px;background:rgba(251,249,243,.9);backdrop-filter:blur(6px);border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:8px 14px"></div>
-      <div id="reset" class="o-clickable" style="font-size:11.5px;letter-spacing:.04em;color:#1f6f63;font-weight:600;cursor:pointer;text-transform:uppercase">Reset</div>
+      <div id="crumbs" style="display:flex;align-items:center;gap:9px;background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--sep);border-radius:var(--r-pill);box-shadow:var(--shadow-platter);padding:9px 16px"></div>
+      <div id="reset" class="o-clickable" style="font-size:11.5px;letter-spacing:.04em;color:var(--accent);font-weight:600;cursor:pointer;text-transform:uppercase">Reset</div>
     </div>
 
     <!-- tooltip -->
-    <div id="tip" style="position:fixed;z-index:20;pointer-events:none;opacity:0;transition:opacity .12s;background:#1a1714;color:#f3efe6;padding:10px 13px;border-radius:3px;box-shadow:0 12px 30px -10px rgba(0,0,0,.5);max-width:240px"></div>
+    <div id="tip" style="position:fixed;z-index:20;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--ink);color:var(--bg);padding:10px 13px;border-radius:10px;box-shadow:var(--shadow-overlay);max-width:240px"></div>
 
     <!-- scroll cue (desktop) -->
-    <div id="scrollcue" hidden class="o-clickable" style="position:absolute;right:40px;bottom:34px;z-index:6;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6f685c">
+    <div id="scrollcue" hidden class="o-clickable" style="position:absolute;right:40px;bottom:34px;z-index:6;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)">
       <span>Scroll for the valuation breakdown</span>
       <span style="display:inline-block;animation:ohintpulse 1.8s infinite">↓</span>
     </div>
 
     <!-- loading -->
-    <div id="loading" style="position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:#efe9dc">
+    <div id="loading" style="position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--bg3)">
       <div style="text-align:center">
-        <div id="loadingMsg" style="font-family:'Newsreader',serif;font-style:italic;font-size:22px;color:#6f685c;animation:ohintpulse 1.6s infinite">Drawing the boundaries…</div>
-        <div style="width:160px;height:2px;background:rgba(26,23,20,.12);margin:18px auto 0;overflow:hidden"><div style="width:40%;height:100%;background:#1f6f63;animation:ohintpulse 1.2s infinite"></div></div>
+        <div id="loadingMsg" style="font-family:var(--font-ui);font-size:22px;color:var(--ink2);animation:ohintpulse 1.6s infinite">Drawing the boundaries…</div>
+        <div style="width:160px;height:2px;background:var(--sep);margin:18px auto 0;overflow:hidden"><div style="width:40%;height:100%;background:var(--accent);animation:ohintpulse 1.2s infinite"></div></div>
       </div>
     </div>
   </section>
 
   <!-- ===== Screen 2 — valuation breakdown ===== -->
-  <section id="dash" hidden style="position:relative;width:100%;min-height:100vh;background:#f3efe6;padding:78px 56px 90px;border-top:1px solid rgba(26,23,20,.1)">
-    <div style="max-width:1180px;margin:0 auto">
-      <div id="dashKicker" style="font-size:11px;letter-spacing:.2em;font-weight:600;color:#1f6f63;margin-bottom:12px"></div>
-      <h2 id="scopeLabel" style="margin:0 0 6px;font-family:'Newsreader',serif;font-weight:400;font-size:46px;line-height:1;letter-spacing:-.015em"></h2>
-      <div id="scopeSub" style="font-family:'Newsreader',serif;font-style:italic;font-size:18px;color:#6f685c;margin-bottom:42px"></div>
+  <section id="dash" hidden style="position:relative;width:100%;min-height:100vh;background:var(--bg);padding:78px 56px 90px;border-top:1px solid var(--sep)">
+    <div style="max-width:1000px;margin:0 auto">
+      <h2 id="scopeLabel" style="margin:0 0 6px;font-family:var(--font-ui);font-weight:800;font-size:clamp(32px,4vw,46px);line-height:1.05;letter-spacing:-.02em"></h2>
+      <div id="scopeSub" style="font-family:var(--font-ui);font-size:18px;color:var(--ink2);margin-bottom:42px"></div>
 
-      <div class="kpis" style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid rgba(26,23,20,.14);border-bottom:1px solid rgba(26,23,20,.14)">
-        <div style="padding:24px 26px 26px;border-right:1px solid rgba(26,23,20,.1)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Median valuation</div><div id="statMedian" class="kpinum" style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
-        <div style="padding:24px 26px 26px;border-right:1px solid rgba(26,23,20,.1)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Average valuation</div><div id="statAvg" class="kpinum" style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
-        <div style="padding:24px 26px 26px;border-right:1px solid rgba(26,23,20,.1)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Total roll value</div><div id="statTotal" class="kpinum" style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
-        <div style="padding:24px 26px 26px"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#9a9286;margin-bottom:14px">Registered parcels</div><div id="statParcels" class="kpinum" style="font-family:'Newsreader',serif;font-size:40px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
+      <div class="kpis" style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--sep);border-bottom:1px solid var(--sep)">
+        <div style="padding:24px 26px 26px;border-right:1px solid var(--sep)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">Median valuation</div><div id="statMedian" class="kpinum" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:38px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
+        <div style="padding:24px 26px 26px;border-right:1px solid var(--sep)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">Average valuation</div><div id="statAvg" class="kpinum" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:38px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
+        <div style="padding:24px 26px 26px;border-right:1px solid var(--sep)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">Total roll value</div><div id="statTotal" class="kpinum" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:38px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
+        <div style="padding:24px 26px 26px"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">Registered parcels</div><div id="statParcels" class="kpinum" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:38px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
       </div>
 
       <!-- price distribution -->
       <div class="dsec" style="margin-top:50px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:20px">
-          <h3 class="dh" style="margin:0;font-family:'Newsreader',serif;font-weight:400;font-size:23px">Price distribution</h3>
-          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286;text-align:right">parcels by value band</div>
-        </div>
+        <h3 class="dh" style="margin:0 0 20px;font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:22px">Price distribution</h3>
         <div id="distChart"></div>
       </div>
 
       <!-- a closer look: richer distribution statistics -->
       <div class="dsec" id="closer" style="margin-top:50px">
-        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:22px">
-          <h3 class="dh" style="margin:0;font-family:'Newsreader',serif;font-weight:400;font-size:23px">A closer look</h3>
-          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286;text-align:right">how values are distributed</div>
-        </div>
         <div class="statgrid" id="statTiles"></div>
         <div id="catMix" style="margin-top:32px"></div>
       </div>
@@ -323,30 +314,25 @@
       <!-- ranked children + extreme properties -->
       <div class="dgrid" style="display:grid;grid-template-columns:1.1fr .9fr;gap:64px;margin-top:56px;align-items:start">
         <div>
-          <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:22px">
-            <h3 id="rankTitle" class="dh" style="margin:0;font-family:'Newsreader',serif;font-weight:400;font-size:23px"></h3>
-            <div id="rankSub" style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#9a9286;text-align:right">by median value</div>
-          </div>
+          <h3 id="rankTitle" class="dh" style="margin:0 0 22px;font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:22px"></h3>
           <div id="ranked"></div>
         </div>
         <div style="display:flex;flex-direction:column;gap:22px">
-          <div id="hiCard" class="propcard" role="button" tabindex="0" aria-label="View the most valuable properties" style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:22px 24px">
-            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px">Most valuable property</div>
-            <div id="hiAddr" style="font-family:'Newsreader',serif;font-size:22px;line-height:1.15;margin-bottom:3px"></div>
-            <div id="hiSub" style="font-size:12.5px;color:#9a9286;margin-bottom:12px"></div>
-            <div id="hiVal" style="font-family:'Newsreader',serif;font-size:26px;font-variant-numeric:tabular-nums"></div>
-            <div id="hiMeta" style="font-size:12.5px;color:#6f685c;font-variant-numeric:tabular-nums;margin-top:3px"></div>
-            <div id="hiHint" class="tlOpen">See the top valued properties →</div>
+          <div id="hiCard" class="propcard" role="button" tabindex="0" aria-label="View the most valuable properties" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:22px 24px">
+            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px">Most valuable property</div>
+            <div id="hiAddr" style="font-family:var(--font-ui);font-weight:600;letter-spacing:-.01em;font-size:20px;line-height:1.15;margin-bottom:3px"></div>
+            <div id="hiSub" style="font-size:12.5px;color:var(--label2);margin-bottom:12px"></div>
+            <div id="hiVal" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.01em;font-size:25px;font-variant-numeric:tabular-nums"></div>
+            <div id="hiMeta" style="font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
           </div>
-          <div id="loCard" class="propcard" role="button" tabindex="0" aria-label="View the most affordable homes" style="background:#fbf9f3;border:1px solid rgba(26,23,20,.1);border-radius:2px;padding:22px 24px">
-            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#b8623c;margin-bottom:12px">Most affordable home</div>
-            <div id="loAddr" style="font-family:'Newsreader',serif;font-size:22px;line-height:1.15;margin-bottom:3px"></div>
-            <div id="loSub" style="font-size:12.5px;color:#9a9286;margin-bottom:12px"></div>
-            <div id="loVal" style="font-family:'Newsreader',serif;font-size:26px;font-variant-numeric:tabular-nums"></div>
-            <div id="loMeta" style="font-size:12.5px;color:#6f685c;font-variant-numeric:tabular-nums;margin-top:3px"></div>
-            <div id="loHint" class="tlOpen">See the most affordable homes →</div>
+          <div id="loCard" class="propcard" role="button" tabindex="0" aria-label="View the most affordable homes" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:22px 24px">
+            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ok);margin-bottom:12px">Most affordable home</div>
+            <div id="loAddr" style="font-family:var(--font-ui);font-weight:600;letter-spacing:-.01em;font-size:20px;line-height:1.15;margin-bottom:3px"></div>
+            <div id="loSub" style="font-size:12.5px;color:var(--label2);margin-bottom:12px"></div>
+            <div id="loVal" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.01em;font-size:25px;font-variant-numeric:tabular-nums"></div>
+            <div id="loMeta" style="font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
           </div>
-          <div id="dashNote" style="font-size:12.5px;line-height:1.6;color:#9a9286;padding:0 2px"></div>
+          <div id="dashNote" style="font-size:12.5px;line-height:1.6;color:var(--label2);padding:0 2px"></div>
         </div>
       </div>
     </div>
@@ -393,6 +379,6 @@
   </div>
 </div>
 
-<script type="module" src="assets/atlas.js?v=13"></script>
+<script type="module" src="assets/atlas.js?v=14"></script>
 </body>
 </html>
