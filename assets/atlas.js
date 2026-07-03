@@ -52,10 +52,9 @@ let dbw = null, dbwPromise = null, areaIndex = null;
   clipMainland(); toPlanar(); buildHierarchy(); initMap();
   $("loading").style.display = "none";
   navigate([], false);
-  wireSearch(); $("reset").onclick = () => { $("search").value = ""; navigate([], true); };
-  $("scrollcue").onclick = () => statePath.length && scrollTo({ top: innerHeight * 0.96, behavior: "smooth" });
-  $("mback").onclick = () => { if (statePath.length) { navigate(statePath.slice(0, -1)); scrollTo({ top: 0, behavior: "smooth" }); } };
-  let rzT; addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(() => { if (statePath.length) renderDash(statePath); }, 200); });
+  wireSearch(); wireSheet();
+  $("mback").onclick = () => { if (statePath.length) navigate(statePath.slice(0, -1)); };
+  let rzT; addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(() => navigate(statePath, false), 200); });
 
   // top-N properties overlay
   const cardKey = id => id === "hiCard" ? "hi" : "lo";
@@ -209,13 +208,22 @@ function setLayers(len) {
 }
 
 /* ============================ zoom (CSS transform) ============================ */
+// The left rail (desktop) covers part of the map, so features are fitted to and
+// centred in the VISIBLE area right of it. Converts the rail's CSS px into
+// viewBox units via the meet-scale factor.
+function railVB() {
+  if (innerWidth <= 720) return 0;
+  const railPx = Math.min(432, innerWidth * 0.38);          // 16px gutter + 400px rail
+  return railPx / Math.min(innerWidth / W, innerHeight / H);
+}
 function zoom(feats, animate) {
   let b = null; feats.forEach(f => { const bb = path.bounds(f); b = b ? [[Math.min(b[0][0], bb[0][0]), Math.min(b[0][1], bb[0][1])], [Math.max(b[1][0], bb[1][0]), Math.max(b[1][1], bb[1][1])]] : bb; });
   const dx = b[1][0] - b[0][0], dy = b[1][1] - b[0][1], cx = (b[0][0] + b[1][0]) / 2, cy = (b[0][1] + b[1][1]) / 2;
-  let k = Math.max(1, Math.min(MAXK, 0.84 / Math.max(dx / W, dy / H)));
+  const rv = railVB();
+  const k = Math.min(MAXK, 0.84 / Math.max(dx / (W - rv), dy / H));
   curK = k;
   gNode.style.transition = animate ? "transform .95s cubic-bezier(.4,0,.2,1)" : "none";
-  gNode.style.transform = `translate(${W / 2 - k * cx}px,${H / 2 - k * cy}px) scale(${k})`;
+  gNode.style.transform = `translate(${(W + rv) / 2 - k * cx}px,${H / 2 - k * cy}px) scale(${k})`;
 }
 
 /* ============================ labels ============================ */
@@ -265,19 +273,55 @@ function navigate(p, animate = true) {
   zoom(feats, animate);
   if (len === 3) drawWards(p[2].name); else clearWards();
   labels(len, p);
-  document.body.style.overflowY = len ? "auto" : "hidden";
-  $("scrollcue").style.display = len ? "flex" : "none";
-  $("dash").hidden = !len;
-  if (!len) scrollTo({ top: 0 });
+  updatePanel(len);
   hideResults();
   renderChrome(p);
+}
+
+/* The place panel: desktop left rail is always up; the phone bottom sheet only
+ * exists once an area is selected, and re-opens at its peek height per drill. */
+let prevLen = -1;
+function updatePanel(len) {
+  const panel = $("panel"), phone = innerWidth <= 720;
+  $("dash").hidden = !len;
+  panel.hidden = phone && !len;
+  if (phone && prevLen <= 0 && len > 0) panel.classList.remove("full");
+  if (!phone) panel.classList.remove("full");
+  $("pBody").scrollTop = 0;
+  prevLen = len;
+}
+
+/* ---- phone bottom-sheet drag: peek <-> full, snap on release ---- */
+function wireSheet() {
+  const p = $("panel"), g = $("grab");
+  let y0 = null, open0 = false, moved = false;
+  g.addEventListener("pointerdown", e => { y0 = e.clientY; open0 = p.classList.contains("full");
+    moved = false; p.classList.add("dragging");
+    try { g.setPointerCapture(e.pointerId); } catch (_) {} });
+  g.addEventListener("pointermove", e => { if (y0 == null) return;
+    const dy = e.clientY - y0; if (Math.abs(dy) > 4) moved = true;
+    const closedY = p.offsetHeight - 134;
+    const ty = Math.max(0, Math.min(closedY, (open0 ? 0 : closedY) + dy));
+    p.style.transform = `translateY(${ty}px)`; });
+  const end = e => { if (y0 == null) return;
+    const dy = e.clientY - y0; p.classList.remove("dragging"); p.style.transform = "";
+    p.classList.toggle("full", moved ? (open0 ? dy < 60 : dy < -60) : !open0);
+    y0 = null; };
+  g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
 }
 
 /* ============================ chrome + dashboard ============================ */
 function renderChrome(p) {
   const len = p.length;
-  $("headline").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;
-  $("subline").textContent = len === 0 ? "Tap the Western Cape to begin" : "";
+
+  // panel header: product kicker + intro at rest, breadcrumb once drilled
+  $("panelKick").hidden = len !== 0;
+  $("crumbs").hidden = len === 0;
+  $("hint0").hidden = len !== 0;
+  if (len === 0) {
+    $("scopeLabel").textContent = "Western Cape";
+    $("scopeSub").textContent = "Official municipal property valuations across 24 local municipalities — mapped, searchable, free.";
+  }
 
   // mobile top bar — always shows where you are, with a back step up the hierarchy
   $("mloc").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;
@@ -297,23 +341,24 @@ function renderChrome(p) {
     a.style.cssText = "font-size:13px;font-weight:500;color:var(--ink);cursor:pointer"; a.onclick = s.go; $("crumbs").appendChild(a);
   });
 
-  // legend (extent of currently displayed set)
+  // legend (extent of currently displayed set); the phone sheet takes its spot once drilled
   let e, lt;
   if (len >= 2) { e = ext(DISTRICTS[p[1].name].munis.map(m => med(muniStat(m)))); lt = "MEDIAN VALUE · MUNICIPALITY"; }
   else { e = ext(Object.keys(DISTRICTS).map(d => med(distStat(d)))); lt = "MEDIAN VALUE · DISTRICT"; }
   $("legendTitle").textContent = lt; $("legendMin").textContent = R(e[0]); $("legendMax").textContent = R(e[1]);
+  $("legendBox").style.display = (innerWidth <= 720 && len) ? "none" : "";
 
   if (len >= 1) renderDash(p);
 }
 
 function renderDash(p) {
   const len = p.length, isMuni = len >= 3;
-  let scope, children = [], kindP, scopeName, kicker;
-  if (len === 1) { scope = provStat(); scopeName = "Western Cape"; kicker = "WESTERN CAPE PROVINCE"; kindP = "Districts";
+  let scope, children = [], kindP, scopeName;
+  if (len === 1) { scope = provStat(); scopeName = "Western Cape"; kindP = "Districts";
     children = DISTF.features.map(f => ({ name: name(f), s: distStat(name(f)), go: () => navigate([wcCrumb(), { type: "district", name: name(f) }]) })); }
-  else if (len === 2) { const dl = p[1].name; scope = distStat(dl); scopeName = dl; kicker = dl.toUpperCase() + " DISTRICT"; kindP = "Municipalities";
+  else if (len === 2) { const dl = p[1].name; scope = distStat(dl); scopeName = dl; kindP = "Municipalities";
     children = DISTRICTS[dl].munis.map(m => ({ name: m, s: muniStat(m), go: () => navigate([wcCrumb(), { type: "district", name: dl }, { type: "municipality", name: m }]) })); }
-  else { const m = p[2].name; scope = muniStat(m); scopeName = m; kicker = m.toUpperCase() + " · " + p[1].name.toUpperCase(); }
+  else { const m = p[2].name; scope = muniStat(m); scopeName = m; }
 
   $("scopeLabel").textContent = scopeName;
   $("scopeSub").textContent = !scope ? "No public valuation roll"
@@ -339,7 +384,7 @@ function renderDash(p) {
           <span style="font-size:15px">${c.name}</span><span style="font-size:14px;font-variant-numeric:tabular-nums">${R(c.s.median)}</span></div>
         <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
           <div style="height:100%;width:${Math.max(8, Math.round(c.s.median / maxMed * 100))}%;background:${color(c.s.median, [minMed, maxMed])};border-radius:3px"></div></div>`;
-      row.onclick = () => { c.go(); scrollTo({ top: 0, behavior: "smooth" }); };
+      row.onclick = c.go;
       rk.appendChild(row);
     });
   } else {
@@ -413,47 +458,17 @@ function renderHist(hist, total) {
   const el = $("distChart"); el.innerHTML = "";
   if (!hist) { el.innerHTML = `<div style="color:var(--label2);font-size:14px;padding:24px 0">No distribution data for this area.</div>`; return; }
   const labels = STATS.buckets, n = hist.length, max = Math.max(...hist, 1);
-
-  if (innerWidth <= 720) {   // mobile: horizontal bars read top-to-bottom — no x-label crowding
-    el.innerHTML = hist.map((cnt, i) => {
-      const w = Math.max(cnt ? 3 : 0, Math.round(cnt / max * 100));
-      const col = d3.interpolateRgbBasis(RAMP)(n > 1 ? i / (n - 1) : .5);
-      return `<div style="display:flex;align-items:center;gap:11px;padding:5px 0">
-        <div style="flex:0 0 84px;font-size:12px;color:var(--ink2);text-align:right;font-variant-numeric:tabular-nums">${esc(labels[i])}</div>
-        <div style="flex:1;height:22px;background:var(--bg3);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${w}%;background:${col};border-radius:3px"></div></div>
-        <div style="flex:0 0 50px;font-size:12px;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums">${N(cnt)}</div>
-      </div>`;
-    }).join("");
-    return;
-  }
-
-  const VW = 1000, VH = 230, padL = 6, padR = 6, padT = 22, padB = 46, gap = 9;
-  const chartW = VW - padL - padR, chartH = VH - padT - padB, bw = chartW / n - gap;
-  const compact = v => v >= 1e6 ? (v / 1e6).toFixed(1).replace(/\.0$/, "") + "m" : v >= 1e3 ? Math.round(v / 1e3) + "k" : "" + v;
-  const s = d3.select(el).append("svg").attr("viewBox", `0 0 ${VW} ${VH}`).attr("preserveAspectRatio", "xMidYMid meet").style("width", "100%").style("display", "block");
-  s.append("line").attr("x1", padL).attr("x2", VW - padR).attr("y1", padT + chartH).attr("y2", padT + chartH).attr("stroke", cssVar("--sep"));
-  hist.forEach((cnt, i) => {
-    const x = padL + i * (bw + gap) + gap / 2, bh = cnt / max * chartH, y = padT + chartH - bh;
-    const g = s.append("g");
-    g.append("rect").attr("x", x).attr("y", y).attr("width", bw).attr("height", Math.max(0, bh)).attr("rx", 1.5)
-      .attr("fill", d3.interpolateRgbBasis(RAMP)(n > 1 ? i / (n - 1) : .5))
-      .on("mouseenter mousemove", e => tipHist(e, labels[i], cnt, total)).on("mouseleave", tipHide);
-    // cssVar(), not "var(--…)": var() inside an SVG presentation attribute is nonstandard
-    // (Chrome resolves it, Safari/Firefox can't be relied on) — bake the value in.
-    if (cnt) g.append("text").attr("x", x + bw / 2).attr("y", y - 6).attr("text-anchor", "middle")
-      .style("font-size", "11px").style("font-variant-numeric", "tabular-nums").attr("fill", cssVar("--ink2")).text(compact(cnt));
-    g.append("text").attr("x", x + bw / 2).attr("y", padT + chartH + 18).attr("text-anchor", "middle")
-      .style("font-size", "10.5px").attr("fill", cssVar("--label2")).text(labels[i]);
-  });
-}
-function tipHist(e, label, cnt, total) {
-  const t = $("tip"), pct = total ? (cnt / total * 100) : 0;
-  t.innerHTML = `<div style="font-family:var(--font-ui);font-size:15px;margin-bottom:4px">${esc(label)}</div>` +
-    `<div style="font-size:12px"><span style="opacity:.6">Parcels </span><span style="font-variant-numeric:tabular-nums">${N(cnt)}</span> · ${pct.toFixed(1)}%</div>`;
-  t.style.opacity = 1; let x = e.clientX + 16, y = e.clientY + 16;
-  if (x + 220 > innerWidth) x = e.clientX - 220; if (y + 80 > innerHeight) y = e.clientY - 80;
-  t.style.left = x + "px"; t.style.top = y + "px";
+  // horizontal bars read top-to-bottom — the natural fit for the narrow place panel
+  el.innerHTML = hist.map((cnt, i) => {
+    const w = Math.max(cnt ? 3 : 0, Math.round(cnt / max * 100));
+    const col = d3.interpolateRgbBasis(RAMP)(n > 1 ? i / (n - 1) : .5);
+    return `<div style="display:flex;align-items:center;gap:11px;padding:4px 0">
+      <div style="flex:0 0 76px;font-size:11.5px;color:var(--ink2);text-align:right;font-variant-numeric:tabular-nums">${esc(labels[i])}</div>
+      <div style="flex:1;height:20px;background:var(--bg3);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${w}%;background:${col};border-radius:3px"></div></div>
+      <div style="flex:0 0 48px;font-size:11.5px;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums">${N(cnt)}</div>
+    </div>`;
+  }).join("");
 }
 
 /* ============================ top-N properties (live DB query) ============================ */
@@ -619,8 +634,7 @@ function openProp(r) {
     ratesBlock(r) +
     `<div id="pdGo" class="o-clickable">View ${esc(r.muni || "area")} on the map →</div>`;
   $("pdGo").onclick = () => { const f = muniByName[r.muni]; closeProp();
-    if (f) navigate([wcCrumb(), { type: "district", name: f.properties.district }, { type: "municipality", name: r.muni }]);
-    scrollTo({ top: 0 }); };
+    if (f) navigate([wcCrumb(), { type: "district", name: f.properties.district }, { type: "municipality", name: r.muni }]); };
   $("propdetail").classList.add("open"); $("propdetail").setAttribute("aria-hidden", "false");
   document.documentElement.style.overflow = "hidden";
 }

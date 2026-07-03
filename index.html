@@ -40,39 +40,101 @@
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <style>
   *{box-sizing:border-box}
-  html{overflow-x:hidden}
-  html,body{margin:0;padding:0;max-width:100%;overflow-x:hidden;background:var(--bg);color:var(--ink);font-family:var(--font-ui);-webkit-font-smoothing:antialiased}
-  body{overflow-y:hidden}             /* country level = just the map; unlocked once WC entered */
+  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
+    font-family:var(--font-ui);-webkit-font-smoothing:antialiased}
   ::selection{background:var(--accent);color:#fff}
   @keyframes ohintpulse{0%,100%{opacity:.45}50%{opacity:1}}
+  a{color:inherit}
+  input,button{font-family:inherit}
+
+  /* ---- full-bleed map, Apple-Maps style: panels float over it ---- */
+  #map{position:fixed;inset:0}
   #map svg{display:block;width:100%;height:100%}
   #map path{cursor:default}
   #map .o-clickable{cursor:pointer}
   #map text{font-family:var(--font-ui);pointer-events:none;-webkit-user-select:none;user-select:none}
-  a{color:inherit}
-  input,button{font-family:inherit}
 
-  /* ---- "a closer look" stat tiles + property-mix bars ---- */
-  .statgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-  .stile{border:1px solid var(--hairline);border-radius:var(--r-card);padding:18px 18px 20px;background:var(--bg2);box-shadow:var(--shadow-card)}
-  .stl{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:10px;line-height:1.3}
-  .stv{font-family:var(--font-ui);font-weight:600;letter-spacing:-.01em;font-size:26px;line-height:1.02;font-variant-numeric:tabular-nums;margin-bottom:7px}
-  .stn{font-size:11.5px;line-height:1.4;color:var(--ink2)}
-  .cmrow{display:flex;align-items:center;gap:14px;margin-bottom:10px}
-  .cmlab{flex:0 0 110px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);text-align:right}
-  .cmbar{flex:1;display:flex;height:22px;border-radius:3px;overflow:hidden;background:var(--bg3)}
+  /* ---- the place panel: left rail on desktop, bottom sheet on phones ---- */
+  #panel{position:fixed;top:16px;left:16px;bottom:16px;width:400px;z-index:40;
+    display:flex;flex-direction:column;overflow:hidden;
+    background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--sep);border-radius:var(--r-panel);box-shadow:var(--shadow-platter)}
+  #panel[hidden]{display:none}
+  #grab{display:none}
+  #pHead{position:relative;flex:0 0 auto;padding:14px 16px 12px;border-bottom:1px solid var(--sep)}
+  #pHead svg{position:absolute;left:30px;top:26px;opacity:.4;pointer-events:none}
+  #search{width:100%;padding:11px 14px 11px 40px;border:1px solid var(--sep);border-radius:var(--r-chip);
+    background:var(--bg2);font-size:14px;color:var(--ink);outline:none;transition:border-color .2s ease-out}
+  #search:focus{border-color:var(--accent)}
+  #results{position:absolute;top:calc(100% - 6px);left:16px;right:16px;z-index:5;background:var(--bg2);
+    border:1px solid var(--sep);border-radius:12px;box-shadow:var(--shadow-overlay);
+    overflow:hidden auto;max-height:50vh}
+  #results[hidden]{display:none}
+  #pBody{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 20px calc(env(safe-area-inset-bottom,0px) + 22px)}
+
+  /* panel header block */
+  #crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
+  #crumbs[hidden]{display:none}
+  #panelKick{font-size:10.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--label2);margin-bottom:10px}
+  #panelKick[hidden]{display:none}
+  #scopeLabel{margin:0 0 5px;font-weight:800;font-size:30px;line-height:1.05;letter-spacing:-.02em;text-wrap:balance}
+  #scopeSub{font-size:14px;line-height:1.5;color:var(--ink2);margin-bottom:6px}
+  #hint0{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;letter-spacing:.02em;
+    font-weight:600;color:var(--accent)}
+  #hint0[hidden]{display:none}
+
+  /* ---- dashboard content (inside the panel) ---- */
+  #dash[hidden]{display:none}
+  .kpis{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--sep);border-bottom:1px solid var(--sep);margin-top:16px}
+  .kpis>div{padding:14px 14px 16px}
+  .kpis>div:nth-child(odd){border-right:1px solid var(--sep)}
+  .kpis>div:nth-child(-n+2){border-bottom:1px solid var(--sep)}
+  .kpilab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:9px}
+  .kpinum{font-weight:800;letter-spacing:-.02em;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+  .dsec{margin-top:34px}
+  .dh{margin:0 0 16px;font-weight:600;letter-spacing:-.02em;font-size:19px}
+
+  /* stat tiles + property-mix bars */
+  .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .stile{border:1px solid var(--hairline);border-radius:14px;padding:14px 14px 15px;background:var(--bg2);box-shadow:var(--shadow-card)}
+  .stl{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--label2);margin-bottom:8px;line-height:1.3}
+  .stv{font-weight:600;letter-spacing:-.01em;font-size:20px;line-height:1.05;font-variant-numeric:tabular-nums;margin-bottom:6px}
+  .stn{font-size:11px;line-height:1.4;color:var(--ink2)}
+  .cmrow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+  .cmlab{flex:0 0 86px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);text-align:right}
+  .cmbar{flex:1;display:flex;height:20px;border-radius:3px;overflow:hidden;background:var(--bg3)}
   .cmbar>div{height:100%}
-  .cmleg{display:flex;flex-wrap:wrap;gap:9px 22px;margin-top:16px}
-  .clg{font-size:12px;color:var(--ink);display:flex;align-items:center;gap:7px}
-  .csw{width:11px;height:11px;border-radius:2px;display:inline-block;flex:0 0 auto}
+  .cmleg{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px}
+  .clg{font-size:11.5px;color:var(--ink);display:flex;align-items:center;gap:6px}
+  .csw{width:10px;height:10px;border-radius:2px;display:inline-block;flex:0 0 auto}
   .cpct{color:var(--label2);font-variant-numeric:tabular-nums}
 
-  /* ---- clickable extreme-property cards ---- */
+  /* clickable extreme-property cards */
   .propcard{position:relative;cursor:pointer;transition:border-color .2s ease-out,box-shadow .2s ease-out,transform .12s ease-out;outline:none}
-  .propcard::after{content:"›";position:absolute;top:18px;right:20px;font-size:20px;line-height:1;color:var(--label3)}
+  .propcard::after{content:"›";position:absolute;top:16px;right:18px;font-size:20px;line-height:1;color:var(--label3)}
   .propcard:hover{border-color:var(--accent);box-shadow:var(--shadow-card)}
   .propcard:active{transform:scale(.992)}
   .propcard:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,132,255,.3)}
+
+  /* ---- floating chrome over the map ---- */
+  .platter{background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--sep);border-radius:var(--r-panel);box-shadow:var(--shadow-platter)}
+  #satlink{position:fixed;top:16px;right:16px;z-index:30;display:inline-flex;align-items:center;gap:8px;
+    text-decoration:none;padding:12px 16px;font-size:13px;letter-spacing:-.01em;font-weight:600;
+    color:var(--accent);transition:border-color .2s ease-out}
+  #satlink:hover{border-color:var(--accent)}
+  #legendBox{position:fixed;right:16px;bottom:16px;z-index:20;padding:13px 15px 14px;min-width:220px}
+  #legendTitle{font-size:10px;letter-spacing:.12em;font-weight:600;color:var(--label2);text-transform:uppercase;margin-bottom:9px}
+  #legendBar{height:8px;border-radius:4px}
+  #legendScale{display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}
+  #tip{position:fixed;z-index:50;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--ink);color:var(--bg);
+    padding:10px 13px;border-radius:10px;box-shadow:var(--shadow-overlay);max-width:240px}
+
+  /* loading */
+  #loading{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:var(--bg)}
+  #loadingMsg{font-size:15px;color:var(--ink2)}
+  #loadingBar{width:160px;height:2px;background:var(--sep);margin:16px auto 0;overflow:hidden;border-radius:1px}
+  #loadingBar>div{width:40%;height:100%;background:var(--accent);animation:ohintpulse 1.2s infinite}
 
   /* ---- top-N properties overlay ---- */
   #toplist{position:fixed;inset:0;z-index:60;display:none}
@@ -83,7 +145,7 @@
   #toplist.open #tlPanel{opacity:1}
   #tlHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 14px;border-bottom:1px solid var(--sep)}
   #tlKicker{font-size:10.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--accent);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #tlTitle{font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:24px;line-height:1.05;letter-spacing:-.01em}
+  #tlTitle{font-weight:600;letter-spacing:-.02em;font-size:24px;line-height:1.05}
   #tlClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
   #tlControls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid var(--sep)}
   #tlSeg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:3px}
@@ -93,12 +155,12 @@
   #tlBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 24px 6px;flex:1}
   #tlNote{padding:12px 24px calc(env(safe-area-inset-bottom,0px) + 16px);font-size:12px;line-height:1.5;color:var(--label2);border-top:1px solid var(--sep)}
   .tlRow{display:flex;align-items:flex-start;gap:13px;padding:14px 0;border-bottom:1px solid var(--sep)}
-  .tlRank{flex:0 0 24px;font-family:var(--font-ui);font-size:15px;color:var(--label2);font-variant-numeric:tabular-nums;text-align:right;padding-top:2px}
+  .tlRank{flex:0 0 24px;font-size:15px;color:var(--label2);font-variant-numeric:tabular-nums;text-align:right;padding-top:2px}
   .tlMain{flex:1;min-width:0}
-  .tlAddr{font-family:var(--font-ui);font-weight:600;font-size:16.5px;line-height:1.2}
+  .tlAddr{font-weight:600;font-size:16.5px;line-height:1.2}
   .tlSub{font-size:12px;color:var(--label2);margin-top:3px}
   .tlRight{flex:0 0 auto;text-align:right;padding-left:6px}
-  .tlVal{font-family:var(--font-ui);font-weight:600;font-size:16.5px;font-variant-numeric:tabular-nums}
+  .tlVal{font-weight:600;font-size:16.5px;font-variant-numeric:tabular-nums}
   .tlMeta{font-size:11.5px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px}
   .tlCat{display:inline-block;font-size:9px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:var(--ink2);border:1px solid var(--sep);border-radius:4px;padding:1px 5px;margin-left:7px;vertical-align:middle;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
   @media (min-width:721px){
@@ -114,10 +176,10 @@
   #propdetail.open #pdPanel{opacity:1}
   #pdHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 16px;border-bottom:1px solid var(--sep)}
   #pdKicker{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
-  #pdAddr{font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:23px;line-height:1.12}
+  #pdAddr{font-weight:600;letter-spacing:-.02em;font-size:23px;line-height:1.12}
   #pdClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
   #pdBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 24px calc(env(safe-area-inset-bottom,0px) + 22px)}
-  .pdVal{font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:34px;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 2px}
+  .pdVal{font-weight:800;letter-spacing:-.02em;font-size:34px;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 2px}
   .pdStat{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--sep);font-size:14px}
   .pdStat .k{color:var(--ink2)}
   .pdStat .v{font-variant-numeric:tabular-nums;text-align:right}
@@ -131,7 +193,6 @@
     #pdPanel{inset:0;transform:translateY(16px)}
     #propdetail.open #pdPanel{transform:translateY(0)}
     #pdHead{padding-top:calc(env(safe-area-inset-top,0px) + 16px)}
-    #pdAddr{font-size:23px}
   }
 
   /* ---- mobile header (hidden on desktop) ---- */
@@ -139,13 +200,11 @@
 
   /* ============================ MOBILE ============================ */
   @media (max-width:720px){
-    /* hide desktop-only chrome */
     .desk{display:none !important}
-    #scrollcue{display:none !important}
 
     /* persistent top bar: always shows where you are + search */
-    #mbar{display:block;position:fixed;top:0;left:0;right:0;z-index:40;
-      background:var(--platter-bg);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    #mbar{display:block;position:fixed;top:0;left:0;right:0;z-index:45;
+      background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
       border-bottom:1px solid var(--sep);
       padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 11px}
     #mbar .mrow{display:flex;align-items:center;gap:11px}
@@ -156,7 +215,7 @@
     #mtext{min-width:0;flex:1}
     #mkicker{font-size:9.5px;letter-spacing:.16em;font-weight:600;color:var(--accent);text-transform:uppercase;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
-    #mloc{font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:22px;line-height:1.04;letter-spacing:-.01em;
+    #mloc{font-weight:600;letter-spacing:-.02em;font-size:22px;line-height:1.04;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     #msearchWrap{position:relative;margin-top:11px}
     #msearchWrap svg{position:absolute;left:13px;top:13px;opacity:.4}
@@ -167,39 +226,27 @@
       overflow:hidden auto;box-shadow:0 18px 40px -20px var(--scrim);max-height:54vh}
     #mresults[hidden]{display:none}
 
-    /* map stage clears the header; legend pinned, compact, full-width (override desktop inline left/bottom) */
-    #stage{height:100dvh}
-    #legendBox{left:14px !important;right:14px !important;bottom:calc(env(safe-area-inset-bottom,0px) + 14px) !important;min-width:0 !important;padding:12px 15px 13px !important}
-    #legendBar{height:14px !important}
-    #legendTitle{margin-bottom:8px !important}
+    /* the place panel becomes a draggable bottom sheet */
+    #panel{top:auto;left:8px;right:8px;bottom:8px;width:auto;
+      max-height:calc(100dvh - env(safe-area-inset-top,0px) - 132px);
+      transform:translateY(calc(100% - 134px));
+      transition:transform .32s cubic-bezier(.32,.72,.28,1)}
+    #panel.full{transform:translateY(0);background:var(--bg)}   /* opaque when expanded — charts stay readable */
+    #panel.dragging{transition:none}
+    #pHead{display:none}                     /* the top bar owns search on phones */
+    #crumbs{display:none !important}         /* the top bar already shows the hierarchy */
+    #grab{display:flex;flex:0 0 auto;justify-content:center;padding:10px 0 4px;cursor:grab;touch-action:none}
+    #grab::before{content:"";width:36px;height:5px;border-radius:3px;background:var(--label3)}
+    #pBody{overflow-y:hidden;padding:6px 18px calc(env(safe-area-inset-bottom,0px) + 18px)}
+    #panel.full #pBody{overflow-y:auto}
+    #scopeLabel{font-size:24px}
+    #scopeSub{font-size:13px}
+    .kpinum{font-size:23px}
 
-    /* dashboard: fluid, everything stacked under each other */
-    #dash{padding:calc(env(safe-area-inset-top,0px) + 132px) 16px calc(env(safe-area-inset-bottom,0px) + 56px) !important}
-    #scopeLabel{font-size:33px !important}
-    #scopeSub{font-size:16px !important;margin-bottom:30px !important}
-    .kpis{grid-template-columns:1fr 1fr !important}
-    .kpis>div{padding:16px 16px 18px !important}
-    .kpis>div:nth-child(2){border-right:none !important}
-    .kpis .kpinum{font-size:26px !important}
-    .dsec{margin-top:34px !important}
-    .dh{font-size:20px !important}
-    .dgrid{grid-template-columns:1fr !important;gap:34px !important;margin-top:34px !important}
-    .statgrid{grid-template-columns:1fr 1fr !important;gap:10px !important}
-    .stv{font-size:23px !important}
-    .cmlab{flex-basis:78px !important;font-size:10px !important}
-
-    /* top-N overlay = full-screen sheet on phones */
-    #tlPanel{inset:0;transform:translateY(16px)}
-    #toplist.open #tlPanel{transform:translateY(0)}
-    #tlHead{padding-top:calc(env(safe-area-inset-top,0px) + 16px)}
-    #tlTitle{font-size:23px}
-    #tlControls{padding:13px 18px}
-    #tlHead{padding-left:18px;padding-right:18px}
-    #tlBody{padding-left:18px;padding-right:18px}
-    #tlNote{padding-left:18px;padding-right:18px}
-    .tlRow{padding:13px 0}
+    /* legend gives way to the sheet once drilled (JS toggles it) */
+    #legendBox{left:14px;right:14px;min-width:0}
+    #satlink{display:none}
   }
-  @media (max-width:380px){ .kpis{grid-template-columns:1fr !important} .kpis>div{border-right:none !important} }
 </style>
 </head>
 <body>
@@ -211,6 +258,8 @@
   cadastral parcels</a> or the <a href="https://github.com/calerio/western-cape-valuations">
   project on GitHub</a>.</p>
 </noscript>
+
+<div id="map"></div>
 
 <!-- ===== Mobile-only top bar: persistent location + search ===== -->
 <header id="mbar">
@@ -229,115 +278,85 @@
   <div id="mresults" hidden></div>
 </header>
 
-<div style="position:relative;width:100%;background:var(--bg)">
+<!-- ===== The place panel: left rail (desktop) / bottom sheet (mobile) ===== -->
+<aside id="panel" aria-label="Valuation breakdown">
+  <div id="grab" role="button" aria-label="Expand or collapse the panel"></div>
+  <div id="pHead">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+    <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search a town, municipality or address" />
+    <div id="results" hidden></div>
+  </div>
+  <div id="pBody">
+    <div id="crumbs" hidden></div>
+    <div id="panelKick">Municipal property valuations</div>
+    <h1 id="scopeLabel">Western Cape</h1>
+    <div id="scopeSub"></div>
+    <div id="hint0"><span style="display:inline-block;animation:ohintpulse 1.8s infinite">◉</span>Select the Western Cape on the map to begin</div>
 
-  <!-- ===== Screen 1 — map stage ===== -->
-  <section id="stage" style="position:relative;width:100%;height:100vh;overflow:hidden;background:var(--bg)">
-    <div id="map" style="position:absolute;inset:0"></div>
-
-    <!-- title block (desktop) -->
-    <div class="desk" style="position:absolute;top:34px;left:38px;max-width:440px;z-index:6;pointer-events:none">
-      <h1 id="headline" style="margin:0;font-family:var(--font-ui);font-weight:800;font-size:clamp(40px,5vw,62px);line-height:1.02;letter-spacing:-.02em;color:var(--ink)">South Africa</h1>
-      <p id="subline" style="margin:12px 0 0;font-family:var(--font-ui);font-size:16px;line-height:1.5;max-width:400px;color:var(--label2)">Official municipal property valuations across the Western Cape's 24 local municipalities — mapped, searchable, free.</p>
-    </div>
-
-    <!-- search (desktop) -->
-    <div class="desk" style="position:absolute;top:38px;right:38px;width:312px;z-index:8">
-      <div style="text-align:right;margin-bottom:9px">
-        <a href="map.html" style="text-decoration:none;font-size:11px;letter-spacing:.08em;font-weight:600;text-transform:uppercase;color:var(--accent)">◎ Satellite map →</a>
-      </div>
-      <div style="position:relative">
-        <svg viewBox="0 0 24 24" width="16" height="16" style="position:absolute;left:14px;top:13px;opacity:.4" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-        <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search a town, municipality or district" style="width:100%;padding:11px 14px 11px 40px;border:1px solid var(--sep);border-radius:10px;background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);font-size:13.5px;color:var(--ink);outline:none" />
-      </div>
-      <div id="results" hidden style="margin-top:8px;background:var(--bg2);border:1px solid var(--sep);border-radius:12px;box-shadow:var(--shadow-overlay);overflow:hidden"></div>
-    </div>
-
-    <!-- legend -->
-    <div id="legendBox" style="position:absolute;left:38px;bottom:34px;z-index:6;background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--sep);border-radius:var(--r-panel);box-shadow:var(--shadow-platter);padding:14px 16px 15px;min-width:236px">
-      <div id="legendTitle" style="font-size:10px;letter-spacing:.13em;font-weight:600;color:var(--ink2);text-transform:uppercase;margin-bottom:9px">MEDIAN VALUE · DISTRICT</div>
-      <div id="legendBar" style="height:9px;border-radius:1px;border:1px solid var(--sep)"></div>
-      <div style="display:flex;justify-content:space-between;margin-top:7px;font-size:11.5px;color:var(--ink);font-variant-numeric:tabular-nums">
-        <span id="legendMin"></span><span id="legendMax"></span>
-      </div>
-    </div>
-
-    <!-- breadcrumb (desktop) -->
-    <div class="desk" style="position:absolute;left:50%;transform:translateX(-50%);bottom:30px;z-index:7;display:flex;align-items:center;gap:14px">
-      <div id="crumbs" style="display:flex;align-items:center;gap:9px;background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--sep);border-radius:var(--r-pill);box-shadow:var(--shadow-platter);padding:9px 16px"></div>
-      <div id="reset" class="o-clickable" style="font-size:11.5px;letter-spacing:.04em;color:var(--accent);font-weight:600;cursor:pointer;text-transform:uppercase">Reset</div>
-    </div>
-
-    <!-- tooltip -->
-    <div id="tip" style="position:fixed;z-index:20;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--ink);color:var(--bg);padding:10px 13px;border-radius:10px;box-shadow:var(--shadow-overlay);max-width:240px"></div>
-
-    <!-- scroll cue (desktop) -->
-    <div id="scrollcue" hidden class="o-clickable" style="position:absolute;right:40px;bottom:34px;z-index:6;display:flex;align-items:center;gap:8px;cursor:pointer;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink2)">
-      <span>Scroll for the valuation breakdown</span>
-      <span style="display:inline-block;animation:ohintpulse 1.8s infinite">↓</span>
-    </div>
-
-    <!-- loading -->
-    <div id="loading" style="position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:var(--bg3)">
-      <div style="text-align:center">
-        <div id="loadingMsg" style="font-family:var(--font-ui);font-size:22px;color:var(--ink2);animation:ohintpulse 1.6s infinite">Drawing the boundaries…</div>
-        <div style="width:160px;height:2px;background:var(--sep);margin:18px auto 0;overflow:hidden"><div style="width:40%;height:100%;background:var(--accent);animation:ohintpulse 1.2s infinite"></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== Screen 2 — valuation breakdown ===== -->
-  <section id="dash" hidden style="position:relative;width:100%;min-height:100vh;background:var(--bg);padding:78px 56px 90px;border-top:1px solid var(--sep)">
-    <div style="max-width:1000px;margin:0 auto">
-      <h2 id="scopeLabel" style="margin:0 0 6px;font-family:var(--font-ui);font-weight:800;font-size:clamp(32px,4vw,46px);line-height:1.05;letter-spacing:-.02em"></h2>
-      <div id="scopeSub" style="font-family:var(--font-ui);font-size:18px;color:var(--ink2);margin-bottom:42px"></div>
-
-      <div class="kpis" style="display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--sep);border-bottom:1px solid var(--sep)">
-        <div style="padding:24px 26px 26px;border-right:1px solid var(--sep)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">Median valuation</div><div id="statMedian" class="kpinum" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:38px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
-        <div style="padding:24px 26px 26px;border-right:1px solid var(--sep)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">Average valuation</div><div id="statAvg" class="kpinum" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:38px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
-        <div style="padding:24px 26px 26px;border-right:1px solid var(--sep)"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">Total roll value</div><div id="statTotal" class="kpinum" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:38px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
-        <div style="padding:24px 26px 26px"><div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">Registered parcels</div><div id="statParcels" class="kpinum" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.02em;font-size:38px;line-height:1;font-variant-numeric:tabular-nums"></div></div>
+    <div id="dash" hidden>
+      <div class="kpis">
+        <div><div class="kpilab">Median valuation</div><div id="statMedian" class="kpinum"></div></div>
+        <div><div class="kpilab">Average valuation</div><div id="statAvg" class="kpinum"></div></div>
+        <div><div class="kpilab">Total roll value</div><div id="statTotal" class="kpinum"></div></div>
+        <div><div class="kpilab">Registered parcels</div><div id="statParcels" class="kpinum"></div></div>
       </div>
 
       <!-- price distribution -->
-      <div class="dsec" style="margin-top:50px">
-        <h3 class="dh" style="margin:0 0 20px;font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:22px">Price distribution</h3>
+      <div class="dsec">
+        <h3 class="dh">Price distribution</h3>
         <div id="distChart"></div>
       </div>
 
-      <!-- a closer look: richer distribution statistics -->
-      <div class="dsec" id="closer" style="margin-top:50px">
+      <!-- richer distribution statistics -->
+      <div class="dsec" id="closer">
         <div class="statgrid" id="statTiles"></div>
-        <div id="catMix" style="margin-top:32px"></div>
+        <div id="catMix" style="margin-top:26px"></div>
       </div>
 
-      <!-- ranked children + extreme properties -->
-      <div class="dgrid" style="display:grid;grid-template-columns:1.1fr .9fr;gap:64px;margin-top:56px;align-items:start">
-        <div>
-          <h3 id="rankTitle" class="dh" style="margin:0 0 22px;font-family:var(--font-ui);font-weight:600;letter-spacing:-.02em;font-size:22px"></h3>
-          <div id="ranked"></div>
+      <!-- ranked children -->
+      <div class="dsec">
+        <h3 id="rankTitle" class="dh"></h3>
+        <div id="ranked"></div>
+      </div>
+
+      <!-- extreme properties -->
+      <div class="dsec" style="display:flex;flex-direction:column;gap:16px">
+        <div id="hiCard" class="propcard" role="button" tabindex="0" aria-label="View the most valuable properties" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:18px 20px">
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">Most valuable property</div>
+          <div id="hiAddr" style="font-weight:600;letter-spacing:-.01em;font-size:18px;line-height:1.15;margin-bottom:3px"></div>
+          <div id="hiSub" style="font-size:12px;color:var(--label2);margin-bottom:10px"></div>
+          <div id="hiVal" style="font-weight:800;letter-spacing:-.01em;font-size:23px;font-variant-numeric:tabular-nums"></div>
+          <div id="hiMeta" style="font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:22px">
-          <div id="hiCard" class="propcard" role="button" tabindex="0" aria-label="View the most valuable properties" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:22px 24px">
-            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px">Most valuable property</div>
-            <div id="hiAddr" style="font-family:var(--font-ui);font-weight:600;letter-spacing:-.01em;font-size:20px;line-height:1.15;margin-bottom:3px"></div>
-            <div id="hiSub" style="font-size:12.5px;color:var(--label2);margin-bottom:12px"></div>
-            <div id="hiVal" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.01em;font-size:25px;font-variant-numeric:tabular-nums"></div>
-            <div id="hiMeta" style="font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
-          </div>
-          <div id="loCard" class="propcard" role="button" tabindex="0" aria-label="View the most affordable homes" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:22px 24px">
-            <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ok);margin-bottom:12px">Most affordable home</div>
-            <div id="loAddr" style="font-family:var(--font-ui);font-weight:600;letter-spacing:-.01em;font-size:20px;line-height:1.15;margin-bottom:3px"></div>
-            <div id="loSub" style="font-size:12.5px;color:var(--label2);margin-bottom:12px"></div>
-            <div id="loVal" style="font-family:var(--font-ui);font-weight:800;letter-spacing:-.01em;font-size:25px;font-variant-numeric:tabular-nums"></div>
-            <div id="loMeta" style="font-size:12.5px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
-          </div>
-          <div id="dashNote" style="font-size:12.5px;line-height:1.6;color:var(--label2);padding:0 2px"></div>
+        <div id="loCard" class="propcard" role="button" tabindex="0" aria-label="View the most affordable homes" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:18px 20px">
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ok);margin-bottom:10px">Most affordable home</div>
+          <div id="loAddr" style="font-weight:600;letter-spacing:-.01em;font-size:18px;line-height:1.15;margin-bottom:3px"></div>
+          <div id="loSub" style="font-size:12px;color:var(--label2);margin-bottom:10px"></div>
+          <div id="loVal" style="font-weight:800;letter-spacing:-.01em;font-size:23px;font-variant-numeric:tabular-nums"></div>
+          <div id="loMeta" style="font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
         </div>
+        <div id="dashNote" style="font-size:12px;line-height:1.6;color:var(--label2);padding:0 2px"></div>
       </div>
     </div>
-  </section>
+  </div>
+</aside>
 
+<!-- ===== floating chrome ===== -->
+<a id="satlink" class="desk platter" href="map.html">◎ Satellite</a>
+
+<div id="legendBox" class="platter">
+  <div id="legendTitle">MEDIAN VALUE · DISTRICT</div>
+  <div id="legendBar"></div>
+  <div id="legendScale"><span id="legendMin"></span><span id="legendMax"></span></div>
+</div>
+
+<div id="tip"></div>
+
+<div id="loading">
+  <div style="text-align:center">
+    <div id="loadingMsg">Loading the atlas…</div>
+    <div id="loadingBar"><div></div></div>
+  </div>
 </div>
 
 <!-- ===== Top-N properties overlay (live DB query) ===== -->
@@ -379,6 +398,6 @@
   </div>
 </div>
 
-<script type="module" src="assets/atlas.js?v=14"></script>
+<script type="module" src="assets/atlas.js?v=15"></script>
 </body>
 </html>
