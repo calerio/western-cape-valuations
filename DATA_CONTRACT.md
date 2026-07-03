@@ -316,3 +316,31 @@ or search — the pre-warm used to be only `SELECT 1`, so the first real query p
 descent. **If you re-measure and any of these regresses the click past ~2 s, check that all four are
 still in place.** A future structural upgrade (pre-built PMTiles / precomputed top-N in `stats.json`)
 is sketched in the extraction repo's MAP-FEASIBILITY.md.
+
+## 12. History snapshots (`data/history/`) — append-only, never deleted
+
+Every municipality currently holds exactly **one** valuation cycle, so "how has this area's value
+changed?" is unanswerable today. To make growth appear **automatically** the moment a municipality
+gets a second roll, `export_site.py` archives an **immutable aggregate snapshot** of each data state.
+
+- **What is written:** after `stats.json`, the export writes `data/history/stats-<YYYY-MM-DD>.json`
+  — but **only when the roll state changed** (the muni→cycle signature differs from the newest
+  existing snapshot). Re-running the export with unchanged data writes nothing. So history holds
+  **one entry per roll-state change**, not one per export run.
+- **Shape:** `{ "date", "cycles": {muni: cycle}, "nodes": {<node>: {cycle, properties, valued,
+  median, total, res_median}} }`. Aggregates only — **no per-property data** (growth is aggregate).
+  Node keys are province/district/municipality names (globally unique).
+- **Immutability (the whole point):** a snapshot file is **never overwritten or deleted**. If
+  `stats-<today>.json` already exists, the export leaves it intact. This is the "never delete data"
+  guarantee — each past data state is preserved verbatim. **Do not hand-edit or prune `data/history/`.**
+- **Growth computation:** for each **municipality**, the export finds the most recent *earlier*
+  snapshot in which that muni's `cycle` differed from now, and emits onto the `stats.json` node:
+  `median_growth`, `total_growth`, `res_median_growth` (each `= current/previous − 1`), `cagr`
+  (median annualized over the gap between cycle **start-years**, e.g. `2019-2023`→`2025-2029` = 6 yr),
+  and `growth_from` (the previous cycle label, for the UI caption). Growth is **municipality-level
+  only** — province/district aggregates mix munis on different cadences, so they carry no growth.
+- **Null-until-two-rolls:** with one roll everywhere, no muni has a differing earlier snapshot, so
+  **none of the growth fields are emitted at all**. Per §5's guard philosophy, the front-end simply
+  hides its Growth block until the fields appear. Nothing to configure — it lights up on the next roll.
+- **These files live in this repo (GitHub Pages), not Supabase** — they're small JSON, read directly
+  like `stats.json`/`towns.json`. No `data/db/` or Supabase involvement.
