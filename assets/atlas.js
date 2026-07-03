@@ -651,10 +651,17 @@ async function ensureDB() {
     // against the COMPRESSED bytes, so SQLite reads garbage and every search returns nothing.
     // Supabase Storage serves raw byte-ranges (no transfer compression) with CORS — verified.
     // config.json's urlPrefix ("search.db.") resolves the chunks relative to this configUrl.
-    const DB_CONFIG = "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/config.json";
+    const DB_CONFIG = "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v3/config.json";
     const w = await createDbWorker([{ from: "jsonconfig", configUrl: DB_CONFIG }],
       abs("assets/vendor/sqlite.worker.js"), abs("assets/vendor/sql-wasm.wasm"));
-    await w.db.query("SELECT 1");   // cold-start can hand back an empty wasm buffer — verify before caching
+    // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot
+    // pages the first real search / top-N will need, so they don't pay the whole cold B-tree descent
+    // (the boot pre-warm ran only SELECT 1 before). Best-effort, in the background before any query.
+    await w.db.query("SELECT 1");
+    try {
+      await w.db.query("SELECT rowid FROM psearch WHERE psearch MATCH ? LIMIT 1", ["a*"]);
+      await w.db.query("SELECT value FROM prop WHERE value>0 ORDER BY value DESC LIMIT 1");
+    } catch (_) { /* best-effort warm-up; an older-schema DB just stays cold */ }
     dbw = w; return w;
   })().catch(e => { dbwPromise = null; throw e; });   // never cache a broken worker; allow a clean retry
   return dbwPromise;

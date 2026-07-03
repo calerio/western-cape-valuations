@@ -126,8 +126,12 @@ field is optional and is consumed defensively (see §5). New municipalities just
    Storage, not this repo** (see §8) — these committed files are the *upload source*. Table
    `prop(muni, suburb, erf, address, extent, value, tenure, category, erf_int)` + an FTS5 index
    `psearch` (address/suburb/erf, for in-any-order token search) with indexes
-   `idx_addr, idx_sub, idx_muni_value, idx_value, idx_erf_int`. `erf_int` is the numeric core of
-   `erf` ('SB17324' / '00017324' / '17324' → 17324) — the **map view's cadastre join key** (see §9).
+   `idx_addr, idx_sub, idx_muni_value, idx_value, idx_erf_int_value`. `erf_int` is the numeric core
+   of `erf` ('SB17324' / '00017324' / '17324' → 17324) — the **map view's cadastre join key** (§9).
+   **Two things make the map click fast over HTTP range-reads (see §11):** the composite
+   `idx_erf_int_value (erf_int, value)` (no ORDER BY temp-sort), and the `prop` rows are **physically
+   clustered by `erf_int`** (rows inserted in erf_int order) so one erf's matches are contiguous.
+   `config.json` sets `requestChunkSize: 65536` to pull those contiguous rows in a few range reads.
    `config.json.databaseLengthBytes` **must equal** the summed byte size of the chunk files
    (export computes this — don't touch it).
 3. **`data/geo/*.geojson`** — province / WC districts / WC municipalities /
@@ -170,9 +174,11 @@ So a partial data update = a quieter page, not a broken one.
    West Coast.)
 3. `search.db` must keep the `prop` columns above **and the value indexes** — without
    `idx_value` / `idx_muni_value` the top-N query scans the whole table and downloads the entire DB
-   over the network instead of a few KB. The same applies to `idx_erf_int` for the map view's
+   over the network instead of a few KB. The same applies to `idx_erf_int_value` for the map view's
    click-to-valuation lookup (map.js falls back to an FTS erf-token match if the hosted DB predates
-   `erf_int`, so an old upload degrades rather than breaks — but don't remove the column/index).
+   `erf_int`, so an old upload degrades rather than breaks — but don't remove the column/index). Do
+   NOT drop the erf_int clustering or lower `requestChunkSize` without re-measuring (§11) — either
+   alone reverts the map click to the 20s+ cold-read stall.
 4. `config.json.databaseLengthBytes` must match the chunk total (re-running the export guarantees this).
 5. Bump `assets/atlas.js?v=N` in `index.html` whenever `atlas.js` changes, and
    `assets/map.js?v=N` in `map.html` whenever `map.js` changes (GitHub Pages caches assets).
@@ -222,10 +228,13 @@ query touches, instead of the whole 85 MB file). This requires the host to serve
   `SQLite format 3` bytes and resolving "55 Lovell" end-to-end.
 
 **Setup:** Supabase project `nxeasppmwvzcqbbgrdvf`, **public** bucket `valuations`, the 4 `data/db/`
-files at the bucket root. `atlas.js` `ensureDB()` points `configUrl` at
-`…/storage/v1/object/public/valuations/config.json`; the chunks resolve relative to it via
+files under a **versioned path prefix** (`v3/`). `atlas.js` + `map.js` `ensureDB()` point `configUrl`
+at `…/storage/v1/object/public/valuations/v3/config.json`; the chunks resolve relative to it via
 `config.json`'s `urlPrefix`. Chunking is retained because each chunk (≤32 MB) stays under Supabase's
-50 MB-per-file upload limit. The vendored `sqlite.worker.js` + `sql-wasm.wasm` still load from this
+50 MB-per-file upload limit. **Why a versioned path:** objects cache `max-age=3600`, so overwriting
+in place risks an hour of stale/mismatched chunks; uploading a rebuilt DB to a *new* prefix
+(`v4/`, …) and flipping the one `configUrl` in both JS files makes the swap atomic and instantly
+reversible (revert the configUrl) — the old path stays serving until the flip deploys. The vendored `sqlite.worker.js` + `sql-wasm.wasm` still load from this
 repo (full GETs, so gzip is fine).
 
 ---
@@ -279,3 +288,31 @@ Rules that keep it honest:
 6. When editing rates.json, **bump the `?v=` in assets/rates.js's fetch** (Pages CDN caches it),
    and re-verify one hand-computed example per changed municipality.
 7. Refresh cycle: tariffs change every 1 July (municipal financial year) — re-verify annually.
+
+---
+
+## 11. Why the map click / search is fast (do not silently undo this)
+
+The search DB is read from Supabase over HTTP **range requests** — each uncached SQLite page fault
+is one network round-trip. A cold query's cost is (pages touched) × (per-request latency), so on a
+slow connection it is dominated by the *number of round-trips*, not CPU. A clicked erf resolves via
+`SELECT … FROM prop WHERE erf_int=? AND value>0 ORDER BY value DESC LIMIT 80`. Measured on a live
+DB, clicking a **common** erf number (they recur in 100-500 townships) took **~30 s cold** while the
+same query **warm was ~15 ms** — pure uncached-page latency. Three things fixed it (verified: the
+common erf-222 click dropped from **32 s → 0.84 s**; worst case ~4 s):
+
+1. **Composite index `idx_erf_int_value (erf_int, value)`** — a single-column `(erf_int)` index
+   forced `USE TEMP B-TREE FOR ORDER BY`, reading *every* matching row to sort it. The composite
+   walks the top matches in value order and stops at `LIMIT` (query-plan verified, no temp sort).
+2. **`prop` physically clustered by `erf_int`** (rows inserted in erf_int order in `export_site.py`).
+   Rows were stored municipality-order, so one erf's ~80 matches sat on ~80 pages scattered across
+   the 99 MB file = ~80 cold round-trips. Clustered, they are contiguous.
+3. **`requestChunkSize: 65536`** in `config.json` (was 4096 = one page). The contiguous erf rows +
+   index leaves now arrive in one or two 64 KB range reads instead of dozens.
+
+Plus a boot pre-warm: `ensureDB()` (both `atlas.js` and `map.js`) runs tiny `erf_int` / FTS / value
+probes right after opening the worker, faulting the shared index pages before the user's first click
+or search — the pre-warm used to be only `SELECT 1`, so the first real query paid the whole cold
+descent. **If you re-measure and any of these regresses the click past ~2 s, check that all four are
+still in place.** A future structural upgrade (pre-built PMTiles / precomputed top-N in `stats.json`)
+is sketched in the extraction repo's MAP-FEASIBILITY.md.

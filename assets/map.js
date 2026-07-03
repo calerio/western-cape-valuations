@@ -497,10 +497,18 @@ async function ensureDB() {
     // Served from Supabase Storage, NOT GitHub Pages (Pages gzip-corrupts the HTTP range
     // requests sql.js-httpvfs needs — see DATA_CONTRACT §8). ?db=<url> overrides for local dev.
     const DB_CONFIG = new URLSearchParams(location.search).get('db') ||
-      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/config.json';
+      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v3/config.json';
     const w = await createDbWorker([{ from: 'jsonconfig', configUrl: abs(DB_CONFIG) }],
       abs('assets/vendor/sqlite.worker.js'), abs('assets/vendor/sql-wasm.wasm'));
-    await w.db.query('SELECT 1');   // cold-start can hand back an empty wasm buffer — verify before caching
+    // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot
+    // index pages the first real click will need: the boot pre-warm used to run only SELECT 1, so
+    // the first erf lookup paid the whole cold B-tree descent (the 20s stall). These tiny probes
+    // warm the (erf_int,value) index + FTS in the background, before the user clicks.
+    await w.db.query('SELECT 1');
+    try {
+      await w.db.query('SELECT value FROM prop WHERE erf_int=? AND value>0 ORDER BY value DESC LIMIT 1', [1]);
+      await w.db.query('SELECT rowid FROM psearch WHERE psearch MATCH ? LIMIT 1', ['a*']);
+    } catch (_) { /* best-effort warm-up; an older-schema DB just stays cold */ }
     dbw = w; return w;
   })().catch(e => { dbwPromise = null; throw e; });   // never cache a broken worker; allow a clean retry
   return dbwPromise;
