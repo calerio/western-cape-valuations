@@ -14,6 +14,7 @@
  * Design: docs/superpowers/specs/2026-06-22-map-view-design.md (+ 2026-07-02 parcels spec)
  */
 const maplibregl = window.maplibregl;
+import { getRates, computeRates } from "./rates.js?v=1";
 
 // Western Cape framing extent — the map is FIT to this on load (with padding) so the
 // whole province frames itself on any screen/aspect, phone or desktop. [lng, lat]: SW, NE.
@@ -273,7 +274,12 @@ const R = v => {
 };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clWs = s => (s || '').replace(/\s+/g, ' ').trim();
-const DEFAULT_RATE = 0.9;   // cents per Rand — typical WC residential rate-in-the-rand
+const RZA = v => 'R' + N(Math.round(v));
+
+// Verified municipal rates (rates.js + data/rates.json). Shown only when the
+// municipality's official tariff is on file — no figure beats a made-up one.
+let RATESDATA = null;
+getRates().then(d => { RATESDATA = d; });
 
 // Rank valuation rows for a clicked parcel: the same erf NUMBER recurs across towns,
 // so prefer rows whose suburb/municipality matches the cadastre's Town_name. Suburb
@@ -335,9 +341,15 @@ function statRow(k, v) {
   return `<div class="pRow"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`;
 }
 
+function ratesNote(rr) {
+  const cents = (rr.rate * 100).toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
+  return `${esc(cents)}c/R${rr.reduction ? ' on value above ' + RZA(rr.reduction) : ''}` +
+         (rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">Official tariff ↗</a>` : '');
+}
+
 function renderDetail(r, props, backList, backSub) {
   const ppm = r.extent && r.value ? 'R' + N(Math.round(r.value / r.extent)) + ' / m²' : '—';
-  const ann = r.value * DEFAULT_RATE / 100;
+  const rr = computeRates(RATESDATA, r.muni, r.category, r.tenure, r.value);
   $('pbody').innerHTML =
     (backList ? `<div id="pback" class="pLink">← All ${backList.length} valuations on this erf</div>` : '') +
     `<div class="pKick">${esc([clWs(r.suburb), r.muni].filter(Boolean).join(' · '))}</div>` +
@@ -349,9 +361,9 @@ function renderDetail(r, props, backList, backSub) {
     statRow('Category', r.category || '—') +
     statRow('Extent', r.extent ? N(Math.round(r.extent)) + ' m²' : '—') +
     statRow('Value per m²', ppm) +
-    statRow('≈ rates / year', 'R' + N(Math.round(ann)) + ` (at ${DEFAULT_RATE}c/R)`) +
-    `<div class="pNote">Rates are an estimate at a typical WC residential rate-in-the-rand — use the
-       Atlas search for the adjustable estimator. Parcel ${esc(props.PRCL_KEY || '')}.</div>`;
+    (rr ? statRow(`Rates / year (${rr.year})`, RZA(rr.annual)) +
+          statRow('Rates / month', RZA(rr.monthly)) : '') +
+    `<div class="pNote">${rr ? ratesNote(rr) + ' · ' : ''}Parcel ${esc(props.PRCL_KEY || '')}.</div>`;
   if (backList) $('pback').onclick = () => renderList(backList, props, backSub);
   openPanel();
 }

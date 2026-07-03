@@ -252,3 +252,30 @@ Degradation rules (keep these):
 
 If the live service ever becomes a bottleneck, the pre-built PMTiles pipeline sketched in
 MAP-FEASIBILITY.md is the upgrade path — swap `addParcels()`'s source, keep everything else.
+
+---
+
+## 10. Curated municipal rates (`data/rates.json`) — the ONE hand-maintained data file
+
+Everything else under `data/` is machine-generated (golden rule §1). `data/rates.json` is the
+single deliberate exception: per-municipality **rate-in-the-rand tariffs transcribed by hand from
+official documents** (municipal tariff books / rates policies, or the Provincial Gazette rates
+promulgations required by MPRA s14). It exists because tariffs are *curated facts about documents*,
+not derivable from `wc-valuations.db`.
+
+Rules that keep it honest:
+1. **Every entry MUST carry** `year`, `source` (URL of the verified official document) and `quote`
+   (the exact tariff line transcribed). No quote → the entry does not ship.
+2. Rates are stored as **Rand-per-Rand decimals** exactly as gazetted (0.6954 c/R → `0.006954`).
+   `residential_reduction` is the TOTAL value excluded for an ordinary residential property
+   (statutory R15,000 impermissible amount per MPRA s17(1)(h) + any municipal extension).
+3. **A municipality absent from the file means the UI shows no rates figure at all** — the front
+   end (assets/rates.js `computeRates`) returns null and both panels omit the block. Never a
+   default, never a guess. Same for a category missing from a municipality's `rates{}`.
+4. Keys must exactly match the DB `municipality.name` strings (§6.2 list) + `"City of Cape Town"`.
+5. The formula (assets/rates.js): `annual = max(0, value − residential_reduction) × rate` for
+   residential; other categories apply no reduction. `monthly = annual / 12`. Category strings are
+   bucketed by the same keyword logic as `export_site.classify()` — keep the two in sync.
+6. When editing rates.json, **bump the `?v=` in assets/rates.js's fetch** (Pages CDN caches it),
+   and re-verify one hand-computed example per changed municipality.
+7. Refresh cycle: tariffs change every 1 July (municipal financial year) — re-verify annually.

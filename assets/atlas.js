@@ -1,4 +1,5 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7/+esm";
+import { getRates, computeRates } from "./rates.js?v=1";
 
 /* ============================ config / tokens ============================ */
 const W = 1000, H = 760, MAXK = 46;
@@ -563,7 +564,7 @@ async function runSearch(q, inId = "search", resId = "results") {
   for (let attempt = 0; attempt < 2 && rows === null; attempt++) {
     try {
       rows = await (await ensureDB()).db.query(
-        "SELECT p.muni,p.suburb,p.address,p.erf,p.extent,p.value,p.category FROM psearch f " +
+        "SELECT p.muni,p.suburb,p.address,p.erf,p.extent,p.value,p.tenure,p.category FROM psearch f " +
         "JOIN prop p ON p.id=f.rowid WHERE psearch MATCH ? AND p.value>0 ORDER BY p.value DESC LIMIT 8", [fts]);
     } catch (e) { resetDB(); }
   }
@@ -577,9 +578,25 @@ async function runSearch(q, inId = "search", resId = "results") {
     [clSub(r.suburb), r.muni].filter(Boolean).join(" · "), () => openProp(r), R(r.value)));
   if (!box.children.length) searchNote(box, "No matches");
 }
-/* ============================ property detail + rates estimator ============================ */
-const DEFAULT_RATE = 0.9;   // cents per Rand — typical WC residential rate-in-the-rand (editable)
+/* ============================ property detail + verified rates ============================ */
 const RZA = v => "R" + N(Math.round(v));   // full-precision Rand (no k/m abbreviation) for rates
+
+/* Verified municipal rates (rates.js + data/rates.json). Rendered ONLY when the
+ * municipality's official tariff is on file — otherwise the block is omitted
+ * entirely: no figure beats a made-up one. */
+let RATESDATA = null;
+getRates().then(d => { RATESDATA = d; });
+function ratesBlock(r) {
+  const rr = computeRates(RATESDATA, r.muni, r.category, r.tenure, r.value);
+  if (!rr) return "";
+  const cents = (rr.rate * 100).toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+  return `<div class="pdTax">
+      <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px">Municipal rates · ${esc(rr.year)}</div>
+      <div class="pdStat"><span class="k">Per year</span><span class="v" style="font-family:'Newsreader',serif;font-size:21px">${RZA(rr.annual)}</span></div>
+      <div class="pdStat" style="border-bottom:none"><span class="k">Per month</span><span class="v">${RZA(rr.monthly)}</span></div>
+      <div style="font-size:11px;line-height:1.55;color:#9a9286;margin-top:10px">${esc(cents)}c/R${rr.reduction ? " on value above " + RZA(rr.reduction) : ""}${rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">Official tariff ↗</a>` : ""}</div>
+    </div>`;
+}
 function openProp(r) {
   $("pdKicker").textContent = [clSub(r.suburb), r.muni].filter(Boolean).join(" · ");
   $("pdAddr").textContent = clAddr(r.address) || "Unnamed erf";
@@ -595,21 +612,8 @@ function openProp(r) {
     `<div class="pdVal">${R(r.value)}</div>` +
     `<div style="font-size:12px;color:#9a9286;margin-bottom:14px">municipal market value · ${YEAR}</div>` +
     stats.map(([k, v]) => `<div class="pdStat"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("") +
-    `<div class="pdTax">
-       <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#1f6f63;margin-bottom:12px">Estimated annual rates</div>
-       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-         <label for="pdRate" style="font-size:13px;color:#6f685c">Rate-in-the-rand (cents per R)</label>
-         <input id="pdRate" type="number" step="0.01" min="0" inputmode="decimal" value="${DEFAULT_RATE}">
-       </div>
-       <div class="pdStat" style="margin-top:12px"><span class="k">≈ per year</span><span id="pdAnnual" class="v" style="font-family:'Newsreader',serif;font-size:21px"></span></div>
-       <div class="pdStat" style="border-bottom:none"><span class="k">≈ per month</span><span id="pdMonthly" class="v"></span></div>
-       <div style="font-size:11px;line-height:1.55;color:#9a9286;margin-top:10px">Estimate only. Annual rates = market value × the municipal rate-in-the-rand for the property's category, minus any rebate. The default is a typical Western Cape residential rate — enter ${esc(r.muni || "the municipality")}'s actual tariff (from its rates policy) for an exact figure.</div>
-     </div>` +
+    ratesBlock(r) +
     `<div id="pdGo" class="o-clickable">View ${esc(r.muni || "area")} on the map →</div>`;
-  const calc = () => { const rate = parseFloat($("pdRate").value) || 0, ann = r.value * rate / 100;
-    $("pdAnnual").textContent = RZA(ann); $("pdMonthly").textContent = RZA(ann / 12); };
-  calc();
-  $("pdRate").addEventListener("input", calc);
   $("pdGo").onclick = () => { const f = muniByName[r.muni]; closeProp();
     if (f) navigate([wcCrumb(), { type: "district", name: f.properties.district }, { type: "municipality", name: r.muni }]);
     scrollTo({ top: 0 }); };
