@@ -252,18 +252,53 @@ async function loadParcels(map) {
 /* ─────────────────────── click → valuation (increment #3) ─────────────────────── */
 
 let selId = null;
+// parcels under the last click, smallest-first, + that click's ward — powers the overlap chooser.
+// Cadastre parcels routinely overlap (utility erven, sectional-scheme PARENT parcels, remnant
+// subdivisions), so one click can land on several. We auto-pick the SMALLEST (most specific): an
+// individual erf beats the giant reservoir/complex sitting on top of it — and offer a chooser to
+// switch. See docs/superpowers/specs/2026-07-03-performance-and-stats-design.md.
+let parcelCands = [], parcelWard = null;
+
+// Approx footprint area (m²) of a parcel's outer ring (planar, scaled by mean latitude) — ranks
+// overlapping parcels smallest-first and labels them in the chooser. Relative order is what matters.
+function parcelAreaM2(geom) {
+  const ring = geom && geom.coordinates && geom.coordinates[0];
+  if (!ring || ring.length < 4) return Infinity;
+  let latSum = 0; for (const p of ring) latSum += p[1];
+  const mx = 111320 * Math.cos((latSum / ring.length) * Math.PI / 180), my = 110540;
+  let a = 0;
+  for (let i = 0, n = ring.length - 1; i < n; i++)
+    a += (ring[i][0] * mx) * (ring[i + 1][1] * my) - (ring[i + 1][0] * mx) * (ring[i][1] * my);
+  return Math.abs(a) / 2;
+}
 
 function onParcelClick(map) {
   map.on('mouseenter', 'parcels-fill', () => { map.getCanvas().style.cursor = 'pointer'; });
   map.on('mouseleave', 'parcels-fill', () => { map.getCanvas().style.cursor = ''; });
-  map.on('click', 'parcels-fill', async (e) => {
-    const f = e.features && e.features[0];
-    if (!f) return;
-    if (selId !== null) map.setFeatureState({ source: 'parcels', id: selId }, { sel: false });
-    selId = f.id;
-    map.setFeatureState({ source: 'parcels', id: selId }, { sel: true });
-    await showValuation({ ...f.properties, _ward: wardAt(map, e.point) });
+  map.on('click', 'parcels-fill', (e) => {
+    // every parcel under the point (a geojson source returns full, un-clipped geometry here)
+    const hits = map.queryRenderedFeatures(e.point, { layers: ['parcels-fill'] });
+    if (!hits.length) return;
+    const seen = new Set(); parcelCands = [];
+    for (const f of hits) {
+      const key = f.id != null ? f.id : f.properties.PRCL_KEY;
+      if (seen.has(key)) continue;
+      seen.add(key); parcelCands.push(f);
+    }
+    parcelCands.sort((a, b) => parcelAreaM2(a.geometry) - parcelAreaM2(b.geometry));
+    parcelWard = wardAt(map, e.point);
+    pickParcel(parcelCands[0]);          // the smallest, most specific erf
   });
+}
+
+// Select one parcel (highlight it) and show its valuation. Also invoked when the user switches
+// parcels from the overlap chooser.
+async function pickParcel(f) {
+  const map = window._map;
+  if (selId !== null) map.setFeatureState({ source: 'parcels', id: selId }, { sel: false });
+  selId = f.id;
+  map.setFeatureState({ source: 'parcels', id: selId }, { sel: true });
+  await showValuation({ ...f.properties, _ward: parcelWard });
 }
 
 // ---- tiny formatting helpers (mirrors atlas.js conventions) ----
@@ -368,6 +403,7 @@ function renderDetail(r, props, backList, backSub) {
     `<div class="pNote">${rr ? ratesNote(rr) + ' · ' : ''}Parcel ${esc(props.PRCL_KEY || '')}.</div>`;
   if (backList) $('pback').onclick = () => renderList(backList, props, backSub);
   openPanel();
+  maybeInjectChooser();
 }
 
 function renderList(rows, props, subText) {
@@ -384,6 +420,33 @@ function renderList(rows, props, subText) {
   $('pbody').querySelectorAll('.pPick').forEach(el =>
     el.addEventListener('click', () => renderDetail(rows[+el.dataset.i], props, rows, sub)));
   openPanel();
+  maybeInjectChooser();
+}
+
+// When a click hit several overlapping parcels, prepend a "N parcels here" switcher to whatever the
+// panel currently shows (valuation, list, or no-match) so the user can pick a different parcel.
+function maybeInjectChooser() {
+  if (parcelCands.length < 2) return;
+  const body = $('pbody'); if (!body) return;
+  const bar = document.createElement('div');
+  bar.className = 'pLink';
+  bar.textContent = `⇅ ${parcelCands.length} parcels overlap here — choose`;
+  bar.onclick = renderParcelChooser;
+  body.insertBefore(bar, body.firstChild);
+}
+
+function renderParcelChooser() {
+  $('pbody').innerHTML =
+    `<div class="pKick">Overlapping parcels</div>` +
+    `<div class="pAddr">${parcelCands.length} parcels at this point</div>` +
+    `<div class="pSub">smallest (most specific) first — pick the one you mean</div>` +
+    parcelCands.map((f, i) =>
+      `<div class="pRow pPick" data-i="${i}"><span class="k">Erf ${esc(f.properties.TAG_VALUE || '?')}` +
+      `${f.properties.Town_name ? ' · ' + esc(clWs(f.properties.Town_name)) : ''}</span>` +
+      `<span class="v">${N(Math.round(parcelAreaM2(f.geometry)))} m²</span></div>`).join('');
+  $('pbody').querySelectorAll('.pPick').forEach(el =>
+    el.addEventListener('click', () => pickParcel(parcelCands[+el.dataset.i])));
+  openPanel();
 }
 
 async function showValuation(props) {
@@ -392,12 +455,14 @@ async function showValuation(props) {
     `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
     `<div class="pSub">Looking up valuation…</div>`;
   openPanel();
+  maybeInjectChooser();          // let the user switch parcels immediately, even while loading
   let res;
   try { res = await lookupErf(props.TAG_VALUE, props.Town_name); }
   catch (e) {
     console.warn('valuation lookup failed', e);
     $('pbody').innerHTML += `<div class="pNote">The valuation database is still loading — try the parcel again in a moment.</div>`;
     resetDB();
+    maybeInjectChooser();
     return;
   }
   if (!res.rows.length) {
@@ -406,6 +471,7 @@ async function showValuation(props) {
       `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
       `<div class="pVal" style="font-size:22px">No valuation found</div>` +
       `<div class="pNote">Not in the extracted rolls — possibly state land, a supplementary roll, or another town name.${res.stale ? ' The search index is one update behind.' : ''}</div>`;
+    maybeInjectChooser();
     return;
   }
   const sure = res.best >= 4;    // suburb-level match = genuinely this parcel's rows
