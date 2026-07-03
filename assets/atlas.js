@@ -341,12 +341,17 @@ function renderChrome(p) {
     a.style.cssText = "font-size:13px;font-weight:500;color:var(--ink);cursor:pointer"; a.onclick = s.go; $("crumbs").appendChild(a);
   });
 
-  // legend (extent of currently displayed set); the phone sheet takes its spot once drilled
-  let e, lt;
-  if (len >= 2) { e = ext(DISTRICTS[p[1].name].munis.map(m => med(muniStat(m)))); lt = "MEDIAN VALUE · MUNICIPALITY"; }
-  else { e = ext(Object.keys(DISTRICTS).map(d => med(distStat(d)))); lt = "MEDIAN VALUE · DISTRICT"; }
-  $("legendTitle").textContent = lt; $("legendMin").textContent = R(e[0]); $("legendMax").textContent = R(e[1]);
-  $("legendBox").style.display = (innerWidth <= 720 && len) ? "none" : "";
+  // The legend describes ONLY the value choropleth currently shaded on the map — nothing else:
+  //   len 1 → the Western Cape's districts are shaded  → district scale
+  //   len 2 → a district's municipalities are shaded   → municipality scale
+  // len 0 (South Africa — WC not yet opened) and len 3 (a single municipality + ward outlines,
+  // which carry no value shading) have no choropleth, so the legend is hidden entirely.
+  let e = null, lt = null;
+  if (len === 1) { e = ext(Object.keys(DISTRICTS).map(d => med(distStat(d)))); lt = "MEDIAN VALUE · DISTRICT"; }
+  else if (len === 2) { e = ext(DISTRICTS[p[1].name].munis.map(m => med(muniStat(m)))); lt = "MEDIAN VALUE · MUNICIPALITY"; }
+  const showLegend = !!e && innerWidth > 720;   // on phones the bottom sheet takes the legend's spot
+  $("legendBox").style.display = showLegend ? "" : "none";
+  if (showLegend) { $("legendTitle").textContent = lt; $("legendMin").textContent = R(e[0]); $("legendMax").textContent = R(e[1]); }
 
   if (len >= 1) renderDash(p);
 }
