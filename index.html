@@ -36,7 +36,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
-<link href="assets/tokens.css?v=1" rel="stylesheet" />
+<link href="assets/tokens.css?v=2" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <style>
   *{box-sizing:border-box}
@@ -93,7 +93,7 @@
   .kpilab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:9px}
   .kpinum{font-weight:800;letter-spacing:-.02em;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
   .dsec{margin-top:34px}
-  .dh{margin:0 0 16px;font-weight:600;letter-spacing:-.02em;font-size:19px}
+  .dh{margin:0 0 16px;font-weight:600;letter-spacing:-.02em;font-size:19px;text-wrap:balance}
 
   /* stat tiles + property-mix bars */
   .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -218,7 +218,7 @@
       display:flex;align-items:center;justify-content:center;flex:0 0 auto;padding-bottom:2px}
     #mback[hidden]{display:none}
     #mtext{min-width:0;flex:1}
-    #mkicker{font-size:9.5px;letter-spacing:.16em;font-weight:600;color:var(--accent);text-transform:uppercase;
+    #mkicker{font-size:9.5px;letter-spacing:.16em;font-weight:600;color:var(--label2);text-transform:uppercase;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
     #mloc{font-weight:600;letter-spacing:-.02em;font-size:22px;line-height:1.04;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
