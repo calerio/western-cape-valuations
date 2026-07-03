@@ -23,6 +23,7 @@
   --ok: #039855;
   --warn: #f79009;
   --bad: #d92d20;
+  --seg-on: #ffffff;         /* active chip of iOS-style segmented controls */
 
   /* shape + elevation */
   --r-panel: 16px;
@@ -87,6 +88,7 @@
     --ok: #30d158;
     --warn: #ff9f0a;
     --bad: #ff453a;
+    --seg-on: #636366;
     --shadow-platter: 0 -2px 20px rgba(0, 0, 0, .45), 0 0 12px rgba(0, 0, 0, .35);
     --shadow-card: 0 0 0 1px rgba(255, 255, 255, .06), 0 6px 18px -8px rgba(0, 0, 0, .6);
     --shadow-overlay: 0 30px 80px -30px rgba(0, 0, 0, .8);
@@ -115,6 +117,7 @@
   --ok: #30d158;
   --warn: #ff9f0a;
   --bad: #ff453a;
+  --seg-on: #636366;
   --shadow-platter: 0 -2px 20px rgba(0, 0, 0, .45), 0 0 12px rgba(0, 0, 0, .35);
   --shadow-card: 0 0 0 1px rgba(255, 255, 255, .06), 0 6px 18px -8px rgba(0, 0, 0, .6);
   --shadow-overlay: 0 30px 80px -30px rgba(0, 0, 0, .8);

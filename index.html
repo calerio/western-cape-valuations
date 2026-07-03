@@ -63,9 +63,10 @@
   #grab{display:none}
   #pHead{position:relative;flex:0 0 auto;padding:14px 16px 12px;border-bottom:1px solid var(--sep)}
   #pHead svg{position:absolute;left:30px;top:26px;opacity:.4;pointer-events:none}
-  #search{width:100%;padding:11px 14px 11px 40px;border:1px solid var(--sep);border-radius:var(--r-chip);
-    background:var(--bg2);font-size:14px;color:var(--ink);outline:none;transition:border-color .2s ease-out}
-  #search:focus{border-color:var(--accent)}
+  #search{width:100%;padding:11px 14px 11px 40px;border:1px solid transparent;border-radius:var(--r-chip);
+    background:var(--bg3);font-size:14px;color:var(--ink);outline:none;
+    transition:border-color .2s ease-out,background .2s ease-out}
+  #search:focus{border-color:var(--accent);background:var(--bg2)}
   #results{position:absolute;top:calc(100% - 6px);left:16px;right:16px;z-index:5;background:var(--bg2);
     border:1px solid var(--sep);border-radius:12px;box-shadow:var(--shadow-overlay);
     overflow:hidden auto;max-height:50vh}
@@ -119,10 +120,14 @@
   /* ---- floating chrome over the map ---- */
   .platter{background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
     border:1px solid var(--sep);border-radius:var(--r-panel);box-shadow:var(--shadow-platter)}
-  #satlink{position:fixed;top:16px;right:16px;z-index:30;display:inline-flex;align-items:center;gap:8px;
-    text-decoration:none;padding:12px 16px;font-size:13px;letter-spacing:-.01em;font-weight:600;
-    color:var(--accent);transition:border-color .2s ease-out}
-  #satlink:hover{border-color:var(--accent)}
+
+  /* iOS-style segmented view switcher — identical on Atlas and Satellite */
+  #viewsegWrap{position:fixed;top:16px;right:16px;z-index:30;padding:4px;border-radius:12px}
+  .viewseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
+  .viewseg a{text-decoration:none;font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
+    padding:8px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
+  .viewseg a:hover{color:var(--ink)}
+  .viewseg a[aria-current="page"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
   #legendBox{position:fixed;right:16px;bottom:16px;z-index:20;padding:13px 15px 14px;min-width:220px}
   #legendTitle{font-size:10px;letter-spacing:.12em;font-weight:600;color:var(--label2);text-transform:uppercase;margin-bottom:9px}
   #legendBar{height:8px;border-radius:4px}
@@ -150,7 +155,7 @@
   #tlControls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid var(--sep)}
   #tlSeg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:3px}
   #tlSeg button{appearance:none;-webkit-appearance:none;border:none;background:transparent;color:var(--ink2);font-size:13px;font-weight:600;padding:9px 15px;border-radius:7px;cursor:pointer}
-  #tlSeg button.on{background:var(--accent);color:var(--accent-ink)}
+  #tlSeg button.on{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
   #tlCount{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);white-space:nowrap}
   #tlBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 24px 6px;flex:1}
   #tlNote{padding:12px 24px calc(env(safe-area-inset-bottom,0px) + 16px);font-size:12px;line-height:1.5;color:var(--label2);border-top:1px solid var(--sep)}
@@ -219,9 +224,9 @@
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     #msearchWrap{position:relative;margin-top:11px}
     #msearchWrap svg{position:absolute;left:13px;top:13px;opacity:.4}
-    #msearch{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--sep);border-radius:11px;
-      background:var(--bg2);font-size:16px;color:var(--ink);outline:none}     /* 16px = no iOS auto-zoom */
-    #msearch:focus{border-color:var(--accent)}
+    #msearch{width:100%;padding:12px 14px 12px 40px;border:1px solid transparent;border-radius:11px;
+      background:var(--bg3);font-size:16px;color:var(--ink);outline:none}     /* 16px = no iOS auto-zoom */
+    #msearch:focus{border-color:var(--accent);background:var(--bg2)}
     #mresults{margin-top:9px;background:var(--bg2);border:1px solid var(--sep);border-radius:11px;
       overflow:hidden auto;box-shadow:0 18px 40px -20px var(--scrim);max-height:54vh}
     #mresults[hidden]{display:none}
@@ -235,7 +240,7 @@
     #panel.dragging{transition:none}
     #pHead{display:none}                     /* the top bar owns search on phones */
     #crumbs{display:none !important}         /* the top bar already shows the hierarchy */
-    #grab{display:flex;flex:0 0 auto;justify-content:center;padding:10px 0 4px;cursor:grab;touch-action:none}
+    #grab{display:flex;flex:0 0 auto;justify-content:center;padding:14px 0 8px;cursor:grab;touch-action:none}
     #grab::before{content:"";width:36px;height:5px;border-radius:3px;background:var(--label3)}
     #pBody{overflow-y:hidden;padding:6px 18px calc(env(safe-area-inset-bottom,0px) + 18px)}
     #panel.full #pBody{overflow-y:auto}
@@ -245,7 +250,11 @@
 
     /* legend gives way to the sheet once drilled (JS toggles it) */
     #legendBox{left:14px;right:14px;min-width:0}
-    #satlink{display:none}
+    .viewseg a{font-size:11.5px;padding:8px 12px}
+  }
+
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important;animation-iteration-count:1 !important}
   }
 </style>
 </head>
@@ -269,7 +278,10 @@
       <div id="mkicker">Property valuations</div>
       <div id="mloc">South Africa</div>
     </div>
-    <a id="mmap" href="map.html" aria-label="Satellite map" style="margin-left:auto;flex:0 0 auto;text-decoration:none;font-size:10px;letter-spacing:.08em;font-weight:600;text-transform:uppercase;color:var(--accent);border:1px solid var(--sep);background:var(--bg2);border-radius:8px;padding:9px 11px">Map</a>
+    <nav class="viewseg" aria-label="Map view" style="margin-left:auto;flex:0 0 auto">
+      <a href="index.html" aria-current="page">Explore</a>
+      <a href="map.html">Satellite</a>
+    </nav>
   </div>
   <div id="msearchWrap">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
@@ -342,7 +354,12 @@
 </aside>
 
 <!-- ===== floating chrome ===== -->
-<a id="satlink" class="desk platter" href="map.html">◎ Satellite</a>
+<div id="viewsegWrap" class="desk platter">
+  <nav class="viewseg" aria-label="Map view">
+    <a href="index.html" aria-current="page">Explore</a>
+    <a href="map.html">Satellite</a>
+  </nav>
+</div>
 
 <div id="legendBox" class="platter">
   <div id="legendTitle">MEDIAN VALUE · DISTRICT</div>
