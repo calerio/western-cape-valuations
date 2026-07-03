@@ -1,0 +1,121 @@
+/* Design tokens — shared by index.html (Atlas) and map.html (Satellite).
+ * Light values on :root, dark overrides via media query; map.html pins the dark
+ * set with <html data-theme="dark"> (satellite imagery is always dark).
+ * Sources: design-specs/apple-maps.md (platter language, iOS label ramp, one
+ * blue accent) + design-specs/flighty.md (Inter, 20px soft-shadow cards).
+ * JS reads the ramp, cat and map tokens at boot via cssVar(). */
+:root {
+  /* surfaces */
+  --bg: #ffffff;
+  --bg2: #fbfbfd;            /* cards */
+  --bg3: #f5f5f7;            /* rails, wells, secondary buttons */
+  --ink: #1d1d1f;
+  --ink2: #6e6e73;
+  --label2: rgba(60, 60, 67, .6);
+  --label3: rgba(60, 60, 67, .3);
+  --sep: rgba(60, 60, 67, .18);
+  --hairline: #e8e8ed;
+  --scrim: rgba(0, 0, 0, .4);
+
+  /* the one accent + semantic ramp (state only, never decoration) */
+  --accent: #0071e3;
+  --accent-ink: #ffffff;
+  --ok: #039855;
+  --warn: #f79009;
+  --bad: #d92d20;
+
+  /* shape + elevation */
+  --r-panel: 16px;
+  --r-card: 20px;
+  --r-ctl: 8px;
+  --r-chip: 10px;
+  --r-pill: 999px;
+  --shadow-platter: 0 -2px 20px rgba(0, 0, 0, .1), 0 0 12px rgba(0, 0, 0, .1);
+  --shadow-card: 0 0 0 1px rgba(0, 0, 0, .04), 0 1px 1px .5px rgba(0, 0, 0, .02),
+    0 3px 3px 1.5px rgba(0, 0, 0, .02), 0 6px 6px -3px rgba(0, 0, 0, .02),
+    0 12px 12px -6px rgba(0, 0, 0, .02), 0 24px 24px -12px rgba(0, 0, 0, .02);
+  --shadow-overlay: 0 30px 80px -30px rgba(0, 0, 0, .45);
+  --platter-bg: rgba(255, 255, 255, .72);
+  --blur: blur(20px) saturate(180%);
+
+  /* type */
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+  --font-map: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', 'Helvetica Neue', Arial, sans-serif;
+
+  /* choropleth (same fills both schemes — opaque; chrome varies) */
+  --ramp-1: #e0efff;
+  --ramp-2: #a9d0fb;
+  --ramp-3: #5ea9f7;
+  --ramp-4: #1f7ae0;
+  --ramp-5: #0b4fa8;
+  --land: #f5f5f7;
+  --nodata: #e8e8ed;
+  --map-stroke: #ffffff;      /* borders between regions on the choropleth */
+  --map-outline: #1d1d1f;     /* WC outline + label ink */
+  --map-halo: rgba(255, 255, 255, .85);
+
+  /* category mix (muted 6-hue) */
+  --cat-res: #4193f0;
+  --cat-com: #e8a13c;
+  --cat-agri: #37b184;
+  --cat-state: #9291a0;
+  --cat-vacant: #d9c893;
+  --cat-other: #cfcfd6;
+
+  /* satellite map layers */
+  --map-bg: #0b0b0d;
+  --map-parcel-line: rgba(255, 255, 255, .85);
+  --map-parcel-sel: #0a84ff;
+  --map-ward: #e8b93c;
+  --map-ward-label: #f3dfa0;
+  --map-muni-line: rgba(255, 255, 255, .55);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1c1c1e;
+    --bg2: #242426;
+    --bg3: #2c2c2e;
+    --ink: #f5f5f7;
+    --ink2: #98989d;
+    --label2: rgba(235, 235, 245, .6);
+    --label3: rgba(235, 235, 245, .3);
+    --sep: rgba(84, 84, 88, .65);
+    --hairline: #3a3a3c;
+    --scrim: rgba(0, 0, 0, .55);
+    --accent: #0a84ff;
+    --shadow-platter: 0 -2px 20px rgba(0, 0, 0, .45), 0 0 12px rgba(0, 0, 0, .35);
+    --shadow-card: 0 0 0 1px rgba(255, 255, 255, .06), 0 6px 18px -8px rgba(0, 0, 0, .6);
+    --shadow-overlay: 0 30px 80px -30px rgba(0, 0, 0, .8);
+    --platter-bg: rgba(30, 30, 32, .72);
+    --land: #2c2c2e;
+    --nodata: #3a3a3c;
+    --map-stroke: #1c1c1e;
+    --map-outline: #f5f5f7;
+    --map-halo: rgba(20, 20, 22, .85);
+  }
+}
+
+/* map.html pins dark regardless of system preference */
+:root[data-theme="dark"] {
+  --bg: #1c1c1e;
+  --bg2: #242426;
+  --bg3: #2c2c2e;
+  --ink: #f5f5f7;
+  --ink2: #98989d;
+  --label2: rgba(235, 235, 245, .6);
+  --label3: rgba(235, 235, 245, .3);
+  --sep: rgba(84, 84, 88, .65);
+  --hairline: #3a3a3c;
+  --scrim: rgba(0, 0, 0, .55);
+  --accent: #0a84ff;
+  --shadow-platter: 0 -2px 20px rgba(0, 0, 0, .45), 0 0 12px rgba(0, 0, 0, .35);
+  --shadow-card: 0 0 0 1px rgba(255, 255, 255, .06), 0 6px 18px -8px rgba(0, 0, 0, .6);
+  --shadow-overlay: 0 30px 80px -30px rgba(0, 0, 0, .8);
+  --platter-bg: rgba(30, 30, 32, .72);
+  --land: #2c2c2e;
+  --nodata: #3a3a3c;
+  --map-stroke: #1c1c1e;
+  --map-outline: #f5f5f7;
+  --map-halo: rgba(20, 20, 22, .85);
+}

@@ -14,6 +14,8 @@
  * Design: docs/superpowers/specs/2026-06-22-map-view-design.md (+ 2026-07-02 parcels spec)
  */
 const maplibregl = window.maplibregl;
+// design tokens (assets/tokens.css) — read once at boot; map.html pins dark
+const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 import { getRates, computeRates } from "./rates.js?v=1";
 
 // Western Cape framing extent — the map is FIT to this on load (with padding) so the
@@ -52,7 +54,7 @@ function initMap() {
       version: 8,
       sources: {},
       // neutral backdrop shown wherever imagery tiles are missing (degrade quietly)
-      layers: [{ id: 'bg', type: 'background', paint: { 'background-color': '#0c1512' } }],
+      layers: [{ id: 'bg', type: 'background', paint: { 'background-color': cssVar('--map-bg') || '#0b0b0d' } }],
     },
     bounds: WC_FIT,                 // fit the province on load — responsive to viewport aspect
     fitBoundsOptions: { padding: 30 },
@@ -90,7 +92,7 @@ async function addBoundaries(map) {
     map.addLayer({
       id: 'munis-line', type: 'line', source: 'munis',
       maxzoom: CADASTRE.minzoom,     // hand over to parcel lines once erven appear
-      paint: { 'line-color': 'rgba(243,239,230,.55)', 'line-width': 1 },
+      paint: { 'line-color': cssVar('--map-muni-line'), 'line-width': 1 },
     });
   } catch (e) { console.warn('muni boundaries unavailable', e); }
 }
@@ -121,7 +123,7 @@ async function addWards(map) {
       id: 'ward-lines', type: 'line', source: 'wards',
       minzoom: 8.5,                       // below this, municipalities are the story
       paint: {
-        'line-color': '#e8b93c',          // amber, distinct from the white parcel lines
+        'line-color': cssVar('--map-ward'),   // amber, distinct from the white parcel lines
         'line-dasharray': [2.5, 2],
         'line-width': ['interpolate', ['linear'], ['zoom'], 8.5, 0.8, 13, 1.4, 18, 2.2],
         'line-opacity': ['interpolate', ['linear'], ['zoom'], 8.5, 0.5, 11, 0.8],
@@ -137,7 +139,7 @@ async function addWards(map) {
         'text-transform': 'uppercase',
       },
       paint: {
-        'text-color': '#f3dfa0',
+        'text-color': cssVar('--map-ward-label'),
         'text-halo-color': 'rgba(12,21,18,.85)',
         'text-halo-width': 1.3,
       },
@@ -194,7 +196,7 @@ function addParcels(map) {
   map.addLayer({
     id: 'parcels-fill', type: 'fill', source: 'parcels',
     paint: {
-      'fill-color': '#ffd166',
+      'fill-color': cssVar('--map-parcel-sel'),
       'fill-opacity': ['case', ['boolean', ['feature-state', 'sel'], false], 0.30, 0.03],
     },
   });
@@ -202,7 +204,7 @@ function addParcels(map) {
   map.addLayer({
     id: 'parcels-line', type: 'line', source: 'parcels',
     paint: {
-      'line-color': ['case', SEL, '#ffd166', 'rgba(243,239,230,.85)'],
+      'line-color': ['case', SEL, cssVar('--map-parcel-sel'), cssVar('--map-parcel-line')],
       // NB: zoom interpolation must be the TOP-LEVEL expression (MapLibre rejects
       // zoom nested inside case — the layer silently never draws), so the
       // selected-vs-normal width choice lives inside each interpolation stop.
@@ -403,15 +405,13 @@ async function showValuation(props) {
       `<div class="pKick">${esc(props.Town_name || '')}</div>` +
       `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
       `<div class="pVal" style="font-size:22px">No valuation found</div>` +
-      `<div class="pNote">This erf isn't in the extracted rolls — it may be municipal/state land, in a
-         supplementary roll not yet loaded, or recorded under a different town name.
-         ${res.stale ? 'The live search index is also one data-update behind, which can hide some erven.' : ''}</div>`;
+      `<div class="pNote">Not in the extracted rolls — possibly state land, a supplementary roll, or another town name.${res.stale ? ' The search index is one update behind.' : ''}</div>`;
     return;
   }
   const sure = res.best >= 4;    // suburb-level match = genuinely this parcel's rows
   const note =
-    res.best === 0 ? `<div class="pNote">⚠ No town match at all — the same erf number exists in several municipalities; showing all of them. Verify the address.</div>` :
-    !sure ? `<div class="pNote">⚠ This exact township wasn't found in the rolls — these are erf ${esc(props.TAG_VALUE || '')}'s entries elsewhere in the municipality. The clicked parcel itself may not be separately valued.</div>` : '';
+    res.best === 0 ? `<div class="pNote">⚠ No town match — same erf number in several municipalities; verify the address.</div>` :
+    !sure ? `<div class="pNote">⚠ Same erf number, other townships — may not be this parcel.</div>` : '';
   const listSub = sure ? 'portions or sectional-title units share this parcel'
                        : 'same erf number, other townships — may not be this parcel';
   if (res.rows.length === 1) { renderDetail(res.rows[0], props, null); }
