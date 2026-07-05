@@ -366,6 +366,8 @@ function provInner(p) {
   return `<div class="ppTitle">${KIND_LABEL[p.kind] || "Valuation roll"}</div>` +
     `<div class="ppGrid">` + rows.map(([k, v]) => `<span class="ppK">${k}</span><span class="ppV">${v}</span>`).join("") + `</div>` +
     (p.note ? `<div class="ppNote">${esc(p.note)}</div>` : "") +
+    // fixed caveat, every municipality: roll values are rating valuations, not sale prices
+    `<div class="ppNote">Values are the municipal valuer's market value as at the date above, set for rates — a property can sell for more or less today.</div>` +
     (p.source_url ? `<div class="ppSrc"><a href="${esc(p.source_url)}" target="_blank" rel="noopener">Official source ↗</a></div>` : "");
 }
 function showProv(trigger, p) {
@@ -543,11 +545,14 @@ function renderDash(p) {
   fillProp("lo", scope && scope.lo);
   tlEnabled = !!scope;
   ["hiCard", "loCard"].forEach(id => { const el = $(id); if (el) { el.style.cursor = scope ? "pointer" : "default"; el.style.pointerEvents = scope ? "auto" : "none"; } });
+  // roll ≠ market price: rolls state "market value" as at the valuation date, for rating purposes —
+  // an area's values can sit well off today's sale prices. Said once, wherever values are shown.
+  const CAVEAT = " Values are municipal valuations as at each roll's date — set for rates, not today's sale prices.";
   $("dashNote").textContent = !scope
     ? "Cape Town publishes no downloadable roll — values are search-only at the City, so it can't be aggregated here."
-    : isMuni
+    : (isMuni
     ? "Dashed lines on the map are ward boundaries (Municipal Demarcation Board), for orientation."
-    : "Recomputed from each area's latest published valuation roll.";
+    : "Recomputed from each area's latest published valuation roll.") + CAVEAT;
 
   // richer stat sections (each auto-hides when its data is absent)
   renderValueDist(scope);
@@ -555,6 +560,7 @@ function renderDash(p) {
   renderStanding(p, scope, isMuni);
   renderGrowth(scope);
   renderAfford(scope);
+  renderQuality(scope);
 }
 
 function fillProp(id, pr) {
@@ -578,7 +584,12 @@ function renderCloser(s) {
   if (s.q1 != null && s.q3 != null) tiles.push(["Typical home · middle 50%", R(s.q1) + " – " + R(s.q3), "the central half, ignoring extremes"]);
   if (s.median) { const mm = s.mean / s.median; tiles.push(["Average ÷ median", mm.toFixed(1) + "×", mm >= 1.3 ? "a few pricey properties lift the average" : "the average tracks the typical home"]); }
   if (s.std != null) tiles.push(["Standard deviation", R(s.std), s.cv ? "σ is " + s.cv.toFixed(1) + "× the average" : "spread of values"]);
-  tiles.push(["Value inequality · Gini", s.gini.toFixed(2), s.gini >= .6 ? "very concentrated" : s.gini >= .45 ? "concentrated" : "relatively even"]);
+  // Gini = concentration of ASSESSED VALUE across parcels (not household wealth). Prefer the
+  // residential-only figure: the pooled one also absorbs the property-type mix (farms vs homes).
+  const g = s.res_gini != null ? s.res_gini : s.gini;
+  tiles.push([s.res_gini != null ? "Home-value concentration · Gini" : "Value concentration · Gini",
+    g.toFixed(2), (g >= .6 ? "very concentrated" : g >= .45 ? "concentrated" : "relatively even")
+    + (s.res_gini != null ? " · homes only, not household wealth" : " · all property types pooled")]);
   if (s.top1_share != null) tiles.push(["Top 1% of parcels hold", Math.round(s.top1_share * 100) + "%", "of the area's total value"]);
   if (s.ppm_median) tiles.push(["Median home · per m²", "R" + N(s.ppm_median) + "/m²", "value per square metre"]);
   if (s.erf_median) tiles.push(["Median home erf", N(s.erf_median) + " m²", "typical plot size"]);
@@ -663,9 +674,13 @@ function renderStanding(p, s, isMuni) {
   if (!showSec("secStanding", !!(isMuni && s && p.length >= 3))) return;
   const muni = p[2].name, dist = p[1].name;
   const sibs = DISTRICTS[dist] ? DISTRICTS[dist].munis.map(muniStat).filter(Boolean) : [];
-  const rankOf = key => { const mine = s[key]; if (mine == null) return null;
-    const vals = sibs.map(x => x[key]).filter(v => v != null); if (vals.length < 2) return null;
+  // all WC municipalities with a stats node — the province-wide rank next to the district one
+  const wc = Object.values(STATS.districts).flatMap(d => Object.values(d.municipalities || {}));
+  const rankIn = (pool, key) => { const mine = s[key]; if (mine == null) return null;
+    const vals = pool.map(x => x[key]).filter(v => v != null); if (vals.length < 2) return null;
     return "#" + (vals.filter(v => v > mine).length + 1) + " of " + vals.length; };
+  const rankOf = key => { const d = rankIn(sibs, key); if (!d) return null;
+    const w = rankIn(wc, key); return d + (w ? ` <span style="color:var(--label2)">· WC ${w}</span>` : ""); };
   const rows = [];
   const add = (l, key) => { const r = rankOf(key); if (r) rows.push([l, r]); };
   add("Median value", "median"); add("Total roll value", "total");
@@ -673,7 +688,7 @@ function renderStanding(p, s, isMuni) {
   if (s.vacant_share != null) add("Vacant-land share", "vacant_share");
   let topTown = null; townsOf(muni).forEach(t => { if (!topTown || t.total > topTown.total) topTown = t; });
   let topCat = null; if (s.cat_mix) CATORDER.forEach(k => { const c = s.cat_mix[k]; if (c && c.value > 0 && (!topCat || c.value > topCat.value)) topCat = { k, value: c.value }; });
-  let html = `<div style="font-size:12px;color:var(--label2);margin-bottom:6px">Rank among the ${sibs.length} municipalities in ${esc(dist)}</div>`;
+  let html = `<div style="font-size:12px;color:var(--label2);margin-bottom:6px">Rank among the ${sibs.length} municipalities in ${esc(dist)} · then all ${wc.filter(x => x.median != null).length} in the Western Cape</div>`;
   html += rows.map(([l, v]) => hairRow(l, v)).join("");
   if (topTown) html += hairRow("Biggest suburb by value", esc(topTown.name) + " · " + R(topTown.total));
   if (topCat) html += hairRow("Largest category by value", CATLAB[topCat.k] + " · " + R(topCat.value));
@@ -709,7 +724,23 @@ function renderAfford(s) {
     `<div style="font-size:12px;color:var(--label2);margin-top:8px;line-height:1.5">estimated bond on the median home of ${R(home)}</div>` +
     tilesHTML([["Gross income needed", "R" + N(Math.round(income)) + "/mo", "at 30% of income on the bond"],
                ["Key assumptions", "prime " + prime.pct + "%", "20-year bond, no deposit"]]) +
-    `<div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:12px">A rough guide only — your actual rate depends on credit, deposit and bank. Prime ${esc(String(prime.pct))}% eff. ${esc(prime.effective || prime.year || "")}${src}</div>`;
+    `<div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:12px">A rough guide to the bond only — excludes transfer duty, bond registration and legal fees; your actual rate depends on credit, deposit and bank. Prime ${esc(String(prime.pct))}% eff. ${esc(prime.effective || prime.year || "")}${src}</div>`;
+}
+
+// Data quality — how complete this roll's fields are (straight counts from the parsed roll,
+// so "how much can I trust these stats" is answerable on the page; hidden where dq_* is absent)
+function renderQuality(s) {
+  const on = !!(s && s.dq_no_value != null);
+  if (!showSec("secQuality", on)) return;
+  const pct = v => v == null ? "" : (v > 0 && v < .001 ? "<0.1" : (v * 100).toFixed(1)) + "% of parcels";
+  const tiles = [];
+  if (s.dq_no_value > 0) tiles.push(["No value recorded", N(s.dq_no_value), pct(s.dq_no_value_share)]);
+  if (s.dq_nominal > 0) tiles.push(["Nominal values · ≤ R1 000", N(s.dq_nominal), "placeholder entries in the roll"]);
+  if (s.dq_no_extent > 0) tiles.push(["No recorded size", N(s.dq_no_extent), pct(s.dq_no_extent_share)]);
+  if (s.dq_no_cat > 0) tiles.push(["No category", N(s.dq_no_cat), pct(s.dq_no_cat_share)]);
+  $("secQualityBody").innerHTML = tiles.length
+    ? `<div style="font-size:12px;color:var(--label2);margin-bottom:16px">Gaps in the published roll itself — counted, not estimated. Affected parcels are excluded from the relevant stats.</div>` + tilesHTML(tiles)
+    : `<div style="font-size:12px;color:var(--label2)">No gaps detected — every parcel in this roll carries a value, size and category.</div>`;
 }
 
 /* ============================ top-N properties (live DB query) ============================ */

@@ -121,9 +121,13 @@ field is optional and is consumed defensively (see §5). New municipalities just
 
 1. **`data/stats.json`** — `{ buckets[], province{…}, districts{ <district>: { …rollup, municipalities:{ <muni>:{…} } } } }`.
    Per-node fields: `median, mean, total, properties, q1, q3, min, max, residential_avg, cycle,
-   hist[], hi{}, lo{}, std, cv, gini, top1_share, top1_count, cat_mix{}, sectional_share,
-   vacant_share, erf_median, ppm_median`. **All optional fields are guarded** — a missing one just
-   hides that piece of UI.
+   hist[], hi{}, lo{}, std, cv, gini, res_gini, top1_share, top1_count, cat_mix{}, sectional_share,
+   vacant_share, erf_median, ppm_median`, plus the data-quality counts
+   `dq_no_value, dq_no_extent, dq_no_cat, dq_nominal` (each with a `*_share`) — straight counts of
+   parcels missing a value/extent/category or carrying a ≤R1 000 placeholder value; they feed the
+   panel's "Data quality" section. `res_gini` is the residential-only Gini (emitted at ≥30 res
+   parcels) — the UI prefers it over the pooled `gini`, which conflates property-type mix with
+   dispersion. **All optional fields are guarded** — a missing one just hides that piece of UI.
    *Municipality nodes also carry* `provenance{ kind, cycle, properties, valued_as_at?, coverage?,
    note?, source_url? }` — the "how was this valued?" popover on the roll date. `kind`
    (`general`/`supplementary`/`draft`), `cycle` and `properties` are derived from the DB roll; the

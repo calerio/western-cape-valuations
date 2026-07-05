@@ -400,7 +400,7 @@ function renderDetail(r, props, backList, backSub) {
     statRow('Value per m²', ppm) +
     (rr ? statRow(`Rates / year (${rr.year})`, RZA(rr.annual)) +
           statRow('Rates / month', RZA(rr.monthly)) : '') +
-    `<div class="pNote">${rr ? ratesNote(rr) + ' · ' : ''}Parcel ${esc(props.PRCL_KEY || '')}.</div>`;
+    `<div class="pNote">${rr ? ratesNote(rr) + ' · ' : ''}Parcel ${esc(props.PRCL_KEY || '')}. Roll valuation as at the municipality's valuation date, set for rates — not today's sale price.</div>`;
   if (backList) $('pback').onclick = () => renderList(backList, props, backSub);
   openPanel();
   maybeInjectChooser();
