@@ -148,6 +148,25 @@
   #tip{position:fixed;z-index:50;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--ink);color:var(--bg);
     padding:10px 13px;border-radius:10px;box-shadow:var(--shadow-overlay);max-width:240px}
 
+  /* "how was this valued?" — provenance trigger on the municipality roll date + its popover */
+  .rollprov{cursor:help;border-bottom:1px dotted var(--label3);padding-bottom:1px;outline:none;white-space:nowrap}
+  .rollprov:hover,.rollprov:focus-visible{border-bottom-color:var(--accent);color:var(--ink)}
+  .provi{font-size:11px;margin-left:4px;color:var(--label2);vertical-align:baseline}
+  .rollprov:hover .provi,.rollprov:focus-visible .provi{color:var(--accent)}
+  #provPop{position:fixed;z-index:55;max-width:302px;padding:14px 16px 15px;
+    opacity:0;visibility:hidden;transform:translateY(-4px);
+    transition:opacity .18s ease-out,transform .18s ease-out,visibility .18s}
+  #provPop.on{opacity:1;visibility:visible;transform:none}
+  #provPop .ppTitle{font-weight:600;font-size:13.5px;letter-spacing:-.01em;margin-bottom:11px}
+  #provPop .ppGrid{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12px}
+  #provPop .ppK{color:var(--label2)}
+  #provPop .ppV{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+  #provPop .ppNote{margin-top:12px;padding-top:11px;border-top:1px solid var(--sep);
+    font-size:11.5px;line-height:1.55;color:var(--ink2)}
+  #provPop .ppSrc{margin-top:10px;font-size:11px}
+  #provPop .ppSrc a{color:var(--accent);text-decoration:none}
+  #provPop .ppSrc a:hover{text-decoration:underline}
+
   /* loading */
   #loading{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:var(--bg)}
   #loadingMsg{font-size:15px;color:var(--ink2)}
@@ -445,6 +464,6 @@
   </div>
 </div>
 
-<script type="module" src="assets/atlas.js?v=19"></script>
+<script type="module" src="assets/atlas.js?v=20"></script>
 </body>
 </html>

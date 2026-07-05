@@ -105,7 +105,9 @@ see per-municipality field richness (writes `FIELD-COVERAGE.md`; pairs with `STR
 ## 3. Database schema the export depends on (`wc-valuations.db`)
 
 - `municipality(id, name, district)` — 24 local municipalities across 6 regions.
-- `roll(id, municipality_id, roll_type, cycle, engine, source_file)` — `cycle` shows on the muni page.
+- `roll(id, municipality_id, roll_type, cycle, engine, source_file)` — `cycle` shows on the muni page;
+  `roll_type` (`GV`/`SV`) + `cycle` feed the roll-date provenance popover (see §4, and the authored
+  notes in `extract/provenance.py`).
 - `property(id, roll_id, municipality_id, town, suburb, tenure_type, erf_no, portion, ss_scheme,
   unit_no, category, site_address, extent_m2, market_value_r, page)`
 
@@ -122,6 +124,11 @@ field is optional and is consumed defensively (see §5). New municipalities just
    hist[], hi{}, lo{}, std, cv, gini, top1_share, top1_count, cat_mix{}, sectional_share,
    vacant_share, erf_median, ppm_median`. **All optional fields are guarded** — a missing one just
    hides that piece of UI.
+   *Municipality nodes also carry* `provenance{ kind, cycle, properties, valued_as_at?, coverage?,
+   note?, source_url? }` — the "how was this valued?" popover on the roll date. `kind`
+   (`general`/`supplementary`/`draft`), `cycle` and `properties` are derived from the DB roll; the
+   optional `valued_as_at`/`coverage`/`note`/`source_url` are authored per-muni in
+   `extract/provenance.py`. If a muni has no `provenance`, the roll date renders plain (no popover).
 2. **`data/db/`** — `search.db` split into 32 MB chunks + `config.json`. **Served from Supabase
    Storage, not this repo** (see §8) — these committed files are the *upload source*. Table
    `prop(muni, suburb, erf, address, extent, value, tenure, category, erf_int)` + an FTS5 index

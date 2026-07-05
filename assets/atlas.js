@@ -339,6 +339,55 @@ function tip(e, nm, st, drill) { if (innerWidth <= 720) return;   // phones: tap
 }
 const tipHide = () => $("tip").style.opacity = 0;
 
+/* ============================ valuation-provenance popover ============================ */
+// "How was this valued?" — a hover / focus / tap card on the municipality roll date, built
+// entirely from scope.provenance (backbone facts from the roll + any authored note). When a
+// municipality has no provenance the trigger isn't rendered, so this degrades to a plain date.
+const KIND_LABEL = { general: "General valuation roll", supplementary: "Supplementary valuation roll", draft: "Draft valuation roll" };
+let provTimer = null;
+function provEl() {
+  let el = $("provPop");
+  if (!el) {
+    el = document.createElement("div"); el.id = "provPop"; el.className = "platter"; el.setAttribute("role", "tooltip");
+    el.addEventListener("mouseenter", () => clearTimeout(provTimer));   // hover-bridge: keep open while the pointer is on the card
+    el.addEventListener("mouseleave", hideProv);
+    document.body.appendChild(el);
+    // tap / click outside closes it (mobile has no hover to close on)
+    document.addEventListener("click", e => { if (!e.target.closest(".rollprov,#provPop")) el.classList.remove("on"); });
+  }
+  return el;
+}
+function provInner(p) {
+  const rows = [];
+  if (p.valued_as_at) rows.push(["Values as at", esc(p.valued_as_at)]);
+  if (p.cycle) rows.push(["Rating cycle", esc(String(p.cycle).replace("-draft", " · draft"))]);
+  if (p.properties != null) rows.push(["Properties valued", N(p.properties)]);
+  if (p.coverage) rows.push(["Coverage", esc(p.coverage)]);
+  return `<div class="ppTitle">${KIND_LABEL[p.kind] || "Valuation roll"}</div>` +
+    `<div class="ppGrid">` + rows.map(([k, v]) => `<span class="ppK">${k}</span><span class="ppV">${v}</span>`).join("") + `</div>` +
+    (p.note ? `<div class="ppNote">${esc(p.note)}</div>` : "") +
+    (p.source_url ? `<div class="ppSrc"><a href="${esc(p.source_url)}" target="_blank" rel="noopener">Official source ↗</a></div>` : "");
+}
+function showProv(trigger, p) {
+  clearTimeout(provTimer);
+  const el = provEl(); el.innerHTML = provInner(p);
+  const r = trigger.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;   // measurable while visibility:hidden
+  const x = Math.min(Math.max(12, r.left), innerWidth - 12 - w);
+  let y = r.bottom + 8; if (y + h > innerHeight - 12) y = r.top - 8 - h;                 // flip above if it would overflow
+  el.style.left = Math.round(x) + "px"; el.style.top = Math.round(Math.max(12, y)) + "px";
+  el.classList.add("on");
+}
+function hideProv() { clearTimeout(provTimer); provTimer = setTimeout(() => { const el = $("provPop"); if (el) el.classList.remove("on"); }, 90); }
+const provOff = () => { const el = $("provPop"); if (el) el.classList.remove("on"); };
+function wireProv(trigger, p) {
+  trigger.addEventListener("mouseenter", () => showProv(trigger, p));
+  trigger.addEventListener("mouseleave", hideProv);
+  trigger.addEventListener("focus", () => showProv(trigger, p));
+  trigger.addEventListener("blur", hideProv);
+  trigger.addEventListener("click", e => { e.stopPropagation(); const el = $("provPop"); el && el.classList.contains("on") ? provOff() : showProv(trigger, p); });
+  trigger.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); showProv(trigger, p); } else if (e.key === "Escape") provOff(); });
+}
+
 /* ============================ navigation ============================ */
 function navigate(p, animate = true) {
   statePath = p; const len = p.length;
@@ -447,9 +496,16 @@ function renderDash(p) {
   else { const m = p[2].name; scope = muniStat(m); scopeName = m; }
 
   $("scopeLabel").textContent = scopeName;
-  $("scopeSub").textContent = !scope ? "No public valuation roll"
-    : isMuni ? "Valuation roll · " + (scope.cycle || YEAR)
-    : children.filter(c => c.s).length + " " + kindP.toLowerCase() + " · current valuation rolls";
+  provOff();   // dismiss any open provenance popover from the previous view
+  const sub = $("scopeSub");
+  if (!scope) sub.textContent = "No public valuation roll";
+  else if (isMuni) {
+    const cyc = String(scope.cycle || YEAR).replace("-draft", " · draft");
+    if (scope.provenance) {
+      sub.innerHTML = `Valuation roll · <span class="rollprov" tabindex="0" role="button" aria-label="How this municipality's values were determined">${esc(cyc)}<span class="provi" aria-hidden="true">ⓘ</span></span>`;
+      wireProv(sub.querySelector(".rollprov"), scope.provenance);
+    } else sub.textContent = "Valuation roll · " + cyc;
+  } else sub.textContent = children.filter(c => c.s).length + " " + kindP.toLowerCase() + " · current valuation rolls";
   $("statMedian").textContent = scope ? R(scope.median) : "—";
   $("statAvg").textContent = scope ? R(scope.mean ?? scope.avg) : "—";
   $("statTotal").textContent = scope ? R(scope.total) : "—";
