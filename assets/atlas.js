@@ -54,6 +54,7 @@ let dbw = null, dbwPromise = null, areaIndex = null;
   navigate([], false);
   wireSearch(); wireSheet();
   $("mback").onclick = () => { if (statePath.length) navigate(statePath.slice(0, -1)); };
+  $("resetBtn").onclick = () => { if (statePath.length) navigate([]); };
   let rzT; addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(() => navigate(statePath, false), 200); });
 
   // top-N properties overlay
@@ -226,22 +227,99 @@ function zoom(feats, animate) {
   gNode.style.transform = `translate(${(W + rv) / 2 - k * cx}px,${H / 2 - k * cy}px) scale(${k})`;
 }
 
+/* ============================ label placement ============================ */
+/* Pole of inaccessibility (adapted from Mapbox polylabel, ISC-licensed): the
+ * interior point farthest from every edge. Used instead of the geometric centroid,
+ * which drifts outside concave shapes — so "City of Cape Town" no longer floats over
+ * the bay and district names sit in the visual centre rather than on a border.
+ * Runs in projected pixel space (same units as path.centroid), once per navigation. */
+function segDistSq(px, py, a, b) {
+  let x = a[0], y = a[1], dx = b[0] - x, dy = b[1] - y;
+  if (dx || dy) { const t = ((px - x) * dx + (py - y) * dy) / (dx * dx + dy * dy);
+    if (t > 1) { x = b[0]; y = b[1]; } else if (t > 0) { x += dx * t; y += dy * t; } }
+  dx = px - x; dy = py - y; return dx * dx + dy * dy;
+}
+// signed distance from (x,y) to the polygon (rings): positive inside, negative outside
+function pointToPolyDist(x, y, rings) {
+  let inside = false, minSq = Infinity;
+  for (const ring of rings)
+    for (let i = 0, len = ring.length, j = len - 1; i < len; j = i++) {
+      const a = ring[i], b = ring[j];
+      if ((a[1] > y) !== (b[1] > y) && x < (b[0] - a[0]) * (y - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside;
+      minSq = Math.min(minSq, segDistSq(x, y, a, b));
+    }
+  return (inside ? 1 : -1) * Math.sqrt(minSq);
+}
+function polyCell(x, y, h, rings) { const d = pointToPolyDist(x, y, rings); return { x, y, h, d, max: d + h * Math.SQRT2 }; }
+function centroidCell(rings) {
+  let area = 0, x = 0, y = 0, r = rings[0];
+  for (let i = 0, len = r.length, j = len - 1; i < len; j = i++) {
+    const a = r[i], b = r[j], f = a[0] * b[1] - b[0] * a[1]; x += (a[0] + b[0]) * f; y += (a[1] + b[1]) * f; area += f * 3;
+  }
+  return area ? polyCell(x / area, y / area, 0, rings) : polyCell(r[0][0], r[0][1], 0, rings);
+}
+function polylabel(rings, precision) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  for (const pt of rings[0]) { if (pt[0] < minX) minX = pt[0]; if (pt[1] < minY) minY = pt[1]; if (pt[0] > maxX) maxX = pt[0]; if (pt[1] > maxY) maxY = pt[1]; }
+  const width = maxX - minX, height = maxY - minY, cellSize = Math.min(width, height);
+  if (!cellSize) return [minX, minY];
+  const h = cellSize / 2, heap = [];                      // binary max-heap keyed on cell.max
+  const swap = (i, j) => { const t = heap[i]; heap[i] = heap[j]; heap[j] = t; };
+  const push = c => { heap.push(c); let i = heap.length - 1; while (i > 0) { const par = (i - 1) >> 1; if (heap[par].max >= heap[i].max) break; swap(par, i); i = par; } };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let big = i; if (l < heap.length && heap[l].max > heap[big].max) big = l; if (r < heap.length && heap[r].max > heap[big].max) big = r; if (big === i) break; swap(big, i); i = big; } } return top; };
+  for (let x = minX; x < maxX; x += cellSize) for (let y = minY; y < maxY; y += cellSize) push(polyCell(x + h, y + h, h, rings));
+  let best = polyCell(minX + width / 2, minY + height / 2, 0, rings);
+  const cen = centroidCell(rings); if (cen.d > best.d) best = cen;
+  while (heap.length) {
+    const c = pop();
+    if (c.d > best.d) best = c;
+    if (c.max - best.d <= precision) continue;
+    const hh = c.h / 2;
+    push(polyCell(c.x - hh, c.y - hh, hh, rings)); push(polyCell(c.x + hh, c.y - hh, hh, rings));
+    push(polyCell(c.x - hh, c.y + hh, hh, rings)); push(polyCell(c.x + hh, c.y + hh, hh, rings));
+  }
+  return [best.x, best.y];
+}
+const ringAbsArea = r => { let a = 0; for (let i = 0, len = r.length, j = len - 1; i < len; j = i++) a += (r[j][0] - r[i][0]) * (r[j][1] + r[i][1]); return Math.abs(a); };
+// projected-pixel label anchor for a feature (largest ring of a MultiPolygon)
+function labelPoint(f) {
+  const g = f && f.geometry; if (!g) return path.centroid(f);
+  const proj1 = ring => ring.map(pt => proj(pt));
+  let poly;                                                // GeoJSON coords are pre-planarized; uniform proj preserves area order
+  if (g.type === "Polygon") poly = g.coordinates;
+  else if (g.type === "MultiPolygon") { let ba = -1; for (const pl of g.coordinates) { const a = ringAbsArea(pl[0]); if (a > ba) { ba = a; poly = pl; } } }
+  if (!poly || !poly.length) return path.centroid(f);
+  const rings = poly.map(proj1);
+  if (!rings[0] || !rings[0].length) return path.centroid(f);
+  try { return polylabel(rings, 0.6); } catch (_) { return path.centroid(f); }
+}
+
 /* ============================ labels ============================ */
 function labels(len, p) {
   gLabel.selectAll("*").remove();
   let items = [];
-  if (len === 0) { const c = path.centroid(PROV.features.find(f => name(f) === "Western Cape")); items = [{ t: "WESTERN CAPE", x: c[0], y: c[1], wc: true }]; }
-  else if (len === 1) items = DISTF.features.map(f => { const c = path.centroid(f); return { t: name(f), x: c[0], y: c[1] }; });
-  else if (len === 2) items = DISTRICTS[p[1].name].munis.map(m => muniByName[m]).filter(Boolean).map(f => { const c = path.centroid(f); return { t: name(f), x: c[0], y: c[1] }; });
-  else { const f = muniByName[p[2].name]; if (f) { const c = path.centroid(f); items = [{ t: name(f), x: c[0], y: c[1] }]; } }
-  const k = curK, fs = (len === 0 ? 13 : 11) / k;
-  gLabel.selectAll("text").data(items).join("text")
+  const mk = (t, f, extra) => { const c = labelPoint(f); return Object.assign({ t, x: c[0], y: c[1], f }, extra || {}); };
+  if (len === 0) { const f = PROV.features.find(f => name(f) === "Western Cape"); items = [mk("WESTERN CAPE", f, { wc: true })]; }
+  else if (len === 1) items = DISTF.features.map(f => mk(name(f), f));
+  else if (len === 2) items = DISTRICTS[p[1].name].munis.map(m => muniByName[m]).filter(Boolean).map(f => mk(name(f), f));
+  else { const f = muniByName[p[2].name]; if (f) items = [mk(name(f), f)]; }
+  const k = curK, baseFs = (len === 0 ? 13.5 : 11.5) / k;
+  // Apple-map cartographic type: SF Pro (via --font-map), lighter weights, a soft
+  // white halo carrying legibility over the dark end of the choropleth.
+  const sel = gLabel.selectAll("text").data(items).join("text")
     .attr("x", d => d.x).attr("y", d => d.y).attr("text-anchor", "middle").attr("dy", ".32em")
     .attr("fill", cssVar("--map-outline"))
-    .attr("stroke", cssVar("--map-halo")).attr("stroke-width", 3 / k).attr("paint-order", "stroke")
-    .attr("letter-spacing", d => d.wc ? (2 / k) + "px" : null)
-    .style("font-weight", d => d.wc ? 700 : 600).style("font-size", fs + "px")
-    .style("opacity", d => d.wc ? .9 : .85).text(d => d.t);
+    .attr("stroke", cssVar("--map-halo")).attr("stroke-width", 3.2 / k).attr("paint-order", "stroke")
+    .attr("letter-spacing", d => d.wc ? (1.6 / k) + "px" : (0.1 / k) + "px")
+    .style("font-weight", d => d.wc ? 600 : 500).style("font-size", baseFs + "px")
+    .style("opacity", d => d.wc ? .92 : .88).text(d => d.t);
+  // Fit-to-region: shrink any name wider than its own shape so it never spills across a
+  // border (region width and text length are both in viewBox units → directly comparable).
+  // Floored at 68% so a long name on a tiny metro stays legible rather than vanishing.
+  sel.each(function (d) {
+    const b = path.bounds(d.f), regionW = (b[1][0] - b[0][0]) * (d.wc ? 1 : 0.92), tl = this.getComputedTextLength();
+    if (regionW > 0 && tl > regionW) this.style.fontSize = Math.max(baseFs * 0.68, baseFs * regionW / tl) + "px";
+  });
 }
 
 /* ============================ tooltip ============================ */
@@ -322,6 +400,9 @@ function renderChrome(p) {
     $("scopeLabel").textContent = "Western Cape";
     $("scopeSub").textContent = "Official municipal property valuations across 24 local municipalities — mapped, searchable, free.";
   }
+
+  // reset-to-overview control (desktop): only meaningful once drilled in
+  $("resetBtn").classList.toggle("on", len > 0);
 
   // mobile top bar — always shows where you are, with a back step up the hierarchy
   $("mloc").textContent = len === 0 ? "South Africa" : len === 1 ? "Western Cape" : p[len - 1].name;

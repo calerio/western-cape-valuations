@@ -52,7 +52,10 @@
   #map svg{display:block;width:100%;height:100%}
   #map path{cursor:default}
   #map .o-clickable{cursor:pointer}
-  #map text{font-family:var(--font-ui);pointer-events:none;-webkit-user-select:none;user-select:none}
+  /* real Apple-Maps type: --font-map resolves to San Francisco on Apple devices
+     (falls back to Inter elsewhere). Labels are placed at each region's pole of
+     inaccessibility in atlas.js, so they never straddle a border. */
+  #map text{font-family:var(--font-map);pointer-events:none;-webkit-user-select:none;user-select:none}
 
   /* ---- the place panel: left rail on desktop, bottom sheet on phones ---- */
   #panel{position:fixed;top:16px;left:16px;bottom:16px;width:400px;z-index:40;
@@ -128,6 +131,16 @@
     padding:8px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
   .viewseg a:hover{color:var(--ink)}
   .viewseg a[aria-current="page"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
+  /* reset-to-overview control — a quiet glass pill under the view switcher */
+  #resetBtn{position:fixed;top:70px;right:16px;z-index:30;display:inline-flex;align-items:center;gap:6px;
+    padding:8px 14px 8px 11px;border:1px solid var(--sep);border-radius:var(--r-pill);
+    font-family:var(--font-ui);font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
+    cursor:pointer;opacity:0;transform:translateY(-4px);pointer-events:none;
+    transition:opacity .25s ease-out,transform .25s ease-out,color .15s ease-out}
+  #resetBtn:hover{color:var(--ink)}
+  #resetBtn:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,132,255,.3)}
+  #resetBtn.on{opacity:1;transform:none;pointer-events:auto}
+  #resetBtn svg{opacity:.75}
   #legendBox{position:fixed;right:16px;bottom:16px;z-index:20;padding:13px 15px 14px;min-width:220px}
   #legendTitle{font-size:10px;letter-spacing:.12em;font-weight:600;color:var(--label2);text-transform:uppercase;margin-bottom:9px}
   #legendBar{height:8px;border-radius:4px}
@@ -372,6 +385,12 @@
   </nav>
 </div>
 
+<!-- Reset: back to the full-map overview. Fades in once drilled in (JS toggles .on). -->
+<button id="resetBtn" class="desk platter" aria-label="Reset the map to the full Western Cape view" title="Back to the full map">
+  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4.5V8H7.5"/></svg>
+  <span>Reset</span>
+</button>
+
 <div id="legendBox" class="platter">
   <div id="legendTitle">MEDIAN VALUE · DISTRICT</div>
   <div id="legendBar"></div>
@@ -426,6 +445,6 @@
   </div>
 </div>
 
-<script type="module" src="assets/atlas.js?v=18"></script>
+<script type="module" src="assets/atlas.js?v=19"></script>
 </body>
 </html>
