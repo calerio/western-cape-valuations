@@ -359,3 +359,47 @@ gets a second roll, `export_site.py` archives an **immutable aggregate snapshot*
   hides its Growth block until the fields appear. Nothing to configure — it lights up on the next roll.
 - **These files live in this repo (GitHub Pages), not Supabase** — they're small JSON, read directly
   like `stats.json`/`towns.json`. No `data/db/` or Supabase involvement.
+
+---
+
+## 13. Static SEO pages (`m/`, `d/`, `sitemap.xml`, `templates/`) — generated, never hand-edited
+
+Since 2026-07-05 the export also writes **~31 crawlable static pages** so search engines can rank
+per-municipality queries (the SPA alone exposes only 2 URLs):
+
+- **`m/<slug>.html`** — one page per municipality (24), plus **`m/index.html`** (the browse index,
+  canonical `…/m/`) and **`m/city-of-cape-town.html`** (an honest explainer: the metro is
+  search-only — links the City's own GV portal, notes the PAIA request; **no Dataset JSON-LD**,
+  because there is no dataset).
+- **`d/<slug>.html`** — one page per district (5), each with a ranked child-municipality table
+  (every muni shows its **own** `cycle` — this is how Witzenberg/Laingsburg's older rolls surface
+  honestly at district level).
+- **`sitemap.xml`** — now **generated** by the export (33 URLs, `lastmod` = export run date).
+  It is no longer hand-maintained.
+- **`templates/*.html`** (this repo, git-tracked) — the page skeletons, rendered by
+  `extract/export_pages.py` (extraction repo) via stdlib `string.Template`. Every optional section
+  placeholder is always substituted ("" when data is absent). **No literal `$` may appear in a
+  template outside a real placeholder — `string.Template` scans comments too.**
+
+Rules:
+1. **Never hand-edit `m/*.html`, `d/*.html`, or `sitemap.xml`** — they join `stats.json` /
+   `towns.json` / `search.db` under §1's golden rule. Edit `templates/` or the generator, then
+   re-run `python3 extract/export_site.py`.
+2. **Graceful degradation** (extends §5): muni missing from `towns.json` (e.g. Cederberg) → no
+   towns section; missing from `rates.json` (Overstrand, Breede Valley) → no rates section;
+   growth fields absent → no change-over-time section; district pages carry no towns/rates/
+   affordability at all (they don't roll up meaningfully).
+3. **Slug rule** (Python `export_pages.slugify` ⇄ JS `slugOf` in `atlas.js` — keep in sync):
+   `name.strip().lower().replace(" ", "-")`. Verified sufficient for all 30 current names in
+   §6.2's list; revisit if a future name carries punctuation/accents.
+4. **Deep-link hash contract** (new §6-grade invariant): `index.html#m/<slug>` and
+   `index.html#d/<slug>` boot the Atlas pre-drilled (`parseHash()`/`syncHash()` in `atlas.js`,
+   `history.replaceState` only — never `pushState`). The static pages' "Explore interactively"
+   buttons rely on it; breaking the hash format orphans those links. Unknown slugs fall back to
+   the province view. `#m/city-of-cape-town` intentionally renders the existing no-data state.
+5. All generated pages sit exactly **one directory below the site root** — `templates/shell.html`
+   hardcodes `../` asset/nav paths on that assumption.
+6. `index.html`'s `#siteFooter` is the static (JS-free) crawl path into `m/index.html` — do not
+   remove it; sitemaps alone are a weaker discovery signal than links.
+7. `404.html` is hand-written (NOT generated). GitHub Pages serves it automatically on the live
+   domain; `python3 -m http.server` does not — that difference is not a bug.

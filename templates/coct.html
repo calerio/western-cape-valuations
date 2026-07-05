@@ -1,0 +1,29 @@
+<!-- City of Cape Town explainer content — rendered into shell.html's content slot by
+     export_pages.py. The City publishes NO downloadable valuation roll; this page is honest
+     about that (no invented stats, no Dataset JSON-LD).
+     NB: no literal dollar signs outside real placeholders. -->
+  <nav class="crumbs" aria-label="Breadcrumb">${breadcrumbs}</nav>
+  <header>
+    <div class="kick">Metropolitan municipality</div>
+    <h1>City of Cape Town property valuations</h1>
+    <p class="intro">${intro}</p>
+  </header>
+
+  <h2>How to look up a Cape Town valuation</h2>
+  <p>The City publishes its general valuation roll for inspection one property at a time through
+  its own online search — there is no downloadable roll, so Cape Town's ${muni_count} sibling
+  municipalities appear in this atlas while the metro does not (yet).</p>
+  <div class="linkrow">
+    <a class="btn primary" href="${coct_search_url}" rel="noopener">Search the City's valuation roll ↗</a>
+    <a class="btn" href="../map.html">Satellite map</a>
+  </div>
+  <p class="caveat">Values in the City's roll are municipal valuations as at its valuation date —
+  set for rates, not today's sale prices.</p>
+
+  <h2>Bulk data: in progress</h2>
+  <p>A PAIA (Promotion of Access to Information Act) request for the City's full GV2022 and GV2025
+  valuation rolls is in progress (reference <strong>100087816</strong>). If the data is released,
+  Cape Town will join the atlas with the same searchable dashboards as every other municipality.
+  <span class="note">Last checked: ${today}.</span></p>
+
+${links_section}

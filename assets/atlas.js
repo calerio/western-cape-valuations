@@ -32,7 +32,10 @@ let STATS, TOWNS, PROV, DISTF, MUNIF;
 let proj, path, gNode, gProv, gDist, gMuni, gWard, gLabel, defs, svg;
 let DISTRICTS = {};            // name -> {feature, munis:[name]}
 let muniByName = {};           // name -> feature
+let muniSlugs = {}, distSlugs = {};   // url-slug -> name (deep-link lookup, built in buildHierarchy)
 let curK = 1, statePath = [];
+// slug rule shared with the static pages — keep in sync with export_pages.slugify (DATA_CONTRACT §13)
+const slugOf = n => n.trim().toLowerCase().replace(/ /g, "-");
 let dbw = null, dbwPromise = null, areaIndex = null;
 
 /* ============================ boot ============================ */
@@ -51,7 +54,11 @@ let dbw = null, dbwPromise = null, areaIndex = null;
   }
   clipMainland(); toPlanar(); buildHierarchy(); initMap();
   $("loading").style.display = "none";
-  navigate([], false);
+  navigate(parseHash(), false);                        // deep-link boot (#m/<slug> / #d/<slug>)
+  addEventListener("hashchange", () => {               // manual address-bar edits; our own
+    const p = parseHash();                             // replaceState updates never fire this
+    if (JSON.stringify(p) !== JSON.stringify(statePath)) navigate(p);
+  });
   wireSearch(); wireSheet();
   $("mback").onclick = () => { if (statePath.length) navigate(statePath.slice(0, -1)); };
   $("resetBtn").onclick = () => { if (statePath.length) navigate([]); };
@@ -76,13 +83,34 @@ let dbw = null, dbwPromise = null, areaIndex = null;
 const name = f => f.properties.name;
 
 function buildHierarchy() {
-  DISTF.features.forEach(f => { DISTRICTS[name(f)] = { feature: f, munis: [] }; });
+  DISTF.features.forEach(f => { DISTRICTS[name(f)] = { feature: f, munis: [] }; distSlugs[slugOf(name(f))] = name(f); });
   MUNIF.features.forEach(f => {
     muniByName[name(f)] = f;
+    muniSlugs[slugOf(name(f))] = name(f);
     const d = f.properties.district;
     if (DISTRICTS[d]) DISTRICTS[d].munis.push(name(f));
   });
   Object.values(DISTRICTS).forEach(d => d.munis.sort());
+}
+
+/* Deep links: #m/<slug> (municipality) and #d/<slug> (district) — the contract the static
+ * /m/ and /d/ pages link with. Unknown or malformed hashes fall back to the province view. */
+function parseHash() {
+  const m = /^#(m|d)\/(.+)$/.exec(decodeURIComponent(location.hash || ""));
+  if (!m) return [];
+  if (m[1] === "d") {
+    const d = distSlugs[m[2]];
+    return d ? [wcCrumb(), { type: "district", name: d }] : [];
+  }
+  const mu = muniSlugs[m[2]];
+  const d = mu && muniByName[mu].properties.district;
+  return DISTRICTS[d] ? [wcCrumb(), { type: "district", name: d }, { type: "municipality", name: mu }] : [];
+}
+function syncHash(p) {
+  // replaceState, never pushState: navigate() also fires on resize/search/breadcrumbs, and
+  // pushing would bury the back button under drill states. Views stay shareable regardless.
+  const frag = p.length >= 3 ? "#m/" + slugOf(p[2].name) : p.length === 2 ? "#d/" + slugOf(p[1].name) : "";
+  if (location.hash !== frag) history.replaceState(null, "", location.pathname + location.search + frag);
 }
 
 /* ============================ geometry fixes (per spec) ============================ */
@@ -405,6 +433,7 @@ function navigate(p, animate = true) {
   updatePanel(len);
   hideResults();
   renderChrome(p);
+  syncHash(p);
 }
 
 /* The place panel: desktop left rail is always up; the phone bottom sheet only
