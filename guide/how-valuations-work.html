@@ -9,9 +9,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>City of Cape Town property valuations — how to look one up</title>
-<meta name="description" content="How to look up a City of Cape Town municipal property valuation: the metro publishes its roll search-only via its official portal. Bulk data via PAIA is in progress." />
-<link rel="canonical" href="https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html" />
+<title>How municipal property valuations work — Western Cape Atlas</title>
+<meta name="description" content="How Western Cape municipal property valuations are determined and what they mean: a mass-appraisal estimate of open-market value at a set date under the Municipal Property Rates Act, used to charge rates — not a floor or a live sale price." />
+<link rel="canonical" href="https://calerio.github.io/western-cape-valuations/guide/how-valuations-work.html" />
 <link rel="icon" href="../favicon.ico" sizes="any" />
 <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
@@ -22,18 +22,18 @@
 <meta name="theme-color" content="#1c1c1e" media="(prefers-color-scheme: dark)" />
 <meta property="og:type" content="website" />
 <meta property="og:site_name" content="Western Cape Property Valuation Atlas" />
-<meta property="og:title" content="City of Cape Town property valuations — how to look one up" />
-<meta property="og:description" content="How to look up a City of Cape Town municipal property valuation: the metro publishes its roll search-only via its official portal. Bulk data via PAIA is in progress." />
-<meta property="og:url" content="https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html" />
+<meta property="og:title" content="How municipal property valuations work — Western Cape Atlas" />
+<meta property="og:description" content="How Western Cape municipal property valuations are determined and what they mean: a mass-appraisal estimate of open-market value at a set date under the Municipal Property Rates Act, used to charge rates — not a floor or a live sale price." />
+<meta property="og:url" content="https://calerio.github.io/western-cape-valuations/guide/how-valuations-work.html" />
 <meta property="og:image" content="https://calerio.github.io/western-cape-valuations/assets/og-card.jpg" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta name="twitter:card" content="summary_large_image" />
-<meta name="twitter:title" content="City of Cape Town property valuations — how to look one up" />
-<meta name="twitter:description" content="How to look up a City of Cape Town municipal property valuation: the metro publishes its roll search-only via its official portal. Bulk data via PAIA is in progress." />
+<meta name="twitter:title" content="How municipal property valuations work — Western Cape Atlas" />
+<meta name="twitter:description" content="How Western Cape municipal property valuations are determined and what they mean: a mass-appraisal estimate of open-market value at a set date under the Municipal Property Rates Act, used to charge rates — not a floor or a live sale price." />
 <meta name="twitter:image" content="https://calerio.github.io/western-cape-valuations/assets/og-card.jpg" />
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@graph": [{"@type": "WebPage", "name": "City of Cape Town property valuations — how to look one up", "description": "How to look up a City of Cape Town municipal property valuation: the metro publishes its roll search-only via its official portal. Bulk data via PAIA is in progress.", "url": "https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html", "isPartOf": {"@type": "WebSite", "name": "Western Cape Property Valuation Atlas", "url": "https://calerio.github.io/western-cape-valuations/"}, "about": {"@type": "AdministrativeArea", "name": "City of Cape Town", "containedInPlace": {"@type": "AdministrativeArea", "name": "Western Cape", "containedInPlace": {"@type": "Country", "name": "South Africa"}}}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://calerio.github.io/western-cape-valuations/"}, {"@type": "ListItem", "position": 2, "name": "Municipalities", "item": "https://calerio.github.io/western-cape-valuations/m/"}, {"@type": "ListItem", "position": 3, "name": "City of Cape Town", "item": "https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html"}]}]}
+{"@context": "https://schema.org", "@graph": [{"@type": "Article", "headline": "How municipal property valuations work", "description": "How Western Cape municipal property valuations are determined and what they mean: a mass-appraisal estimate of open-market value at a set date under the Municipal Property Rates Act, used to charge rates — not a floor or a live sale price.", "url": "https://calerio.github.io/western-cape-valuations/guide/how-valuations-work.html", "isPartOf": {"@type": "WebSite", "name": "Western Cape Property Valuation Atlas", "url": "https://calerio.github.io/western-cape-valuations/"}, "about": {"@type": "Thing", "name": "Municipal property valuation"}, "isBasedOn": "Local Government: Municipal Property Rates Act, 2004 (Act 6 of 2004)"}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://calerio.github.io/western-cape-valuations/"}, {"@type": "ListItem", "position": 2, "name": "How valuations work", "item": "https://calerio.github.io/western-cape-valuations/guide/how-valuations-work.html"}]}]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -119,37 +119,66 @@
       <a href="../map.html">Satellite</a>
     </nav>
   </div>
-<!-- City of Cape Town explainer content — rendered into shell.html's content slot by
-     export_pages.py. The City publishes NO downloadable valuation roll; this page is honest
-     about that (no invented stats, no Dataset JSON-LD).
-     NB: no literal dollar signs outside real placeholders. -->
-  <nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">Home</a> › <a href="index.html">Municipalities</a> › City of Cape Town</nav>
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">Home</a> › How valuations work</nav>
   <header>
-    <div class="kick">Metropolitan municipality</div>
-    <h1>City of Cape Town property valuations</h1>
-    <p class="intro">Unlike the Western Cape&#x27;s local municipalities, the City of Cape Town does not publish a downloadable valuation roll — so the metro has no aggregate dashboard in this atlas. Its official per-property search is free to use.</p>
+    <div class="kick">About the data</div>
+    <h1>How municipal property valuations work</h1>
+    <p class="intro">Every property in the Western Cape has a municipal valuation — the value its municipality places on it, set under national law to work out your rates. Here is what it is, how it’s worked out, and — importantly — what it is not.</p>
   </header>
 
-  <h2>How to look up a Cape Town valuation</h2>
-  <p>The City publishes its general valuation roll for inspection one property at a time through
-  its own online search — there is no downloadable roll, so Cape Town's 24 sibling
-  municipalities appear in this atlas while the metro does not (yet).</p>
+  <h2>What a municipal valuation is</h2>
+  <p>It is the municipality’s estimate of your property’s <strong>open-market value</strong> — in
+  the words of the Municipal Property Rates Act (s46), “the amount the property would have realised
+  if sold on the date of valuation in the open market by a willing seller to a willing buyer.” The
+  target is a normal market price, not a special “rates value”.</p>
+
+  <h2>How it’s worked out — mass appraisal</h2>
+  <p>Municipalities don’t send a valuer to inspect every home. The Act (s45) allows
+  <strong>mass appraisal</strong>: physical inspection is optional, and valuers may use comparable
+  sales, aerial photography and computer-assisted models to value tens of thousands of properties at
+  once. Values are set in a <strong>general valuation</strong> every few years, with smaller
+  <strong>supplementary rolls</strong> in between for changes (new buildings, subdivisions, rezonings).</p>
+
+  <h2>The valuation date matters</h2>
+  <p>Each roll fixes a single <strong>date of valuation</strong> — a set past date — and must reflect
+  the market “as at” that date (s31). A 2022 roll shows 2022-era values, even if you’re looking at it
+  in 2026. That gap between the roll’s date and today is the single biggest reason a municipal value
+  can differ from what a property would fetch now.</p>
+
+  <h2>Is it a floor? Is it what my house is worth today?</h2>
+  <p><strong>No, on both counts.</strong> The valuation is a mass-appraisal estimate of market value
+  <em>as at the roll’s date</em> — not a guaranteed minimum, and not a live sale price. In a rising
+  market it usually sits <em>below</em> current prices (which is why it can feel like a floor); in a
+  falling market it can sit above them. Treat it as a reasonable, dated, ballpark figure — not a bank
+  valuation, an asking price, or a promise of what you’d get.</p>
+
+  <h2>What it’s used for</h2>
+  <p>Rates. Your annual property rates are roughly your valuation × the municipality’s
+  <strong>cent-in-the-rand</strong> tariff, minus any rebates, exclusions or the statutory first slice
+  of value. A higher valuation generally means higher rates — which is exactly why the law gives you a
+  way to challenge it.</p>
+
+  <h2>If you think your valuation is wrong</h2>
+  <p>When a roll is published it is opened for <strong>public inspection</strong>, and <strong>any
+  person</strong> may inspect it (s50). During the inspection window an owner (or anyone) can lodge an
+  <strong>objection</strong> about a specific property — usually with the Municipal Manager, for the
+  attention of the Municipal Valuer. If you’re unhappy with the outcome, it can go to the provincial
+  <strong>Valuation Appeal Board</strong>. Each municipality’s page on this site lists who to contact.</p>
+
+  <h2>Where this data comes from</h2>
+  <p>The valuation roll is a <strong>public record</strong> the municipality must publish, including
+  on its website (s49). This atlas collects those official rolls from each municipality and makes them
+  searchable. Figures are the municipal valuations as at each roll’s date; we publish property values
+  only — never owner names.</p>
+
+  <p class="caveat">This is a plain-language summary, not legal or valuation advice. The governing law
+  is the Local Government: Municipal Property Rates Act 6 of 2004. For a specific property, rely on
+  your municipality’s official valuation roll and notices.</p>
+
   <div class="linkrow">
-    <a class="btn primary" href="https://web1.capetown.gov.za/web1/gv2025/SearchProperty" rel="noopener">Search the City's valuation roll ↗</a>
-    <a class="btn" href="../map.html">Satellite map</a>
+    <a class="btn primary" href="../index.html">Explore the atlas</a>
+    <a class="btn" href="../m/index.html">All municipalities</a>
   </div>
-  <p class="caveat">Values in the City's roll are municipal valuations as at its valuation date —
-  set for rates, not today's sale prices.</p>
-
-  <h2>Bulk data: in progress</h2>
-  <p>A PAIA (Promotion of Access to Information Act) request for the City's full GV2022 and GV2025
-  valuation rolls is in progress (reference <strong>100087816</strong>). If the data is released,
-  Cape Town will join the atlas with the same searchable dashboards as every other municipality.
-  <span class="note">Last checked: 2026-07-06.</span></p>
-
-<h2>How these valuations work</h2><p class="sub" style="max-width:64ch">Municipal valuations estimate each property’s open-market value on a set past date (mass appraisal under the Municipal Property Rates Act) — calculated to charge rates, <strong>not</strong> a floor or a live sale price. <a href="../guide/how-valuations-work.html">How valuations work →</a></p>
-<h2>Who sets &amp; governs these values</h2><p class="sub">The valuer who set these values, and who to contact about them</p><table><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Municipal valuer</td><td style="vertical-align:top">City of Cape Town Valuations Department (Director: Valuations, Louise Muller; GV2025 names only the office of &#x27;Municipal Valuer&#x27;) <span class="note">· GV2025</span></td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Valuations office</td><td style="vertical-align:top">Valuations Department</td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Contact</td><td style="vertical-align:top">0860 103 089 · <a href="mailto:valuations@capetown.gov.za">valuations@capetown.gov.za</a></td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Official page</td><td style="vertical-align:top"><a href="https://www.capetown.gov.za/propertyvaluations" rel="noopener">Valuations page ↗</a></td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Lodge an objection with</td><td style="vertical-align:top">The Valuations Department (centralised)</td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">How to object</td><td style="vertical-align:top">Online via e-Services (preferred), email valuationsobjection@capetown.gov.za, or in person at rotating venues; appeals to the Valuation Appeal Board via valuationsappeals@capetown.gov.za within 30 working days.</td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Objection form</td><td style="vertical-align:top"><a href="https://www.capetown.gov.za/en/eservices" rel="noopener">Get the form ↗</a></td></tr></table><p class="note" style="margin-top:14px;max-width:64ch">Other role-players: <a href="https://www.westerncape.gov.za" rel="noopener">Western Cape Valuation Appeal Board ↗</a> · <a href="https://www.westerncape.gov.za" rel="noopener">Western Cape Department of Local Government ↗</a> · <a href="https://www.cogta.gov.za" rel="noopener">CoGTA (Cooperative Governance &amp; Traditional Affairs) ↗</a>. Appeals against the valuer’s decision go to the Valuation Appeal Board.</p>
-<h2>Browse</h2><div class="linkrow"><a class="btn" href="index.html">All municipalities</a><a class="btn" href="../index.html">Interactive atlas</a></div>
 
   <div class="footer">
     Official municipal valuation-roll data, published under the Municipal Property Rates Act (Act 6 of 2004).

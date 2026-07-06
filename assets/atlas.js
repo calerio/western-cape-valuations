@@ -590,6 +590,7 @@ function renderDash(p) {
   renderGrowth(scope);
   renderAfford(scope);
   renderQuality(scope);
+  renderAuthorities(scope);
 }
 
 function fillProp(id, pr) {
@@ -670,6 +671,9 @@ const tilesHTML = tiles => `<div class="statgrid">` + tiles.map(([l, v, n]) =>
 // hairline label→value row; `v` is raw HTML (caller escapes any user-derived text)
 const hairRow = (l, v) => `<div style="display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid var(--sep);font-size:14px">` +
   `<span style="color:var(--ink2)">${esc(l)}</span><span style="font-variant-numeric:tabular-nums;text-align:right">${v}</span></div>`;
+// left-aligned label→value row for PROSE (authorities); label fixed-width, value wraps left
+const aRow = (l, v) => `<div style="display:flex;gap:14px;padding:11px 0;border-bottom:1px solid var(--sep);font-size:14px">` +
+  `<span style="flex:0 0 132px;color:var(--ink2)">${esc(l)}</span><span style="flex:1;min-width:0">${v}</span></div>`;
 
 // Value distribution — P10–P90 spread hero + residential R/m² & land-size middle-50%
 function renderValueDist(s) {
@@ -770,6 +774,39 @@ function renderQuality(s) {
   $("secQualityBody").innerHTML = tiles.length
     ? `<div style="font-size:12px;color:var(--label2);margin-bottom:16px">Gaps in the published roll itself — counted, not estimated. Affected parcels are excluded from the relevant stats.</div>` + tilesHTML(tiles)
     : `<div style="font-size:12px;color:var(--label2)">No gaps detected — every parcel in this roll carries a value, size and category.</div>`;
+}
+
+// Who sets & governs these values — the municipal valuer + who to contact (from authorities.py,
+// attached to each muni node by export_site.py). Two-tier: valuer/dept/objections, then the quiet
+// province/national role-players. Hidden for scopes with no primary data (districts, CoCT-absent).
+function renderAuthorities(s) {
+  const a = s && s.authorities, p = (a && a.primary) || {};
+  const link = `<div style="margin-top:16px;font-size:12.5px"><a href="guide/how-valuations-work.html">How valuations work →</a></div>`;
+  const rows = [];
+  const valuer = p.valuer || p.valuer_note;
+  if (valuer) rows.push(aRow("Municipal valuer", esc(valuer) + (p.cycle ? ` <span style="color:var(--label2)">· ${esc(p.cycle)}</span>` : "")));
+  const d = p.dept || {};
+  if (d.name) rows.push(aRow("Valuations office", esc(d.name)));
+  const contact = [];
+  if (d.phone) contact.push(esc(d.phone));
+  if (d.email) contact.push(`<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>`);
+  if (contact.length) rows.push(aRow("Contact", contact.join(" · ")));
+  if (d.address) rows.push(aRow("Address", esc(d.address)));
+  if (d.url) rows.push(aRow("Official page", `<a href="${esc(d.url)}" target="_blank" rel="noopener">Valuations page ↗</a>`));
+  const o = p.objections || {};
+  if (o.to) rows.push(aRow("Lodge an objection with", esc(o.to)));
+  if (o.mm) rows.push(aRow("Municipal manager", esc(o.mm)));
+  if (o.how) rows.push(aRow("How to object", esc(o.how)));
+  if (o.form_url) rows.push(aRow("Objection form", `<a href="${esc(o.form_url)}" target="_blank" rel="noopener">Get the form ↗</a>`));
+  if (!showSec("secAuthorities", rows.length > 0)) return;
+  const sh = (a && a.shared) || {};
+  const one = x => x && x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)} ↗</a>` : (x ? esc(x.name) : "");
+  const shared = (sh.appeal_board || sh.province || sh.national)
+    ? `<div style="margin-top:14px;font-size:11.5px;line-height:1.6;color:var(--label2)">Other role-players: `
+      + [sh.appeal_board, sh.province, sh.national].filter(Boolean).map(one).join(" · ")
+      + `. Appeals against the valuer’s decision go to the Valuation Appeal Board.</div>`
+    : "";
+  $("secAuthoritiesBody").innerHTML = rows.join("") + shared + link;
 }
 
 /* ============================ top-N properties (live DB query) ============================ */

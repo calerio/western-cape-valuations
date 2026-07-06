@@ -364,7 +364,7 @@ gets a second roll, `export_site.py` archives an **immutable aggregate snapshot*
 
 ## 13. Static SEO pages (`m/`, `d/`, `sitemap.xml`, `templates/`) — generated, never hand-edited
 
-Since 2026-07-05 the export also writes **~31 crawlable static pages** so search engines can rank
+Since 2026-07-05 the export also writes **~32 crawlable static pages** so search engines can rank
 per-municipality queries (the SPA alone exposes only 2 URLs):
 
 - **`m/<slug>.html`** — one page per municipality (24), plus **`m/index.html`** (the browse index,
@@ -374,7 +374,12 @@ per-municipality queries (the SPA alone exposes only 2 URLs):
 - **`d/<slug>.html`** — one page per district (5), each with a ranked child-municipality table
   (every muni shows its **own** `cycle` — this is how Witzenberg/Laingsburg's older rolls surface
   honestly at district level).
-- **`sitemap.xml`** — now **generated** by the export (33 URLs, `lastmod` = export run date).
+- **`guide/how-valuations-work.html`** — a plain-language explainer of how municipal valuations
+  are determined and what they represent (mass appraisal, valuation date, market-value-not-a-floor,
+  objections), grounded in the MPRA. Its own SEO URL; rendered through `shell.html` (so it sits one
+  level deep in `guide/`, per rule 5). Muni/district/CoCT pages and the Atlas panel link to it via
+  an **"How valuations work →"** line (`explainer_link_section()` / `renderAuthorities`).
+- **`sitemap.xml`** — now **generated** by the export (34 URLs, `lastmod` = export run date).
   It is no longer hand-maintained.
 - **`templates/*.html`** (this repo, git-tracked) — the page skeletons, rendered by
   `extract/export_pages.py` (extraction repo) via stdlib `string.Template`. Every optional section
@@ -388,7 +393,18 @@ Rules:
 2. **Graceful degradation** (extends §5): muni missing from `towns.json` (e.g. Cederberg) → no
    towns section; missing from `rates.json` (Overstrand, Breede Valley) → no rates section;
    growth fields absent → no change-over-time section; district pages carry no towns/rates/
-   affordability at all (they don't roll up meaningfully).
+   affordability at all (they don't roll up meaningfully). The **"Who sets & governs these values"**
+   authorities block is the same way: any absent field (valuer, phone, objection form URL, …) simply
+   omits that row; a municipality with no primary data shows only the shared role-players; districts
+   show none. So a thinner authorities entry makes the block quieter, never broken.
+8. **Authorities data** (the valuer + who-to-contact block) is authored in
+   `extract/authorities.py` (extraction repo), keyed by the exact DB municipality name, mirroring
+   `provenance.py`. `export_pages.authorities_section()` renders it on the static pages;
+   `export_site.py` attaches `authorities_for(name)` to each muni node so `atlas.js`
+   `renderAuthorities()` shows the same block in the panel. Province/national role-players
+   (Appeal Board / Dept of Local Government / CoGTA) are shared constants, authored once. Facts are
+   transcribed from each municipality's `SOURCE.md` "Authorities & role-players" section — never
+   guessed; owner names are never stored or shown (POPIA).
 3. **Slug rule** (Python `export_pages.slugify` ⇄ JS `slugOf` in `atlas.js` — keep in sync):
    `name.strip().lower().replace(" ", "-")`. Verified sufficient for all 30 current names in
    §6.2's list; revisit if a future name carries punctuation/accents.
