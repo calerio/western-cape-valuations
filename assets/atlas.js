@@ -36,6 +36,11 @@ let muniSlugs = {}, distSlugs = {};   // url-slug -> name (deep-link lookup, bui
 let curK = 1, statePath = [];
 // slug rule shared with the static pages — keep in sync with export_pages.slugify (DATA_CONTRACT §13)
 const slugOf = n => n.trim().toLowerCase().replace(/ /g, "-");
+// Party colours for seat bars — keep in sync with extract/politics.py PARTY_COLOURS.
+const PARTY_COLOURS = {DA:"#0071e3",ANC:"#00853f",EFF:"#e7261f","FF+":"#f39200",
+  "VF Plus":"#f39200",ACDP:"#c8102e",PA:"#6a1b9a",GOOD:"#00a3a3",ASA:"#1565c0",
+  Cope:"#e30613",IFP:"#e2001a","Al Jama-ah":"#2e7d32","Ind.":"#8a8f98",Independent:"#8a8f98"};
+const partyColour = p => PARTY_COLOURS[p] || "#8a8f98";
 let dbw = null, dbwPromise = null, areaIndex = null;
 
 /* ============================ boot ============================ */
@@ -591,6 +596,7 @@ function renderDash(p) {
   renderAfford(scope);
   renderQuality(scope);
   renderAuthorities(scope);
+  renderPolitics(scope);
 }
 
 function fillProp(id, pr) {
@@ -807,6 +813,42 @@ function renderAuthorities(s) {
       + `. Appeals against the valuer’s decision go to the Valuation Appeal Board.</div>`
     : "";
   $("secAuthoritiesBody").innerHTML = rows.join("") + shared + link;
+}
+
+// Who represents this municipality — panel SUMMARY only (governance line + seat bar).
+// Full seat table + ward councillors live on the muni page; link out to it.
+// Data = scope.politics (panel-lean, from export_site.panel_politics). Hidden when absent.
+function renderPolitics(s) {
+  const p = s && s.politics;
+  if (!showSec("secPolitics", !!(p && (p.election || p.governing || p.seats)))) return;
+  const e = p.election || {}, g = p.governing || {}, m = p.mayor || {}, seats = p.seats || [];
+  const line = [];
+  if (e.winner) {
+    const sf = (e.winner_seats && e.total_seats) ? ` (${e.winner_seats}/${e.total_seats})` : "";
+    line.push(`<strong>${esc(e.date || "2021 election")}:</strong> ${esc(e.winner)} won${esc(sf)}`);
+  }
+  if (g.party) line.push(`<strong>Now:</strong> ${esc(g.party)}${g.basis ? " " + esc(g.basis) : ""}`
+    + (g.as_of ? ` <span style="color:var(--label2)">(as of ${esc(g.as_of)})</span>` : ""));
+  if (m.name) line.push(`<strong>${esc(m.title || "Mayor")}:</strong> ${esc(m.name)}`
+    + (m.party ? ` (${esc(m.party)})` : ""));
+  let html = line.length ? `<div style="font-size:13.5px;line-height:1.7">${line.join(" · ")}</div>` : "";
+  if (seats.length) {
+    const total = e.total_seats || seats.reduce((a, x) => a + x.seats, 0) || 1;
+    const bar = seats.map(x =>
+      `<span title="${esc(x.party)}: ${x.seats}" style="display:inline-block;height:10px;`
+      + `width:${(100 * x.seats / total).toFixed(2)}%;background:${partyColour(x.party)}"></span>`).join("");
+    const legend = seats.map(x =>
+      `<span style="white-space:nowrap;margin-right:12px">`
+      + `<span style="display:inline-block;width:9px;height:9px;border-radius:2px;`
+      + `background:${partyColour(x.party)};margin-right:5px"></span>${esc(x.party)} ${x.seats}`
+      + (x.votes_pct != null ? ` · ${x.votes_pct.toFixed(1)}%` : "") + `</span>`).join("");
+    html += `<div style="display:flex;border-radius:4px;overflow:hidden;margin:10px 0 8px">${bar}</div>`
+      + `<div style="font-size:11.5px;line-height:1.9;color:var(--label2)">${legend}</div>`;
+  }
+  const muni = s && s.name;
+  if (muni) html += `<div style="margin-top:14px;font-size:12.5px">`
+    + `<a href="m/${slugOf(muni)}.html">Full council &amp; ward councillors →</a></div>`;
+  $("secPoliticsBody").innerHTML = html;
 }
 
 /* ============================ top-N properties (live DB query) ============================ */
