@@ -12,7 +12,7 @@
  */
 let ratesPromise = null;
 export const getRates = () => ratesPromise ||
-  (ratesPromise = fetch(new URL("../data/rates.json?v=1", import.meta.url))
+  (ratesPromise = fetch(new URL("../data/rates.json?v=2", import.meta.url))
     .then(r => (r.ok ? r.json() : null))
     .catch(() => null));
 
@@ -47,7 +47,13 @@ export function computeRates(data, muni, category, tenure, value) {
   const rate = key ? m.rates[key] : null;
   if (!rate || rate <= 0) return null;
   const reduction = key === "res" ? (m.residential_reduction || 15000) : 0;
-  const annual = Math.max(0, value - reduction) * rate;
+  let annual = Math.max(0, value - reduction) * rate;
+  if (key === "res") {
+    // Optional municipal extras (DATA_CONTRACT §10): a % rebate on the
+    // calculated amount, and a full exemption below a valuation threshold.
+    if (m.residential_rebate_pct) annual *= 1 - m.residential_rebate_pct / 100;
+    if (m.residential_exempt_below && value <= m.residential_exempt_below) annual = 0;
+  }
   return { annual, monthly: annual / 12, rate, reduction,
            year: m.year || data.year, source: m.source || null };
 }

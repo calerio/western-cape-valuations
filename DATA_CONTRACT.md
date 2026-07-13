@@ -294,7 +294,11 @@ Rules that keep it honest:
    default, never a guess. Same for a category missing from a municipality's `rates{}`.
 4. Keys must exactly match the DB `municipality.name` strings (§6.2 list) + `"City of Cape Town"`.
 5. The formula (assets/rates.js): `annual = max(0, value − residential_reduction) × rate` for
-   residential; other categories apply no reduction. `monthly = annual / 12`. Category strings are
+   residential; other categories apply no reduction. `monthly = annual / 12`. Two optional
+   residential extras (used by Overstrand): `residential_rebate_pct` (percentage rebate applied to
+   the calculated amount, e.g. Overstrand's 20% improved-residential rebate) and
+   `residential_exempt_below` (annual = 0 when the valuation is at or below this threshold,
+   e.g. Overstrand's R350,000 relief). Both MUST be covered by the entry's `quote`. Category strings are
    bucketed by the same keyword logic as `export_site.classify()` — keep the two in sync.
 6. When editing rates.json, **bump the `?v=` in assets/rates.js's fetch** (Pages CDN caches it),
    and re-verify one hand-computed example per changed municipality.
@@ -391,7 +395,7 @@ Rules:
    `towns.json` / `search.db` under §1's golden rule. Edit `templates/` or the generator, then
    re-run `python3 extract/export_site.py`.
 2. **Graceful degradation** (extends §5): muni missing from `towns.json` (e.g. Cederberg) → no
-   towns section; missing from `rates.json` (Overstrand, Breede Valley) → no rates section;
+   towns section; missing from `rates.json` (Breede Valley) → no rates section;
    growth fields absent → no change-over-time section; district pages carry no towns/rates/
    affordability at all (they don't roll up meaningfully). The **"Who sets & governs these values"**
    authorities block is the same way: any absent field (valuer, phone, objection form URL, …) simply

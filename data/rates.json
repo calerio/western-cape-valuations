@@ -1,176 +1,299 @@
 {
-  "year": "2025/26",
-  "updated": "2026-07-03",
-  "_contract": "DATA_CONTRACT.md §10 — the site's ONE hand-curated data file. Every entry transcribed from the cited official document; rates are Rand-per-Rand as gazetted; residential_reduction is the TOTAL value excluded for an ordinary residential property (statutory R15,000 MPRA s17(1)(h) included). A municipality absent here (Overstrand: no 2025/26 randage published online; Breede Valley: municipal site bot-blocked) shows NO rates figure on the site.",
-  "prime_rate": {
-    "pct": 10.5,
-    "repo_pct": 7.0,
-    "effective": "2026-05-28",
-    "year": "2026",
-    "source": "https://www.resbank.co.za/en/home/what-we-do/statistics/key-statistics/current-market-rates",
-    "quote": "SARB prime lending rate = repo policy rate 7.00% + 3.50% margin = 10.50%, effective 28 May 2026 (repo raised 25 bps at the May 2026 MPC meeting, the first hike since 2023; prime = repo + 3.5% is the standard SA relationship). Used only for the labelled affordability estimate."
+ "year": "2025/26",
+ "updated": "2026-07-03",
+ "_contract": "DATA_CONTRACT.md §10 — the site's ONE hand-curated data file. Every entry transcribed from the cited official document; rates are Rand-per-Rand as gazetted; residential_reduction is the TOTAL value excluded for an ordinary residential property (statutory R15,000 MPRA s17(1)(h) included). A municipality absent here (Breede Valley: municipal site bot-blocked) shows NO rates figure on the site. Optional residential extras: residential_rebate_pct (% off the calculated amount) and residential_exempt_below (full exemption at/below this valuation). Overstrand ships res only — its non-residential 2025/26 randages are not published in a quotable document.",
+ "prime_rate": {
+  "pct": 10.5,
+  "repo_pct": 7.0,
+  "effective": "2026-05-28",
+  "year": "2026",
+  "source": "https://www.resbank.co.za/en/home/what-we-do/statistics/key-statistics/current-market-rates",
+  "quote": "SARB prime lending rate = repo policy rate 7.00% + 3.50% margin = 10.50%, effective 28 May 2026 (repo raised 25 bps at the May 2026 MPC meeting, the first hike since 2023; prime = repo + 3.5% is the standard SA relationship). Used only for the labelled affordability estimate."
+ },
+ "munis": {
+  "Beaufort West": {
+   "rates": {
+    "res": 0.015,
+    "business": 0.03,
+    "agricultural": 0.00131,
+    "vacant": 0.018
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://www.beaufortwestmun.co.za/download_document/2518",
+   "quote": "Rate in the Rand 2025/2026: Residential 1:1 0.01500 | Business 1:2 0.03000 | Agricultural 1:0.09 0.00131 | Vacant Land 1:1.2 0.01800; no rate on first R15 000 (incl. s17(1)(h))"
   },
-  "munis": {
-    "Beaufort West": {
-      "rates": { "res": 0.015, "business": 0.03, "agricultural": 0.00131, "vacant": 0.018 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://www.beaufortwestmun.co.za/download_document/2518",
-      "quote": "Rate in the Rand 2025/2026: Residential 1:1 0.01500 | Business 1:2 0.03000 | Agricultural 1:0.09 0.00131 | Vacant Land 1:1.2 0.01800; no rate on first R15 000 (incl. s17(1)(h))"
-    },
-    "Bergrivier": {
-      "rates": { "res": 0.01012, "business": 0.01113, "agricultural": 0.00253 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://bergmun.org.za/sites/default/files/documents/Final%20Budget%20Report%202025-2026.pdf",
-      "quote": "Assessment rate tariff from 1 July 2025: Residential 0.01012; Agricultural 0.00253; Commercial 0.01113; first R15,000 of residential value exempt (Wet 6 van 2004). From the tabled 2025/26 budget report."
-    },
-    "Bitou": {
-      "rates": { "res": 0.00534, "business": 0.0089, "agricultural": 0.00134, "vacant": 0.00693 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://www.bitou.gov.za/sites/default/files/2025-05/Annexure%20D-%20Final%20Tariffs%202025-2028.pdf",
-      "quote": "Final Tariffs 2025-2026: Residential R 0.00534 | Business and Commercial R 0.00890 | Agricultural R 0.00134 | Vacant Land (residential) R 0.00693"
-    },
-    "Cape Agulhas": {
-      "rates": { "res": 0.007245, "business": 0.009595, "agricultural": 0.001892, "vacant": 0.00813 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://capeagulhas.gov.za/download/appendix-a-tariffs-2025-26-full-list/",
-      "quote": "Rates 2025/26: Residential 0.007245; Vacant Land 0.008130; Business 0.009595; Agricultural 0.001892"
-    },
-    "Cederberg": {
-      "rates": { "res": 0.01510813, "business": 0.01953226, "agricultural": 0.00377703, "vacant": 0.01510813 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "http://www.cederbergmun.gov.za/download_document/3119",
-      "quote": "RATES TARIFFS 2025-2026 (Annexure C, Notice 154/2025): Residential Improved R 0,01510813; Residential vacant R 0,01510813; Agricultural R 0,00377703; Business & Commercial Improved R 0,01953226"
-    },
-    "City of Cape Town": {
-      "rates": { "res": 0.007159, "business": 0.016824, "agricultural": 0.001432, "vacant": 0.014318 },
-      "residential_reduction": 450000,
-      "year": "2025/26",
-      "source": "https://resource.capetown.gov.za/documentcentre/Documents/Financial%20documents/Budget2526_Ann02_PropertyRates.pdf",
-      "quote": "RiR 2025/2026: Residential 1:1 0.007159; Business/Commercial & Industrial 1:2.35 0.016824; Vacant land 1:2 0.014318; Agricultural 1:0.20 0.001432. Reduction R435,000 + R15,000 s17(1)(h) for a primary residence valued below R7,000,001."
-    },
-    "Drakenstein": {
-      "rates": { "res": 0.0060055, "business": 0.0102094, "agricultural": 0.0015014, "vacant": 0.0060055 },
-      "residential_reduction": 350000,
-      "year": "2025/26",
-      "source": "https://www.drakenstein.gov.za/sites/dw/DocumentLibrary/Annexure%20B_Tariffs%202025-2026%20Revised_new.pdf",
-      "quote": "Residential 0.0060055; Vacant Residential 0.0060055; Business 0.0102094; Agricultural 0.0060055 less the prescribed 75% rebate = 0.0015014 effective. Valuation threshold R350,000 (incl. R15,000 s17(1)(h))."
-    },
-    "George": {
-      "rates": { "res": 0.006538, "business": 0.013074, "agricultural": 0.001634, "vacant": 0.013074 },
-      "residential_reduction": 230000,
-      "year": "2025/26",
-      "source": "https://www.george.gov.za/wp-content/uploads/2025/04/Final-Tariff-Listing-2025-26-Subject-to-final-NERSA-approval.pdf",
-      "quote": "NOTICE FIN 011/2025, 1 July 2025–30 June 2026: Residential R0.006538; Residential Vacant R0.013074; Business R0.013074; Agricultural R0.001634; no rate on the first R230 000 of residential value (incl. statutory R15 000)"
-    },
-    "Hessequa": {
-      "rates": { "res": 0.00809, "business": 0.008291, "agricultural": 0.001541, "vacant": 0.016177 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://www.hessequa.gov.za/wp-content/uploads/2025/06/APPROVAL-OF-THE-AMENDED-IDP-AND-2025-2026-BUDGET_compressed.pdf",
-      "quote": "Assessment rates 1 July 2025–30 June 2026: Residential 0.008090; Business and Commercial 0.008291; Agricultural (Farm) 0.001541; Vacant Land 0.016177"
-    },
-    "Kannaland": {
-      "rates": { "res": 0.0217, "business": 0.0434, "agricultural": 0.0032, "vacant": 0.0217 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://www.kannaland.gov.za/download_document/1829",
-      "quote": "Tariffs 2025-26: Residential R 0,0217 (+6.0%); Business R 0,0434; Agricultural R 0,0032; Vacant (residential) R 0,0217; first R15,000 of improved not rateable. Corroborated by the WC041 MTREF 2025/26 (+6% on average)."
-    },
-    "Knysna": {
-      "rates": { "res": 0.0082292, "business": 0.0166412, "agricultural": 0.0019667, "vacant": 0.0164584 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://www.knysna.gov.za/wp-content/uploads/2025/06/Annexure-B-Tariffs-Charges-and-Fees-for-2025-2026-MTREF.pdf",
-      "quote": "Assessment rates 2025/26: Residential (Base) R 0.0082292; Vacant Land (+100%) R 0.0164584; Business (+100%) R 0.0166412; Agricultural (−75%) R 0.0019667"
-    },
-    "Laingsburg": {
-      "rates": { "res": 0.01124, "business": 0.01348, "agricultural": 0.00281, "vacant": 0.01348 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://www.laingsburg.gov.za/sites/default/files/documents/WC051_Resolution_on_levying%20of%20consumer%20tariffs%20and%20rates_2025%20%28002%29.pdf",
-      "quote": "Municipal Notice 71/2025 (s14 MPRA), 1 July 2025–30 June 2026: Residential 1:1 0.01124; Business 1:1.2 0.01348; Agricultural 1:0.25 0.00281; Vacant Land 1:1.2 0.01348; no rate on first R15 000"
-    },
-    "Langeberg": {
-      "rates": { "res": 0.008, "business": 0.0159, "agricultural": 0.002 },
-      "residential_reduction": 80000,
-      "year": "2025/26",
-      "source": "https://www.langeberg.gov.za/documents/budget/budget-2025-2026/approved-budget-and-related-policies-2025-2026/6103-appendix-b-tarrifs/file.html",
-      "quote": "Approved Appendix B 2025/2026: Residential 0.0080 (first R80 000 of residential value exempt); Business and Commercial 0.0159; Industrial 0.0159; Agriculture 0.0020"
-    },
-    "Matzikama": {
-      "rates": { "res": 0.006056, "business": 0.010448, "agricultural": 0.001514, "vacant": 0.008406 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://matzikamamunicipality.co.za/assets/StrategicDocs/Budget/2025-26/Final%20IDP%20and%20Budget%202526.zip",
-      "quote": "Tariffs 2025-2026 (Annexure B, approved 29 May 2025): Residential 0.006056; Agricultural 0.001514; Business and Commercial 0.010448; Vacant land 0.008406"
-    },
-    "Mossel Bay": {
-      "rates": { "res": 0.004641, "business": 0.009282, "agricultural": 0.001161, "vacant": 0.006034 },
-      "residential_reduction": 125000,
-      "year": "2025/26",
-      "source": "https://www.mosselbay.gov.za/storage/documents/9586ae7e7aaedfa5d27cee00056cf678.pdf",
-      "quote": "Tariffs 2025/2026 §7 Property Rates: Residential R 0,004641; Business & Commercial R 0,009282; Agricultural R 0,001161; Vacant Land–Residential R 0,006034; first R125 000 of residential valuation exempted"
-    },
-    "Oudtshoorn": {
-      "rates": { "res": 0.0139, "business": 0.0187, "agricultural": 0.0024 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://www.oudtshoorn.gov.za/wp-content/uploads/2026/04/WC045-2026-DRAFT-BUDGET-OF-OUDTSHOORN-2026-27.pdf",
-      "quote": "Current Tariff (1 July 2025): Residential 0.0139; Business/Commercial/Industrial 0.0187; Agricultural 0.0024; first R15 000 of residential market value exempted (s17(h))"
-    },
-    "Prince Albert": {
-      "rates": { "res": 0.00331, "business": 0.00497, "agricultural": 0.00058, "vacant": 0.00662 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://oldsite.pamun.gov.za/download_document/2069",
-      "quote": "Property Rates 01 July 2025–30 June 2026: Residential R 0.00331; Business/Industrial R 0.00497; Agriculture R 0.00058; Residential Vacant R 0.00662; rebate on first R15 000 (s17(1)(h))"
-    },
-    "Saldanha Bay": {
-      "rates": { "res": 0.0070363, "business": 0.0140736, "agricultural": 0.0007049, "vacant": 0.0090174 },
-      "residential_reduction": 50000,
-      "year": "2025/26",
-      "source": "https://sbm.gov.za/wp-content/uploads/Pages/Financial_Documents/Tariffs/Rates-and-Tariffs-for-2025-26.pdf",
-      "quote": "Rates 2025/26: Residential developed 0.70363c/R; vacant 0.90174c/R; Business 1.40736c/R; Agricultural 0.07049c/R — on total valuation less the impermissible first R15 000 plus the R35 000 reduction"
-    },
-    "Stellenbosch": {
-      "rates": { "res": 0.004398, "business": 0.009234, "agricultural": 0.001098, "vacant": 0.008794 },
-      "residential_reduction": 250000,
-      "year": "2025/26",
-      "source": "https://stellenbosch.gov.za/download/appendix-3-final-tariff-proposals-2025-2026-may-2025/",
-      "quote": "Property tax rates 2025/2026: Residential R 0.004398; Business and Commercial R 0.009234; Agricultural R 0.001098; Vacant Residential R 0.008794. Valuation threshold up to R250 000 (incl. R15 000 s17(1)(h) + R235 000 Rates Policy reduction)."
-    },
-    "Swartland": {
-      "rates": { "res": 0.005623, "business": 0.009374, "agricultural": 0.001406, "vacant": 0.008415 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://www.swartland.org.za/storage/assets/WC015_2025-26_Final_Tariffs.pdf",
-      "quote": "Tariffs 2025-2026: Residential 0.005623; Vacant land and vacant residential 0.008415; Business and Commercial 0.009374; Agricultural 0.001406"
-    },
-    "Swellendam": {
-      "rates": { "res": 0.00931, "business": 0.01071, "agricultural": 0.00233, "vacant": 0.01397 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://www.swellendam.gov.za/wp-content/uploads/2025/07/Final-Tariffs_-2025_2026_Subject-to-NERSA-Approval.pdf",
-      "quote": "Rates 2025/2026: Residential (Developed) R0.00931; Business & Commercial R0.01071; Vacant Land R0.01397; Agricultural R0.00233"
-    },
-    "Theewaterskloof": {
-      "rates": { "res": 0.010179, "business": 0.020358, "agricultural": 0.002036, "vacant": 0.010179 },
-      "residential_reduction": 15000,
-      "year": "2025/26",
-      "source": "https://twk.gov.za/wp-content/uploads/2024_2025/Budget/Final%20budget%202025-26/WC031_Final%20Budget_Tariff%20List_2026_29%20May%202025.pdf",
-      "quote": "Final tariff list 2025/26: Residential 0,010179; Vacant Residential 0,010179; Business and Commercial 0,020358; Agricultural 0,002036"
-    },
-    "Witzenberg": {
-      "rates": { "res": 0.007, "business": 0.01925, "agricultural": 0.00162, "vacant": 0.01925 },
-      "residential_reduction": 150000,
-      "year": "2025/26",
-      "source": "https://witzenberg.gov.za/sites/default/files/documents/2025%2005%20Tariffs%202025%202026%20Final%20Tariffs.pdf",
-      "quote": "Rates and tariffs 2025/2026: Residential R 0.00700; Business/Commercial R 0.01925; Industrial R 0.01925; Bona fide Agricultural R 0.00162; Vacant Land–Urban R 0.01925; first R 150 000 of property value exempt for residential"
-    }
+  "Bergrivier": {
+   "rates": {
+    "res": 0.01012,
+    "business": 0.01113,
+    "agricultural": 0.00253
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://bergmun.org.za/sites/default/files/documents/Final%20Budget%20Report%202025-2026.pdf",
+   "quote": "Assessment rate tariff from 1 July 2025: Residential 0.01012; Agricultural 0.00253; Commercial 0.01113; first R15,000 of residential value exempt (Wet 6 van 2004). From the tabled 2025/26 budget report."
+  },
+  "Bitou": {
+   "rates": {
+    "res": 0.00534,
+    "business": 0.0089,
+    "agricultural": 0.00134,
+    "vacant": 0.00693
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://www.bitou.gov.za/sites/default/files/2025-05/Annexure%20D-%20Final%20Tariffs%202025-2028.pdf",
+   "quote": "Final Tariffs 2025-2026: Residential R 0.00534 | Business and Commercial R 0.00890 | Agricultural R 0.00134 | Vacant Land (residential) R 0.00693"
+  },
+  "Cape Agulhas": {
+   "rates": {
+    "res": 0.007245,
+    "business": 0.009595,
+    "agricultural": 0.001892,
+    "vacant": 0.00813
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://capeagulhas.gov.za/download/appendix-a-tariffs-2025-26-full-list/",
+   "quote": "Rates 2025/26: Residential 0.007245; Vacant Land 0.008130; Business 0.009595; Agricultural 0.001892"
+  },
+  "Cederberg": {
+   "rates": {
+    "res": 0.01510813,
+    "business": 0.01953226,
+    "agricultural": 0.00377703,
+    "vacant": 0.01510813
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "http://www.cederbergmun.gov.za/download_document/3119",
+   "quote": "RATES TARIFFS 2025-2026 (Annexure C, Notice 154/2025): Residential Improved R 0,01510813; Residential vacant R 0,01510813; Agricultural R 0,00377703; Business & Commercial Improved R 0,01953226"
+  },
+  "City of Cape Town": {
+   "rates": {
+    "res": 0.007159,
+    "business": 0.016824,
+    "agricultural": 0.001432,
+    "vacant": 0.014318
+   },
+   "residential_reduction": 450000,
+   "year": "2025/26",
+   "source": "https://resource.capetown.gov.za/documentcentre/Documents/Financial%20documents/Budget2526_Ann02_PropertyRates.pdf",
+   "quote": "RiR 2025/2026: Residential 1:1 0.007159; Business/Commercial & Industrial 1:2.35 0.016824; Vacant land 1:2 0.014318; Agricultural 1:0.20 0.001432. Reduction R435,000 + R15,000 s17(1)(h) for a primary residence valued below R7,000,001."
+  },
+  "Drakenstein": {
+   "rates": {
+    "res": 0.0060055,
+    "business": 0.0102094,
+    "agricultural": 0.0015014,
+    "vacant": 0.0060055
+   },
+   "residential_reduction": 350000,
+   "year": "2025/26",
+   "source": "https://www.drakenstein.gov.za/sites/dw/DocumentLibrary/Annexure%20B_Tariffs%202025-2026%20Revised_new.pdf",
+   "quote": "Residential 0.0060055; Vacant Residential 0.0060055; Business 0.0102094; Agricultural 0.0060055 less the prescribed 75% rebate = 0.0015014 effective. Valuation threshold R350,000 (incl. R15,000 s17(1)(h))."
+  },
+  "George": {
+   "rates": {
+    "res": 0.006538,
+    "business": 0.013074,
+    "agricultural": 0.001634,
+    "vacant": 0.013074
+   },
+   "residential_reduction": 230000,
+   "year": "2025/26",
+   "source": "https://www.george.gov.za/wp-content/uploads/2025/04/Final-Tariff-Listing-2025-26-Subject-to-final-NERSA-approval.pdf",
+   "quote": "NOTICE FIN 011/2025, 1 July 2025–30 June 2026: Residential R0.006538; Residential Vacant R0.013074; Business R0.013074; Agricultural R0.001634; no rate on the first R230 000 of residential value (incl. statutory R15 000)"
+  },
+  "Hessequa": {
+   "rates": {
+    "res": 0.00809,
+    "business": 0.008291,
+    "agricultural": 0.001541,
+    "vacant": 0.016177
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://www.hessequa.gov.za/wp-content/uploads/2025/06/APPROVAL-OF-THE-AMENDED-IDP-AND-2025-2026-BUDGET_compressed.pdf",
+   "quote": "Assessment rates 1 July 2025–30 June 2026: Residential 0.008090; Business and Commercial 0.008291; Agricultural (Farm) 0.001541; Vacant Land 0.016177"
+  },
+  "Kannaland": {
+   "rates": {
+    "res": 0.0217,
+    "business": 0.0434,
+    "agricultural": 0.0032,
+    "vacant": 0.0217
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://www.kannaland.gov.za/download_document/1829",
+   "quote": "Tariffs 2025-26: Residential R 0,0217 (+6.0%); Business R 0,0434; Agricultural R 0,0032; Vacant (residential) R 0,0217; first R15,000 of improved not rateable. Corroborated by the WC041 MTREF 2025/26 (+6% on average)."
+  },
+  "Knysna": {
+   "rates": {
+    "res": 0.0082292,
+    "business": 0.0166412,
+    "agricultural": 0.0019667,
+    "vacant": 0.0164584
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://www.knysna.gov.za/wp-content/uploads/2025/06/Annexure-B-Tariffs-Charges-and-Fees-for-2025-2026-MTREF.pdf",
+   "quote": "Assessment rates 2025/26: Residential (Base) R 0.0082292; Vacant Land (+100%) R 0.0164584; Business (+100%) R 0.0166412; Agricultural (−75%) R 0.0019667"
+  },
+  "Laingsburg": {
+   "rates": {
+    "res": 0.01124,
+    "business": 0.01348,
+    "agricultural": 0.00281,
+    "vacant": 0.01348
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://www.laingsburg.gov.za/sites/default/files/documents/WC051_Resolution_on_levying%20of%20consumer%20tariffs%20and%20rates_2025%20%28002%29.pdf",
+   "quote": "Municipal Notice 71/2025 (s14 MPRA), 1 July 2025–30 June 2026: Residential 1:1 0.01124; Business 1:1.2 0.01348; Agricultural 1:0.25 0.00281; Vacant Land 1:1.2 0.01348; no rate on first R15 000"
+  },
+  "Langeberg": {
+   "rates": {
+    "res": 0.008,
+    "business": 0.0159,
+    "agricultural": 0.002
+   },
+   "residential_reduction": 80000,
+   "year": "2025/26",
+   "source": "https://www.langeberg.gov.za/documents/budget/budget-2025-2026/approved-budget-and-related-policies-2025-2026/6103-appendix-b-tarrifs/file.html",
+   "quote": "Approved Appendix B 2025/2026: Residential 0.0080 (first R80 000 of residential value exempt); Business and Commercial 0.0159; Industrial 0.0159; Agriculture 0.0020"
+  },
+  "Matzikama": {
+   "rates": {
+    "res": 0.006056,
+    "business": 0.010448,
+    "agricultural": 0.001514,
+    "vacant": 0.008406
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://matzikamamunicipality.co.za/assets/StrategicDocs/Budget/2025-26/Final%20IDP%20and%20Budget%202526.zip",
+   "quote": "Tariffs 2025-2026 (Annexure B, approved 29 May 2025): Residential 0.006056; Agricultural 0.001514; Business and Commercial 0.010448; Vacant land 0.008406"
+  },
+  "Mossel Bay": {
+   "rates": {
+    "res": 0.004641,
+    "business": 0.009282,
+    "agricultural": 0.001161,
+    "vacant": 0.006034
+   },
+   "residential_reduction": 125000,
+   "year": "2025/26",
+   "source": "https://www.mosselbay.gov.za/storage/documents/9586ae7e7aaedfa5d27cee00056cf678.pdf",
+   "quote": "Tariffs 2025/2026 §7 Property Rates: Residential R 0,004641; Business & Commercial R 0,009282; Agricultural R 0,001161; Vacant Land–Residential R 0,006034; first R125 000 of residential valuation exempted"
+  },
+  "Oudtshoorn": {
+   "rates": {
+    "res": 0.0139,
+    "business": 0.0187,
+    "agricultural": 0.0024
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://www.oudtshoorn.gov.za/wp-content/uploads/2026/04/WC045-2026-DRAFT-BUDGET-OF-OUDTSHOORN-2026-27.pdf",
+   "quote": "Current Tariff (1 July 2025): Residential 0.0139; Business/Commercial/Industrial 0.0187; Agricultural 0.0024; first R15 000 of residential market value exempted (s17(h))"
+  },
+  "Overstrand": {
+   "rates": {
+    "res": 0.004988
+   },
+   "residential_reduction": 50000,
+   "residential_rebate_pct": 20,
+   "residential_exempt_below": 350000,
+   "year": "2025/26",
+   "source": "https://www.overstrand.gov.za/budget/final-budget-2025-2026-mtref/?layout=file",
+   "quote": "Property Rates: 9,7% (applied as a percentage increase in the cent in the Rand based on the property valuation from 0.004547 to 0.004988 for residential properties) ... no property rates will be payable on residential properties with a total municipal valuation up to R350 000 ... A rebate of R15 000 on the rateable value of on all residential properties is awarded. An additional rebate of R35 000 on improved residential properties is awarded. A further 20% rebate on the calculated property rates as calculated, if improved properties are used for residential purposes only. (Final Budget 2025/2026 MTREF, Council 29 May 2025)"
+  },
+  "Prince Albert": {
+   "rates": {
+    "res": 0.00331,
+    "business": 0.00497,
+    "agricultural": 0.00058,
+    "vacant": 0.00662
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://oldsite.pamun.gov.za/download_document/2069",
+   "quote": "Property Rates 01 July 2025–30 June 2026: Residential R 0.00331; Business/Industrial R 0.00497; Agriculture R 0.00058; Residential Vacant R 0.00662; rebate on first R15 000 (s17(1)(h))"
+  },
+  "Saldanha Bay": {
+   "rates": {
+    "res": 0.0070363,
+    "business": 0.0140736,
+    "agricultural": 0.0007049,
+    "vacant": 0.0090174
+   },
+   "residential_reduction": 50000,
+   "year": "2025/26",
+   "source": "https://sbm.gov.za/wp-content/uploads/Pages/Financial_Documents/Tariffs/Rates-and-Tariffs-for-2025-26.pdf",
+   "quote": "Rates 2025/26: Residential developed 0.70363c/R; vacant 0.90174c/R; Business 1.40736c/R; Agricultural 0.07049c/R — on total valuation less the impermissible first R15 000 plus the R35 000 reduction"
+  },
+  "Stellenbosch": {
+   "rates": {
+    "res": 0.004398,
+    "business": 0.009234,
+    "agricultural": 0.001098,
+    "vacant": 0.008794
+   },
+   "residential_reduction": 250000,
+   "year": "2025/26",
+   "source": "https://stellenbosch.gov.za/download/appendix-3-final-tariff-proposals-2025-2026-may-2025/",
+   "quote": "Property tax rates 2025/2026: Residential R 0.004398; Business and Commercial R 0.009234; Agricultural R 0.001098; Vacant Residential R 0.008794. Valuation threshold up to R250 000 (incl. R15 000 s17(1)(h) + R235 000 Rates Policy reduction)."
+  },
+  "Swartland": {
+   "rates": {
+    "res": 0.005623,
+    "business": 0.009374,
+    "agricultural": 0.001406,
+    "vacant": 0.008415
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://www.swartland.org.za/storage/assets/WC015_2025-26_Final_Tariffs.pdf",
+   "quote": "Tariffs 2025-2026: Residential 0.005623; Vacant land and vacant residential 0.008415; Business and Commercial 0.009374; Agricultural 0.001406"
+  },
+  "Swellendam": {
+   "rates": {
+    "res": 0.00931,
+    "business": 0.01071,
+    "agricultural": 0.00233,
+    "vacant": 0.01397
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://www.swellendam.gov.za/wp-content/uploads/2025/07/Final-Tariffs_-2025_2026_Subject-to-NERSA-Approval.pdf",
+   "quote": "Rates 2025/2026: Residential (Developed) R0.00931; Business & Commercial R0.01071; Vacant Land R0.01397; Agricultural R0.00233"
+  },
+  "Theewaterskloof": {
+   "rates": {
+    "res": 0.010179,
+    "business": 0.020358,
+    "agricultural": 0.002036,
+    "vacant": 0.010179
+   },
+   "residential_reduction": 15000,
+   "year": "2025/26",
+   "source": "https://twk.gov.za/wp-content/uploads/2024_2025/Budget/Final%20budget%202025-26/WC031_Final%20Budget_Tariff%20List_2026_29%20May%202025.pdf",
+   "quote": "Final tariff list 2025/26: Residential 0,010179; Vacant Residential 0,010179; Business and Commercial 0,020358; Agricultural 0,002036"
+  },
+  "Witzenberg": {
+   "rates": {
+    "res": 0.007,
+    "business": 0.01925,
+    "agricultural": 0.00162,
+    "vacant": 0.01925
+   },
+   "residential_reduction": 150000,
+   "year": "2025/26",
+   "source": "https://witzenberg.gov.za/sites/default/files/documents/2025%2005%20Tariffs%202025%202026%20Final%20Tariffs.pdf",
+   "quote": "Rates and tariffs 2025/2026: Residential R 0.00700; Business/Commercial R 0.01925; Industrial R 0.01925; Bona fide Agricultural R 0.00162; Vacant Land–Urban R 0.01925; first R 150 000 of property value exempt for residential"
   }
+ }
 }
