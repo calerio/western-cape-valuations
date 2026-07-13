@@ -28,6 +28,11 @@ municipality**, with fluid zoom, hover tooltips, search, and a scroll-reveal sta
   SQLite file (HTTP range requests; only a few KB fetched per query). The SQLite file is served from
   **Supabase Storage** rather than GitHub Pages, which gzips responses and corrupts range requests
   (see `DATA_CONTRACT.md` §8).
+- **Static SEO pages** (`m/`, `d/`): one generated, crawlable page per municipality (24) and
+  district (5), plus a browse index (`m/`) and an honest City of Cape Town explainer — rendered by
+  the export from git-tracked `templates/`, listed in the generated `sitemap.xml` (33 URLs), each
+  deep-linking into the Atlas (`index.html#m/<slug>` / `#d/<slug>`). **Generated — never hand-edit**
+  (`DATA_CONTRACT.md` §13).
 
 ## Data
 24 Western Cape local municipalities, ~514,000 properties, current/recent valuation cycles
@@ -36,10 +41,11 @@ Town is search-only at source and shown as "no public roll". Owner names are not
 
 ## Regenerating the data
 From the extraction project: `python3 extract/build.py` then `python3 extract/export_site.py`,
-which writes `data/stats.json`, `data/towns.json`, and the chunked `data/db/` here.
+which writes `data/stats.json`, `data/towns.json`, the chunked `data/db/`, **and regenerates the
+static `m/`/`d/` pages + `sitemap.xml`** here (from `templates/`).
 
 ## Credits & design
 Built to the **WC Valuation Atlas** design handoff (see `design/`). Boundary data derived from the
-Municipal Demarcation Board (via HDX, CC BY). Fonts: Newsreader + Libre Franklin.
+Municipal Demarcation Board (via HDX, CC BY). Font: Inter.
 
 *Public data, shared for transparency and ease of access.*
