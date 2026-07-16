@@ -523,7 +523,7 @@ function renderChrome(p) {
   $("hint0").hidden = len !== 0;
   if (len === 0) {
     $("scopeLabel").textContent = tn("Western Cape");
-    $("scopeSub").textContent = t("Official municipal property valuations across 24 local municipalities — mapped, searchable, free.");
+    $("scopeSub").textContent = t("Official municipal property valuations across the Cape Town metro and 24 local municipalities — mapped, searchable, free.");
   }
 
   // reset-to-overview control (desktop): only meaningful once drilled in
@@ -539,7 +539,10 @@ function renderChrome(p) {
   const steps = [{ label: tn("South Africa"), go: () => navigate([]) }];
   if (len >= 1) steps.push({ label: tn("Western Cape"), go: () => navigate([wcCrumb()]) });
   if (len >= 2) steps.push({ label: tn(p[1].name), go: () => navigate([wcCrumb(), p[1]]) });
-  if (len >= 3) steps.push({ label: tn(p[2].name), go: () => navigate(p) });
+  if (len >= 3) {
+    if (p[2].name === p[1].name) steps.pop();   // metro: district and muni share a name
+    steps.push({ label: tn(p[2].name), go: () => navigate(p) });
+  }
   $("crumbs").innerHTML = "";
   steps.forEach((s, i) => {
     if (i) { const sep = document.createElement("span"); sep.textContent = "›"; sep.style.cssText = "font-size:13px;color:var(--label3)"; $("crumbs").appendChild(sep); }
@@ -581,7 +584,11 @@ function renderDash(p) {
       sub.innerHTML = `${t("Valuation roll · ")}<span class="rollprov" tabindex="0" role="button" aria-label="${t("How this municipality's values were determined")}">${esc(cyc)}<span class="provi" aria-hidden="true">ⓘ</span></span>`;
       wireProv(sub.querySelector(".rollprov"), scope.provenance);
     } else sub.textContent = t("Valuation roll · ") + cyc;
-  } else sub.textContent = children.filter(c => c.s).length + " " + t(kindP).toLowerCase() + " · " + t("current valuation rolls");
+  } else { const nk = children.filter(c => c.s).length;
+    const kw = nk === 1 ? (I18N ? t(kindP === "Districts" ? "district (singular)" : "municipality (singular)")
+                                : (kindP === "Districts" ? "district" : "municipality"))
+                        : t(kindP).toLowerCase();
+    sub.textContent = nk + " " + kw + " · " + t("current valuation rolls"); }
   $("statMedian").textContent = scope ? R(scope.median) : "—";
   $("statAvg").textContent = scope ? R(scope.mean ?? scope.avg) : "—";
   $("statTotal").textContent = scope ? R(scope.total) : "—";
@@ -669,6 +676,8 @@ function renderCloser(s) {
   if (s.top1_share != null) tiles.push([t("Top 1% of parcels hold"), Math.round(s.top1_share * 100) + "%", t("of the area's total value")]);
   if (s.ppm_median) tiles.push([t("Median home · per m²"), "R" + N(s.ppm_median) + "/m²", t("value per square metre")]);
   if (s.erf_median) tiles.push([t("Median home erf"), N(s.erf_median) + " m²", t("typical plot size")]);
+  if (s.dwext_median) tiles.push([t("Median dwelling size"), N(s.dwext_median) + " m²", t("building floor area")]);
+  if (s.dw_ppm_median) tiles.push([t("Median home · per floor m²"), "R" + N(s.dw_ppm_median) + "/m²", t("value per m² of building")]);
   if (s.vacant_share != null) tiles.push([t("Vacant parcels"), Math.round(s.vacant_share * 100) + "%", t("undeveloped land")]);
   if (s !== prov && s.median && prov.median) { const r = s.median / prov.median; tiles.push([t("vs Western Cape median"), r.toFixed(1) + "×", t(r >= 1 ? "pricier than the province" : "cheaper than the province")]); }
   $("statTiles").innerHTML = tiles.map(([l, v, n]) => `<div class="stile"><div class="stl">${esc(l)}</div><div class="stv">${esc(v)}</div><div class="stn">${esc(n)}</div></div>`).join("");
@@ -924,7 +933,7 @@ async function loadTop() {
   let where = "value>0", args = [];
   if (sc.where) { where += " AND " + sc.where; args = [...sc.args]; }
   if (kind === "lo") where += " AND value>=100000 AND UPPER(category) LIKE '%RES%'";
-  const sql = `SELECT muni,suburb,erf,address,extent,value,tenure,category FROM prop WHERE ${where} ORDER BY value ${kind === "hi" ? "DESC" : "ASC"} LIMIT ${n}`;
+  const sql = `SELECT muni,suburb,erf,address,extent,dwext,value,tenure,category FROM prop WHERE ${where} ORDER BY value ${kind === "hi" ? "DESC" : "ASC"} LIMIT ${n}`;
   let rows = null;
   for (let attempt = 0; attempt < 2 && rows === null; attempt++) {
     try { rows = await (await ensureDB()).db.query(sql, args); }
@@ -1003,7 +1012,7 @@ async function runSearch(q, inId = "search", resId = "results") {
   for (let attempt = 0; attempt < 2 && rows === null; attempt++) {
     try {
       rows = await (await ensureDB()).db.query(
-        "SELECT p.muni,p.suburb,p.address,p.erf,p.extent,p.value,p.tenure,p.category FROM psearch f " +
+        "SELECT p.muni,p.suburb,p.address,p.erf,p.extent,p.dwext,p.value,p.tenure,p.category FROM psearch f " +
         "JOIN prop p ON p.id=f.rowid WHERE psearch MATCH ? AND p.value>0 ORDER BY p.value DESC LIMIT 8", [fts]);
     } catch (e) { resetDB(); }
   }
@@ -1044,6 +1053,7 @@ function openProp(r) {
     [t("Erf / unit"), r.erf || "—"],
     [t("Category"), r.category || "—"],
     [t("Extent"), r.extent ? N(Math.round(r.extent)) + " m²" : "—"],
+    ...(r.dwext ? [[t("Dwelling extent"), N(Math.round(r.dwext)) + " m²"]] : []),
     [t("Value per m²"), ppm],
     [t("Municipality"), tn(r.muni) || "—"],
   ];
@@ -1071,7 +1081,7 @@ async function ensureDB() {
     // against the COMPRESSED bytes, so SQLite reads garbage and every search returns nothing.
     // Supabase Storage serves raw byte-ranges (no transfer compression) with CORS — verified.
     // config.json's urlPrefix ("search.db.") resolves the chunks relative to this configUrl.
-    const DB_CONFIG = "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v3/config.json";
+    const DB_CONFIG = "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v4/config.json";
     const w = await createDbWorker([{ from: "jsonconfig", configUrl: DB_CONFIG }],
       abs("assets/vendor/sqlite.worker.js"), abs("assets/vendor/sql-wasm.wasm"));
     // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot

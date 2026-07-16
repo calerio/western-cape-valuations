@@ -350,14 +350,14 @@ async function lookupErf(tag, town) {
   const db = await ensureDB();
   try {
     const rows = await db.db.query(
-      'SELECT muni,suburb,erf,address,extent,value,tenure,category FROM prop ' +
+      'SELECT muni,suburb,erf,address,extent,dwext,value,tenure,category FROM prop ' +
       'WHERE erf_int=? AND value>0 ORDER BY value DESC LIMIT 80', [nval]);
     return { ...rankRows(rows, town), stale: false };
   } catch (err) {
     // The hosted search.db predates the erf_int column (upload pending): fall back to
     // the FTS index — bare + zero-padded erf tokens — then confirm the erf client-side.
     const rows = await db.db.query(
-      'SELECT p.muni,p.suburb,p.erf,p.address,p.extent,p.value,p.tenure,p.category FROM psearch f ' +
+      'SELECT p.muni,p.suburb,p.erf,p.address,p.extent,p.dwext,p.value,p.tenure,p.category FROM psearch f ' +
       'JOIN prop p ON p.id=f.rowid WHERE psearch MATCH ? AND p.value>0 ORDER BY p.value DESC LIMIT 80',
       [`${dm[0]} OR ${String(nval).padStart(8, '0')}`]);
     const exact = rows.filter(r => parseInt((String(r.erf || '').match(/\d+/) || ['-1'])[0], 10) === nval);
@@ -422,6 +422,7 @@ function renderDetail(r, props, backList, backSub) {
     (props._ward != null ? statRow(t('Ward'), props._ward) : '') +
     statRow(t('Category'), r.category || '—') +
     statRow(t('Extent'), r.extent ? N(Math.round(r.extent)) + ' m²' : '—') +
+    (r.dwext ? statRow(t('Dwelling extent'), N(Math.round(r.dwext)) + ' m²') : '') +
     statRow(t('Value per m²'), ppm) +
     (rr ? statRow(tf('Rates / year ({year})', { year: rr.year }), RZA(rr.annual)) +
           statRow(t('Rates / month'), RZA(rr.monthly)) : '') +
@@ -522,7 +523,7 @@ async function ensureDB() {
     // Served from Supabase Storage, NOT GitHub Pages (Pages gzip-corrupts the HTTP range
     // requests sql.js-httpvfs needs — see DATA_CONTRACT §8). ?db=<url> overrides for local dev.
     const DB_CONFIG = new URLSearchParams(location.search).get('db') ||
-      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v3/config.json';
+      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v4/config.json';
     const w = await createDbWorker([{ from: 'jsonconfig', configUrl: abs(DB_CONFIG) }],
       abs('assets/vendor/sqlite.worker.js'), abs('assets/vendor/sql-wasm.wasm'));
     // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot
