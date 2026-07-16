@@ -239,7 +239,7 @@ query touches, instead of the whole 85 MB file). This requires the host to serve
   `SQLite format 3` bytes and resolving "55 Lovell" end-to-end.
 
 **Setup:** Supabase project `nxeasppmwvzcqbbgrdvf`, **public** bucket `valuations`, the 4 `data/db/`
-files under a **versioned path prefix** (`v3/`). `atlas.js` + `map.js` `ensureDB()` point `configUrl`
+files under a **versioned path prefix** (`v4/` since 2026-07-16 — added Cape Town + the `dwext` column; `v3/` before that). `atlas.js` + `map.js` `ensureDB()` point `configUrl`
 at `…/storage/v1/object/public/valuations/v3/config.json`; the chunks resolve relative to it via
 `config.json`'s `urlPrefix`. Chunking is retained because each chunk (≤32 MB) stays under Supabase's
 50 MB-per-file upload limit. **Why a versioned path:** objects cache `max-age=3600`, so overwriting
