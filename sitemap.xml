@@ -1,206 +1,590 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/</loc>
-    <lastmod>2026-07-13</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/map.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/d/cape-winelands.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/cape-winelands.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/cape-winelands.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/cape-winelands.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/d/cape-winelands.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/cape-winelands.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/cape-winelands.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/cape-winelands.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/breede-valley.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/breede-valley.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/breede-valley.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/breede-valley.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/breede-valley.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/breede-valley.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/breede-valley.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/breede-valley.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/drakenstein.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/drakenstein.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/drakenstein.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/drakenstein.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/drakenstein.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/drakenstein.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/drakenstein.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/drakenstein.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/langeberg.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/langeberg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/langeberg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/langeberg.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/langeberg.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/langeberg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/langeberg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/langeberg.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/stellenbosch.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/stellenbosch.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/stellenbosch.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/stellenbosch.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/stellenbosch.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/stellenbosch.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/stellenbosch.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/stellenbosch.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/witzenberg.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/witzenberg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/witzenberg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/witzenberg.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/witzenberg.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/witzenberg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/witzenberg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/witzenberg.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/d/central-karoo.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/central-karoo.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/central-karoo.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/central-karoo.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/d/central-karoo.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/central-karoo.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/central-karoo.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/central-karoo.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/beaufort-west.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/beaufort-west.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/beaufort-west.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/beaufort-west.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/beaufort-west.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/beaufort-west.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/beaufort-west.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/beaufort-west.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/laingsburg.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/laingsburg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/laingsburg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/laingsburg.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/laingsburg.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/laingsburg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/laingsburg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/laingsburg.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/prince-albert.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/prince-albert.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/prince-albert.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/prince-albert.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/prince-albert.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/prince-albert.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/prince-albert.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/prince-albert.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/d/garden-route.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/garden-route.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/garden-route.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/garden-route.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/d/garden-route.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/garden-route.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/garden-route.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/garden-route.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/bitou.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/bitou.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/bitou.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/bitou.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/bitou.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/bitou.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/bitou.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/bitou.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/george.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/george.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/george.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/george.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/george.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/george.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/george.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/george.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/hessequa.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/hessequa.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/hessequa.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/hessequa.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/hessequa.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/hessequa.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/hessequa.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/hessequa.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/kannaland.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/kannaland.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/kannaland.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/kannaland.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/kannaland.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/kannaland.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/kannaland.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/kannaland.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/knysna.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/knysna.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/knysna.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/knysna.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/knysna.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/knysna.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/knysna.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/knysna.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/mossel-bay.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/mossel-bay.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/mossel-bay.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/mossel-bay.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/mossel-bay.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/mossel-bay.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/mossel-bay.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/mossel-bay.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/oudtshoorn.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/oudtshoorn.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/oudtshoorn.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/oudtshoorn.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/oudtshoorn.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/oudtshoorn.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/oudtshoorn.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/oudtshoorn.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/d/overberg.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/overberg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/overberg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/overberg.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/d/overberg.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/overberg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/overberg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/overberg.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/cape-agulhas.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/cape-agulhas.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/cape-agulhas.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/cape-agulhas.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/cape-agulhas.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/cape-agulhas.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/cape-agulhas.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/cape-agulhas.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/overstrand.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/overstrand.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/overstrand.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/overstrand.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/overstrand.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/overstrand.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/overstrand.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/overstrand.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/swellendam.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/swellendam.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/swellendam.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/swellendam.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/swellendam.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/swellendam.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/swellendam.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/swellendam.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/theewaterskloof.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/theewaterskloof.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/theewaterskloof.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/theewaterskloof.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/theewaterskloof.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/theewaterskloof.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/theewaterskloof.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/theewaterskloof.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/d/west-coast.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/west-coast.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/west-coast.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/west-coast.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/d/west-coast.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/d/west-coast.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/d/west-coast.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/d/west-coast.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/bergrivier.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/bergrivier.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/bergrivier.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/bergrivier.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/bergrivier.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/bergrivier.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/bergrivier.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/bergrivier.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/cederberg.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/cederberg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/cederberg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/cederberg.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/cederberg.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/cederberg.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/cederberg.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/cederberg.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/matzikama.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/matzikama.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/matzikama.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/matzikama.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/matzikama.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/matzikama.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/matzikama.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/matzikama.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/saldanha-bay.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/saldanha-bay.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/saldanha-bay.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/saldanha-bay.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/saldanha-bay.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/saldanha-bay.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/saldanha-bay.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/saldanha-bay.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/swartland.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/swartland.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/swartland.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/swartland.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/swartland.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/swartland.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/swartland.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/swartland.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/city-of-cape-town.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/m/city-of-cape-town.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/city-of-cape-town.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
     <loc>https://calerio.github.io/western-cape-valuations/guide/how-valuations-work.html</loc>
-    <lastmod>2026-07-13</lastmod>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/guide/how-valuations-work.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/gids/hoe-waardasies-werk.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/guide/how-valuations-work.html" />
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://calerio.github.io/western-cape-valuations/af/gids/hoe-waardasies-werk.html</loc>
+    <xhtml:link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/guide/how-valuations-work.html" />
+    <xhtml:link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/gids/hoe-waardasies-werk.html" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/guide/how-valuations-work.html" />
+    <lastmod>2026-07-16</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>

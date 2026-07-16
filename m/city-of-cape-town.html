@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <!-- GENERATED-PAGE SHELL — read by extract/export_pages.py (extraction repo) via string.Template.
-     Every static page under /m/ and /d/ is rendered through this shell; all output pages sit
-     exactly ONE directory below the site root, so asset/nav hrefs are hardcoded "../".
-     Placeholders: title, meta_description, canonical, og_title, og_description, jsonld, content
-     (dollar-brace syntax). Do not add literal dollar signs outside real placeholders —
-     string.Template scans comments too. -->
+     Every static page under /m/, /d/, /guide/ AND their /af/ mirrors is rendered through this
+     shell. Asset/nav hrefs are prefixed with the root placeholder ("../" for English pages,
+     "../../" for /af/ pages). Placeholders: lang, root, alternates, en_url, af_url, en_cur,
+     af_cur, nav_*, wordmark_*, footer_*, title, meta_description, canonical, og_title,
+     og_description, jsonld, content (dollar-brace syntax). Do not add literal dollar signs
+     outside real placeholders — string.Template scans comments too. -->
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -12,6 +13,9 @@
 <title>City of Cape Town property valuations — how to look one up</title>
 <meta name="description" content="How to look up a City of Cape Town municipal property valuation: the metro publishes its roll search-only via its official portal. Bulk data via PAIA is in progress." />
 <link rel="canonical" href="https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html" />
+<link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html" />
+<link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/city-of-cape-town.html" />
+<link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/city-of-cape-town.html" />
 <link rel="icon" href="../favicon.ico" sizes="any" />
 <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
@@ -114,10 +118,16 @@
 <div class="wrap">
   <div class="top">
     <a class="wordmark" href="../index.html">Western Cape <span>Property Valuation Atlas</span></a>
-    <nav class="viewseg" aria-label="Map view">
-      <a href="../index.html">Explore</a>
-      <a href="../map.html">Satellite</a>
-    </nav>
+    <div style="display:flex;align-items:center;gap:10px">
+      <nav class="viewseg" aria-label="Map view">
+        <a href="../index.html">Explore</a>
+        <a href="../map.html">Satellite</a>
+      </nav>
+      <nav class="viewseg" aria-label="Language / Taal">
+        <a href="../m/city-of-cape-town.html" data-lang="en" hreflang="en" aria-current="page">EN</a>
+        <a href="../af/m/city-of-cape-town.html" data-lang="af" hreflang="af">AF</a>
+      </nav>
+    </div>
   </div>
 <!-- City of Cape Town explainer content — rendered into shell.html's content slot by
      export_pages.py. The City publishes NO downloadable valuation roll; this page is honest
@@ -131,21 +141,16 @@
   </header>
 
   <h2>How to look up a Cape Town valuation</h2>
-  <p>The City publishes its general valuation roll for inspection one property at a time through
-  its own online search — there is no downloadable roll, so Cape Town's 24 sibling
-  municipalities appear in this atlas while the metro does not (yet).</p>
+  <p>The City publishes its general valuation roll for inspection one property at a time through its own online search — there is no downloadable roll, so Cape Town's 24 sibling municipalities appear in this atlas while the metro does not (yet).</p>
   <div class="linkrow">
     <a class="btn primary" href="https://web1.capetown.gov.za/web1/gv2025/SearchProperty" rel="noopener">Search the City's valuation roll ↗</a>
     <a class="btn" href="../map.html">Satellite map</a>
   </div>
-  <p class="caveat">Values in the City's roll are municipal valuations as at its valuation date —
-  set for rates, not today's sale prices.</p>
+  <p class="caveat">Values in the City's roll are municipal valuations as at its valuation date — set for rates, not today's sale prices.</p>
 
   <h2>Bulk data: in progress</h2>
-  <p>A PAIA (Promotion of Access to Information Act) request for the City's full GV2022 and GV2025
-  valuation rolls is in progress (reference <strong>100087816</strong>). If the data is released,
-  Cape Town will join the atlas with the same searchable dashboards as every other municipality.
-  <span class="note">Last checked: 2026-07-13.</span></p>
+  <p>A PAIA (Promotion of Access to Information Act) request for the City's full GV2022 and GV2025 valuation rolls is in progress (reference <strong>100087816</strong>). If the data is released, Cape Town will join the atlas with the same searchable dashboards as every other municipality.
+  <span class="note">Last checked: 2026-07-16.</span></p>
 
 <h2>How these valuations work</h2><p class="sub" style="max-width:64ch">Municipal valuations estimate each property’s open-market value on a set past date (mass appraisal under the Municipal Property Rates Act) — calculated to charge rates, <strong>not</strong> a floor or a live sale price. <a href="../guide/how-valuations-work.html">How valuations work →</a></p>
 <h2>Who sets &amp; governs these values</h2><p class="sub">The valuer who set these values, and who to contact about them</p><table><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Municipal valuer</td><td style="vertical-align:top">City of Cape Town Valuations Department (Director: Valuations, Louise Muller; GV2025 names only the office of &#x27;Municipal Valuer&#x27;) <span class="note">· GV2025</span></td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Valuations office</td><td style="vertical-align:top">Valuations Department</td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Contact</td><td style="vertical-align:top">0860 103 089 · <a href="mailto:valuations@capetown.gov.za">valuations@capetown.gov.za</a></td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Official page</td><td style="vertical-align:top"><a href="https://www.capetown.gov.za/propertyvaluations" rel="noopener">Valuations page ↗</a></td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Lodge an objection with</td><td style="vertical-align:top">The Valuations Department (centralised)</td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">How to object</td><td style="vertical-align:top">Online via e-Services (preferred), email valuationsobjection@capetown.gov.za, or in person at rotating venues; appeals to the Valuation Appeal Board via valuationsappeals@capetown.gov.za within 30 working days.</td></tr><tr><td class="note" style="width:150px;vertical-align:top;padding-right:16px">Objection form</td><td style="vertical-align:top"><a href="https://www.capetown.gov.za/en/eservices" rel="noopener">Get the form ↗</a></td></tr></table><p class="note" style="margin-top:14px;max-width:64ch">Other role-players: <a href="https://www.westerncape.gov.za" rel="noopener">Western Cape Valuation Appeal Board ↗</a> · <a href="https://www.westerncape.gov.za" rel="noopener">Western Cape Department of Local Government ↗</a> · <a href="https://www.cogta.gov.za" rel="noopener">CoGTA (Cooperative Governance &amp; Traditional Affairs) ↗</a>. Appeals against the valuer’s decision go to the Valuation Appeal Board.</p>
@@ -162,5 +167,6 @@
     <a href="https://github.com/calerio/western-cape-valuations">GitHub</a>
   </div>
 </div>
+<script src="../assets/lang.js?v=2"></script>
 </body>
 </html>

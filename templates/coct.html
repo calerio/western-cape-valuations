@@ -4,27 +4,22 @@
      NB: no literal dollar signs outside real placeholders. -->
   <nav class="crumbs" aria-label="Breadcrumb">${breadcrumbs}</nav>
   <header>
-    <div class="kick">Metropolitan municipality</div>
-    <h1>City of Cape Town property valuations</h1>
+    <div class="kick">${kicker}</div>
+    <h1>${h1}</h1>
     <p class="intro">${intro}</p>
   </header>
 
-  <h2>How to look up a Cape Town valuation</h2>
-  <p>The City publishes its general valuation roll for inspection one property at a time through
-  its own online search — there is no downloadable roll, so Cape Town's ${muni_count} sibling
-  municipalities appear in this atlas while the metro does not (yet).</p>
+  <h2>${lookup_h2}</h2>
+  <p>${lookup_p}</p>
   <div class="linkrow">
-    <a class="btn primary" href="${coct_search_url}" rel="noopener">Search the City's valuation roll ↗</a>
-    <a class="btn" href="../map.html">Satellite map</a>
+    <a class="btn primary" href="${coct_search_url}" rel="noopener">${search_cta} ↗</a>
+    <a class="btn" href="${root}map.html">${satmap_cta}</a>
   </div>
-  <p class="caveat">Values in the City's roll are municipal valuations as at its valuation date —
-  set for rates, not today's sale prices.</p>
+  <p class="caveat">${caveat}</p>
 
-  <h2>Bulk data: in progress</h2>
-  <p>A PAIA (Promotion of Access to Information Act) request for the City's full GV2022 and GV2025
-  valuation rolls is in progress (reference <strong>100087816</strong>). If the data is released,
-  Cape Town will join the atlas with the same searchable dashboards as every other municipality.
-  <span class="note">Last checked: ${today}.</span></p>
+  <h2>${bulk_h2}</h2>
+  <p>${bulk_p}
+  <span class="note">${last_checked} ${today}.</span></p>
 
 ${explainer_section}
 ${authorities_section}

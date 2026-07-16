@@ -126,18 +126,22 @@
 <body>
   <div id="map"></div>
 
-  <div id="viewsegWrap" class="ovl platter">
+  <div id="viewsegWrap" class="ovl platter" style="display:flex;gap:8px">
     <nav class="viewseg" aria-label="Map view">
-      <a href="index.html">Explore</a>
-      <a href="map.html" aria-current="page">Satellite</a>
+      <a href="index.html" data-i18n="Explore">Explore</a>
+      <a href="map.html" aria-current="page" data-i18n="Satellite">Satellite</a>
+    </nav>
+    <nav class="viewseg" aria-label="Language / Taal">
+      <a href="#" data-lang="en">EN</a>
+      <a href="#" data-lang="af">AF</a>
     </nav>
   </div>
   <div id="brand" class="ovl platter">
-    <div id="brandKick">Municipal valuations</div>
+    <div id="brandKick" data-i18n="Municipal valuations">Municipal valuations</div>
     <div id="brandTitle">Western Cape</div>
   </div>
   <div id="wardchip" class="ovl platter on" role="switch" aria-checked="true" aria-label="Toggle ward boundaries" hidden>
-    <span class="sw"></span>Wards
+    <span class="sw"></span><span data-i18n="Wards">Wards</span>
   </div>
 
   <div id="maphint" class="ovl" hidden></div>
@@ -149,11 +153,11 @@
 
   <div id="mapfail" hidden>
     <div>
-      <div style="font-size:20px;font-weight:600;color:var(--ink);margin-bottom:10px">The map couldn’t load.</div>
+      <div style="font-size:20px;font-weight:600;color:var(--ink);margin-bottom:10px" data-i18n="The map couldn’t load.">The map couldn’t load.</div>
       <div style="font-size:14px;color:var(--label2)">View the <a href="index.html">Atlas</a> instead.</div>
     </div>
   </div>
 
-  <script type="module" src="assets/map.js?v=10"></script>
+  <script type="module" src="assets/map.js?v=11"></script>
 </body>
 </html>

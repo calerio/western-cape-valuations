@@ -30,9 +30,17 @@ municipality**, with fluid zoom, hover tooltips, search, and a scroll-reveal sta
   (see `DATA_CONTRACT.md` §8).
 - **Static SEO pages** (`m/`, `d/`): one generated, crawlable page per municipality (24) and
   district (5), plus a browse index (`m/`) and an honest City of Cape Town explainer — rendered by
-  the export from git-tracked `templates/`, listed in the generated `sitemap.xml` (33 URLs), each
+  the export from git-tracked `templates/`, listed in the generated `sitemap.xml`, each
   deep-linking into the Atlas (`index.html#m/<slug>` / `#d/<slug>`). **Generated — never hand-edit**
   (`DATA_CONTRACT.md` §13).
+- **Bilingual (English + Afrikaans)**: every generated page has an `/af/` twin (e.g.
+  `af/m/stellenbosch.html`, `af/gids/hoe-waardasies-werk.html`) with hreflang alternates in a
+  66-URL sitemap; the Atlas, satellite map and 404 switch language client-side. One string catalog
+  (`data/i18n-af.json`, English strings as keys) feeds both the Python page generator and the JS
+  UI; an **EN | AF** toggle persists the choice (`localStorage`), and first-time visitors with an
+  Afrikaans device language land on Afrikaans automatically (`assets/lang.js`,
+  `DATA_CONTRACT.md` §13 rule 9). Place names localise for display only (Stad Kaapstad, Kaapse
+  Wynland, Mosselbaai…) — slugs, URLs and search keys stay English, and search matches both names.
 
 ## Data
 24 Western Cape local municipalities, ~514,000 properties, current/recent valuation cycles

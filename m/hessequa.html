@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <!-- GENERATED-PAGE SHELL — read by extract/export_pages.py (extraction repo) via string.Template.
-     Every static page under /m/ and /d/ is rendered through this shell; all output pages sit
-     exactly ONE directory below the site root, so asset/nav hrefs are hardcoded "../".
-     Placeholders: title, meta_description, canonical, og_title, og_description, jsonld, content
-     (dollar-brace syntax). Do not add literal dollar signs outside real placeholders —
-     string.Template scans comments too. -->
+     Every static page under /m/, /d/, /guide/ AND their /af/ mirrors is rendered through this
+     shell. Asset/nav hrefs are prefixed with the root placeholder ("../" for English pages,
+     "../../" for /af/ pages). Placeholders: lang, root, alternates, en_url, af_url, en_cur,
+     af_cur, nav_*, wordmark_*, footer_*, title, meta_description, canonical, og_title,
+     og_description, jsonld, content (dollar-brace syntax). Do not add literal dollar signs
+     outside real placeholders — string.Template scans comments too. -->
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -12,6 +13,9 @@
 <title>Hessequa property valuations — Western Cape Atlas</title>
 <meta name="description" content="Official municipal property valuations for Hessequa, Garden Route, Western Cape — median R465k, 21 312 properties, 2021-2026 roll. Free, searchable public data." />
 <link rel="canonical" href="https://calerio.github.io/western-cape-valuations/m/hessequa.html" />
+<link rel="alternate" hreflang="en" href="https://calerio.github.io/western-cape-valuations/m/hessequa.html" />
+<link rel="alternate" hreflang="af" href="https://calerio.github.io/western-cape-valuations/af/m/hessequa.html" />
+<link rel="alternate" hreflang="x-default" href="https://calerio.github.io/western-cape-valuations/m/hessequa.html" />
 <link rel="icon" href="../favicon.ico" sizes="any" />
 <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
 <link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png" />
@@ -114,10 +118,16 @@
 <div class="wrap">
   <div class="top">
     <a class="wordmark" href="../index.html">Western Cape <span>Property Valuation Atlas</span></a>
-    <nav class="viewseg" aria-label="Map view">
-      <a href="../index.html">Explore</a>
-      <a href="../map.html">Satellite</a>
-    </nav>
+    <div style="display:flex;align-items:center;gap:10px">
+      <nav class="viewseg" aria-label="Map view">
+        <a href="../index.html">Explore</a>
+        <a href="../map.html">Satellite</a>
+      </nav>
+      <nav class="viewseg" aria-label="Language / Taal">
+        <a href="../m/hessequa.html" data-lang="en" hreflang="en" aria-current="page">EN</a>
+        <a href="../af/m/hessequa.html" data-lang="af" hreflang="af">AF</a>
+      </nav>
+    </div>
   </div>
 <!-- Municipality page content — rendered into shell.html's content slot by export_pages.py.
      Every section placeholder is ALWAYS supplied; absent data arrives as "" (graceful
@@ -133,9 +143,7 @@
       <a class="btn primary" href="../index.html#m/hessequa">Explore interactively →</a>
       <a class="btn" href="../map.html">Satellite map</a>
     </div>
-    <p class="caveat">Values are municipal valuations as at the roll's valuation date — the
-    municipal valuer's market value, set for calculating rates. A property can sell for more or
-    less than its roll value today.</p>
+    <p class="caveat">Values are municipal valuations as at the roll's valuation date — the municipal valuer's market value, set for calculating rates. A property can sell for more or less than its roll value today.</p>
   </header>
 <h2>Key figures</h2><div class="statgrid"><div class="stile"><div class="stl">Median value</div><div class="stv">R465k</div><div class="stn">all property types</div></div><div class="stile"><div class="stl">Median home</div><div class="stv">R495k</div><div class="stn">residential only</div></div><div class="stile"><div class="stl">Average value</div><div class="stv">R1.26m</div></div><div class="stile"><div class="stl">Total roll value</div><div class="stv">R27bn</div></div><div class="stile"><div class="stl">Properties on the roll</div><div class="stv">21 312</div></div><div class="stile"><div class="stl">Median home · per m²</div><div class="stv">R847/m²</div></div><div class="stile"><div class="stl">Median home erf</div><div class="stv">438 m²</div><div class="stn">typical plot size</div></div><div class="stile"><div class="stl">Middle 50% of values</div><div class="stv">R88k – R1.52m</div><div class="stn">the central half, ignoring extremes</div></div></div>
 <h2>Standing</h2><p class="sub">Rank among the 7 municipalities in Garden Route · then all 24 in the Western Cape</p><table><tr><td>Median value</td><td class="num">#4 of 7 <span class="note">· WC #10 of 24</span></td></tr><tr><td>Total roll value</td><td class="num">#5 of 7 <span class="note">· WC #13 of 24</span></td></tr><tr><td>Home price per m²</td><td class="num">#5 of 7 <span class="note">· WC #13 of 24</span></td></tr><tr><td>Vacant-land share</td><td class="num">#2 of 7 <span class="note">· WC #8 of 24</span></td></tr><tr><td>Biggest suburb by value</td><td class="num">Riversdale Rd · R7.0bn</td></tr><tr><td>Largest category by value</td><td class="num">Residential · R13bn</td></tr></table>
@@ -162,5 +170,6 @@
     <a href="https://github.com/calerio/western-cape-valuations">GitHub</a>
   </div>
 </div>
+<script src="../assets/lang.js?v=2"></script>
 </body>
 </html>

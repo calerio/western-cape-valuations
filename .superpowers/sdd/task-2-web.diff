@@ -1,0 +1,45 @@
+diff --git a/templates/coct.html b/templates/coct.html
+index 36e898f..2a0257c 100644
+--- a/templates/coct.html
++++ b/templates/coct.html
+@@ -23,9 +23,10 @@
+   <h2>Bulk data: in progress</h2>
+   <p>A PAIA (Promotion of Access to Information Act) request for the City's full GV2022 and GV2025
+   valuation rolls is in progress (reference <strong>100087816</strong>). If the data is released,
+   Cape Town will join the atlas with the same searchable dashboards as every other municipality.
+   <span class="note">Last checked: ${today}.</span></p>
+ 
+ ${explainer_section}
+ ${authorities_section}
++${politics_section}
+ ${links_section}
+diff --git a/templates/district.html b/templates/district.html
+index b8737f0..b28f5b6 100644
+--- a/templates/district.html
++++ b/templates/district.html
+@@ -15,9 +15,10 @@
+   </header>
+ ${kpi_section}
+ ${muni_table_section}
+ ${catmix_section}
+ ${extremes_section}
+ ${quality_section}
+ ${explainer_section}
+ ${authorities_section}
++${politics_section}
+ ${links_section}
+diff --git a/templates/muni.html b/templates/muni.html
+index 1888a8b..596fc49 100644
+--- a/templates/muni.html
++++ b/templates/muni.html
+@@ -23,9 +23,10 @@ ${towns_section}
+ ${extremes_section}
+ ${rates_section}
+ ${afford_section}
+ ${growth_section}
+ ${quality_section}
+ ${source_section}
+ ${explainer_section}
+ ${authorities_section}
++${politics_section}
+ ${links_section}

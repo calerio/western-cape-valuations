@@ -317,17 +317,23 @@
   <div class="mrow">
     <button id="mback" aria-label="Go up one level" hidden>‹</button>
     <div id="mtext">
-      <div id="mkicker">Property valuations</div>
+      <div id="mkicker" data-i18n="Property valuations">Property valuations</div>
       <div id="mloc">South Africa</div>
     </div>
-    <nav class="viewseg" aria-label="Map view" style="margin-left:auto;flex:0 0 auto">
-      <a href="index.html" aria-current="page">Explore</a>
-      <a href="map.html">Satellite</a>
-    </nav>
+    <div style="margin-left:auto;flex:0 0 auto;display:flex;gap:8px">
+      <nav class="viewseg" aria-label="Map view">
+        <a href="index.html" aria-current="page" data-i18n="Explore">Explore</a>
+        <a href="map.html" data-i18n="Satellite">Satellite</a>
+      </nav>
+      <nav class="viewseg" aria-label="Language / Taal">
+        <a href="#" data-lang="en">EN</a>
+        <a href="#" data-lang="af">AF</a>
+      </nav>
+    </div>
   </div>
   <div id="msearchWrap">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-    <input id="msearch" type="search" autocomplete="off" spellcheck="false" placeholder="Search a town or municipality" />
+    <input id="msearch" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search a town or municipality" placeholder="Search a town or municipality" />
   </div>
   <div id="mresults" hidden></div>
 </header>
@@ -337,27 +343,27 @@
   <div id="grab" role="button" aria-label="Expand or collapse the panel"></div>
   <div id="pHead">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-    <input id="search" type="search" autocomplete="off" spellcheck="false" placeholder="Search a town, municipality or address" />
+    <input id="search" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search a town, municipality or address" placeholder="Search a town, municipality or address" />
     <div id="results" hidden></div>
   </div>
   <div id="pBody">
     <div id="crumbs" hidden></div>
-    <div id="panelKick">Municipal property valuations</div>
+    <div id="panelKick" data-i18n="Municipal property valuations">Municipal property valuations</div>
     <h1 id="scopeLabel">Western Cape</h1>
     <div id="scopeSub"></div>
-    <div id="hint0"><span style="display:inline-block;animation:ohintpulse 1.8s infinite">◉</span>Select the Western Cape on the map to begin</div>
+    <div id="hint0"><span style="display:inline-block;animation:ohintpulse 1.8s infinite">◉</span><span data-i18n="Select the Western Cape on the map to begin">Select the Western Cape on the map to begin</span></div>
 
     <div id="dash" hidden>
       <div class="kpis">
-        <div><div class="kpilab">Median valuation</div><div id="statMedian" class="kpinum"></div></div>
-        <div><div class="kpilab">Average valuation</div><div id="statAvg" class="kpinum"></div></div>
-        <div><div class="kpilab">Total roll value</div><div id="statTotal" class="kpinum"></div></div>
-        <div><div class="kpilab">Registered parcels</div><div id="statParcels" class="kpinum"></div></div>
+        <div><div class="kpilab" data-i18n="Median valuation">Median valuation</div><div id="statMedian" class="kpinum"></div></div>
+        <div><div class="kpilab" data-i18n="Average valuation">Average valuation</div><div id="statAvg" class="kpinum"></div></div>
+        <div><div class="kpilab" data-i18n="Total roll value">Total roll value</div><div id="statTotal" class="kpinum"></div></div>
+        <div><div class="kpilab" data-i18n="Registered parcels">Registered parcels</div><div id="statParcels" class="kpinum"></div></div>
       </div>
 
       <!-- price distribution -->
       <div class="dsec">
-        <h3 class="dh">Price distribution</h3>
+        <h3 class="dh" data-i18n="Price distribution">Price distribution</h3>
         <div id="distChart"></div>
       </div>
 
@@ -368,21 +374,21 @@
       </div>
 
       <!-- value distribution (M5) -->
-      <div class="dsec" id="secValueDist"><h3 class="dh">Value distribution</h3><div id="secValueDistBody"></div></div>
+      <div class="dsec" id="secValueDist"><h3 class="dh" data-i18n="Value distribution">Value distribution</h3><div id="secValueDistBody"></div></div>
       <!-- composition: category medians, vacant land, outliers (M5) -->
-      <div class="dsec" id="secComposition"><h3 class="dh">Composition</h3><div id="secCompositionBody"></div></div>
+      <div class="dsec" id="secComposition"><h3 class="dh" data-i18n="Composition">Composition</h3><div id="secCompositionBody"></div></div>
       <!-- standing: rank within district (M5) -->
-      <div class="dsec" id="secStanding"><h3 class="dh">Standing</h3><div id="secStandingBody"></div></div>
+      <div class="dsec" id="secStanding"><h3 class="dh" data-i18n="Standing">Standing</h3><div id="secStandingBody"></div></div>
       <!-- change over time (M5) — hidden until a second roll exists -->
-      <div class="dsec" id="secGrowth"><h3 class="dh">Change since the previous roll</h3><div id="secGrowthBody"></div></div>
+      <div class="dsec" id="secGrowth"><h3 class="dh" data-i18n="Change since the previous roll">Change since the previous roll</h3><div id="secGrowthBody"></div></div>
       <!-- affordability estimate (M5) -->
-      <div class="dsec" id="secAfford"><h3 class="dh">Affordability estimate</h3><div id="secAffordBody"></div></div>
+      <div class="dsec" id="secAfford"><h3 class="dh" data-i18n="Affordability estimate">Affordability estimate</h3><div id="secAffordBody"></div></div>
       <!-- data quality: gaps in the published roll (counts from the export's dq_* fields) -->
-      <div class="dsec" id="secQuality"><h3 class="dh">Data quality</h3><div id="secQualityBody"></div></div>
+      <div class="dsec" id="secQuality"><h3 class="dh" data-i18n="Data quality">Data quality</h3><div id="secQualityBody"></div></div>
       <!-- who sets & governs these values: valuer + authorities/role-players (from authorities.py) -->
-      <div class="dsec" id="secAuthorities"><h3 class="dh">Who sets &amp; governs these values</h3><div id="secAuthoritiesBody"></div></div>
+      <div class="dsec" id="secAuthorities"><h3 class="dh" data-i18n="Who sets & governs these values">Who sets &amp; governs these values</h3><div id="secAuthoritiesBody"></div></div>
       <!-- who represents this municipality: governing party + seat bar (from politics.py); links out to the full council/ward list on the muni page -->
-      <div class="dsec" id="secPolitics"><h3 class="dh">Who represents this municipality</h3><div id="secPoliticsBody"></div></div>
+      <div class="dsec" id="secPolitics"><h3 class="dh" data-i18n="Who represents this municipality">Who represents this municipality</h3><div id="secPoliticsBody"></div></div>
 
       <!-- ranked children -->
       <div class="dsec">
@@ -393,14 +399,14 @@
       <!-- extreme properties -->
       <div class="dsec" style="display:flex;flex-direction:column;gap:16px">
         <div id="hiCard" class="propcard" role="button" tabindex="0" aria-label="View the most valuable properties" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:18px 20px">
-          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">Most valuable property</div>
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px" data-i18n="Most valuable property">Most valuable property</div>
           <div id="hiAddr" style="font-weight:600;letter-spacing:-.01em;font-size:18px;line-height:1.15;margin-bottom:3px"></div>
           <div id="hiSub" style="font-size:12px;color:var(--label2);margin-bottom:10px"></div>
           <div id="hiVal" style="font-weight:800;letter-spacing:-.01em;font-size:23px;font-variant-numeric:tabular-nums"></div>
           <div id="hiMeta" style="font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
         </div>
         <div id="loCard" class="propcard" role="button" tabindex="0" aria-label="View the most affordable homes" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:18px 20px">
-          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ok);margin-bottom:10px">Most affordable home</div>
+          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ok);margin-bottom:10px" data-i18n="Most affordable home">Most affordable home</div>
           <div id="loAddr" style="font-weight:600;letter-spacing:-.01em;font-size:18px;line-height:1.15;margin-bottom:3px"></div>
           <div id="loSub" style="font-size:12px;color:var(--label2);margin-bottom:10px"></div>
           <div id="loVal" style="font-weight:800;letter-spacing:-.01em;font-size:23px;font-variant-numeric:tabular-nums"></div>
@@ -420,17 +426,21 @@
 </aside>
 
 <!-- ===== floating chrome ===== -->
-<div id="viewsegWrap" class="desk platter">
+<div id="viewsegWrap" class="desk platter" style="display:flex;gap:8px">
   <nav class="viewseg" aria-label="Map view">
-    <a href="index.html" aria-current="page">Explore</a>
-    <a href="map.html">Satellite</a>
+    <a href="index.html" aria-current="page" data-i18n="Explore">Explore</a>
+    <a href="map.html" data-i18n="Satellite">Satellite</a>
+  </nav>
+  <nav class="viewseg" aria-label="Language / Taal">
+    <a href="#" data-lang="en">EN</a>
+    <a href="#" data-lang="af">AF</a>
   </nav>
 </div>
 
 <!-- Reset: back to the full-map overview. Fades in once drilled in (JS toggles .on). -->
 <button id="resetBtn" class="desk platter" aria-label="Reset the map to the full Western Cape view" title="Back to the full map">
   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4.5V8H7.5"/></svg>
-  <span>Reset</span>
+  <span data-i18n="Reset">Reset</span>
 </button>
 
 <div id="legendBox" class="platter">
@@ -443,7 +453,7 @@
 
 <div id="loading">
   <div style="text-align:center">
-    <div id="loadingMsg">Loading the atlas…</div>
+    <div id="loadingMsg" data-i18n="Loading the atlas…">Loading the atlas…</div>
     <div id="loadingBar"><div></div></div>
   </div>
 </div>
@@ -487,6 +497,6 @@
   </div>
 </div>
 
-<script type="module" src="assets/atlas.js?v=24"></script>
+<script type="module" src="assets/atlas.js?v=25"></script>
 </body>
 </html>

@@ -7,11 +7,10 @@
     <h1>${h1}</h1>
     <p class="intro">${intro}</p>
     <div class="linkrow">
-      <a class="btn primary" href="../index.html#d/${slug}">Explore interactively →</a>
-      <a class="btn" href="../map.html">Satellite map</a>
+      <a class="btn primary" href="${root}index.html#d/${slug}">${explore_cta} →</a>
+      <a class="btn" href="${root}map.html">${satmap_cta}</a>
     </div>
-    <p class="caveat">Values are municipal valuations as at each roll's valuation date — set for
-    rates, not today's sale prices. Municipalities value on different cycles; each page states its own.</p>
+    <p class="caveat">${caveat}</p>
   </header>
 ${kpi_section}
 ${muni_table_section}

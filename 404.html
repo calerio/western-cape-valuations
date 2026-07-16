@@ -33,13 +33,31 @@
 <body>
 <div class="card">
   <div class="kick">404</div>
-  <h1>Page not found</h1>
-  <p>That address isn't on the roll. Try the atlas, browse the municipalities, or open the satellite map.</p>
+  <h1 id="h">Page not found</h1>
+  <p id="p">That address isn't on the roll. Try the atlas, browse the municipalities, or open the satellite map.</p>
   <div class="linkrow">
-    <a class="btn primary" href="index.html">Interactive atlas</a>
-    <a class="btn" href="m/index.html">All municipalities</a>
-    <a class="btn" href="map.html">Satellite map</a>
+    <a class="btn primary" href="/western-cape-valuations/index.html" id="l1">Interactive atlas</a>
+    <a class="btn" href="/western-cape-valuations/m/index.html" id="l2">All municipalities</a>
+    <a class="btn" href="/western-cape-valuations/map.html" id="l3">Satellite map</a>
   </div>
 </div>
+<script>
+// Bilingual 404 — inline (GitHub Pages serves this file at ANY unknown path, so it must not
+// depend on relative asset URLs). Same language resolution as assets/lang.js.
+(function () {
+  var lang; try { lang = localStorage.getItem("wcv-lang"); } catch (e) {}
+  if (lang !== "af" && lang !== "en")
+    lang = ((navigator.language || "").toLowerCase().indexOf("af") === 0) ? "af" : "en";
+  if (lang !== "af") return;
+  document.documentElement.lang = "af";
+  document.title = "Bladsy nie gevind nie — Wes-Kaapse Eiendomswaardasie-atlas";
+  document.getElementById("h").textContent = "Bladsy nie gevind nie";
+  document.getElementById("p").textContent = "Daardie adres is nie op die rol nie. Probeer die atlas, blaai deur die munisipaliteite, of maak die satellietkaart oop.";
+  document.getElementById("l1").textContent = "Interaktiewe atlas";
+  document.getElementById("l2").textContent = "Alle munisipaliteite";
+  document.getElementById("l2").href = "/western-cape-valuations/af/m/index.html";
+  document.getElementById("l3").textContent = "Satellietkaart";
+})();
+</script>
 </body>
 </html>

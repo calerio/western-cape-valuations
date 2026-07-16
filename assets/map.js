@@ -221,12 +221,12 @@ function addParcels(map) {
 async function loadParcels(map) {
   if (map.getZoom() < CADASTRE.minzoom) {
     map.getSource('parcels').setData(EMPTY_FC);
-    setHint('Zoom in to see erven');
+    setHint(t('Zoom in to see erven'));
     return;
   }
   if (parcelAbort) parcelAbort.abort();
   const ctl = (parcelAbort = new AbortController());
-  setHint('Loading erven…');
+  setHint(t('Loading erven…'));
   const b = map.getBounds();
   const params = new URLSearchParams({
     geometry: JSON.stringify({ xmin: b.getWest(), ymin: b.getSouth(), xmax: b.getEast(), ymax: b.getNorth(),
@@ -240,12 +240,12 @@ async function loadParcels(map) {
     if (ctl.signal.aborted) return;
     if (json.error) throw new Error(json.error.message || 'cadastre error');
     map.getSource('parcels').setData(esriToGeoJSON(json));
-    setHint(json.exceededTransferLimit ? 'Too many erven for one view — zoom in'
-                                       : 'Click an erf for its valuation');
+    setHint(json.exceededTransferLimit ? t('Too many erven for one view — zoom in')
+                                       : t('Click an erf for its valuation'));
   } catch (e) {
     if (e.name === 'AbortError') return;
     console.warn('parcel fetch failed', e);
-    setHint('Erf boundaries unavailable right now');   // imagery keeps working — degrade quietly
+    setHint(t('Erf boundaries unavailable right now'));   // imagery keeps working — degrade quietly
   }
 }
 
@@ -366,6 +366,31 @@ async function lookupErf(tag, town) {
 }
 
 const $ = id => document.getElementById(id);
+
+/* ---- i18n (same catalog + resolution as atlas.js; see data/i18n-af.json) ---- */
+const LANG = (() => { try { const v = localStorage.getItem('wcv-lang'); if (v === 'af' || v === 'en') return v; } catch (_) {}
+  return (navigator.language || '').toLowerCase().startsWith('af') ? 'af' : 'en'; })();
+let I18N = null;
+const t = str => (I18N && I18N.strings[str]) || str;
+const tn = n => (I18N && I18N.names[n]) || n;
+const tf = (str, kw) => t(str).replace(/\{(\w+)\}/g, (_, k) => kw[k]);
+async function initI18n() {
+  if (LANG !== 'af') return;
+  try { I18N = await (await fetch('data/i18n-af.json')).json(); } catch (_) { return; }
+  document.documentElement.lang = 'af';
+  document.title = t('Western Cape Property Valuation Atlas — Satellite map');
+  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $('brandTitle').textContent = tn('Western Cape');
+}
+function wireLangToggle() {
+  document.querySelectorAll('[data-lang]').forEach(a => {
+    if (a.dataset.lang === LANG) a.setAttribute('aria-current', 'page');
+    a.addEventListener('click', e => { e.preventDefault();
+      try { localStorage.setItem('wcv-lang', a.dataset.lang); } catch (_) {}
+      if (a.dataset.lang !== LANG) location.reload();
+    });
+  });
+}
 function setHint(text) { const h = $('maphint'); if (h) { h.textContent = text; h.hidden = !text; } }
 function openPanel() { $('ppanel').hidden = false; }
 function closePanel() {
@@ -380,27 +405,27 @@ function statRow(k, v) {
 
 function ratesNote(rr) {
   const cents = (rr.rate * 100).toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
-  return `${esc(cents)}c/R${rr.reduction ? ' on value above ' + RZA(rr.reduction) : ''}` +
-         (rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">Official tariff ↗</a>` : '');
+  return `${esc(cents)}c/R${rr.reduction ? tf(' on value above {v}', { v: RZA(rr.reduction) }) : ''}` +
+         (rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">${t('Official tariff')} ↗</a>` : '');
 }
 
 function renderDetail(r, props, backList, backSub) {
   const ppm = r.extent && r.value ? 'R' + N(Math.round(r.value / r.extent)) + ' / m²' : '—';
   const rr = computeRates(RATESDATA, r.muni, r.category, r.tenure, r.value);
   $('pbody').innerHTML =
-    (backList ? `<div id="pback" class="pLink">← All ${backList.length} valuations on this erf</div>` : '') +
-    `<div class="pKick">${esc([clWs(r.suburb), r.muni].filter(Boolean).join(' · '))}</div>` +
-    `<div class="pAddr">${esc(clWs(r.address) || 'Unnamed erf')}</div>` +
+    (backList ? `<div id="pback" class="pLink">${tf('← All {n} valuations on this erf', { n: backList.length })}</div>` : '') +
+    `<div class="pKick">${esc([clWs(r.suburb), tn(r.muni)].filter(Boolean).join(' · '))}</div>` +
+    `<div class="pAddr">${esc(clWs(r.address) || t('Unnamed erf'))}</div>` +
     `<div class="pVal">${R(r.value)}</div>` +
-    `<div class="pSub">municipal market value</div>` +
-    statRow('Erf / unit', r.erf || '—') +
-    (props._ward != null ? statRow('Ward', props._ward) : '') +
-    statRow('Category', r.category || '—') +
-    statRow('Extent', r.extent ? N(Math.round(r.extent)) + ' m²' : '—') +
-    statRow('Value per m²', ppm) +
-    (rr ? statRow(`Rates / year (${rr.year})`, RZA(rr.annual)) +
-          statRow('Rates / month', RZA(rr.monthly)) : '') +
-    `<div class="pNote">${rr ? ratesNote(rr) + ' · ' : ''}Parcel ${esc(props.PRCL_KEY || '')}. Roll valuation as at the municipality's valuation date, set for rates — not today's sale price.</div>`;
+    `<div class="pSub">${t('municipal market value')}</div>` +
+    statRow(t('Erf / unit'), r.erf || '—') +
+    (props._ward != null ? statRow(t('Ward'), props._ward) : '') +
+    statRow(t('Category'), r.category || '—') +
+    statRow(t('Extent'), r.extent ? N(Math.round(r.extent)) + ' m²' : '—') +
+    statRow(t('Value per m²'), ppm) +
+    (rr ? statRow(tf('Rates / year ({year})', { year: rr.year }), RZA(rr.annual)) +
+          statRow(t('Rates / month'), RZA(rr.monthly)) : '') +
+    `<div class="pNote">${rr ? ratesNote(rr) + ' · ' : ''}${tf("Parcel {key}. Roll valuation as at the municipality's valuation date, set for rates — not today's sale price.", { key: esc(props.PRCL_KEY || '') })}</div>`;
   if (backList) $('pback').onclick = () => renderList(backList, props, backSub);
   openPanel();
   maybeInjectChooser();
@@ -410,12 +435,12 @@ function renderList(rows, props, subText) {
   $('pbody').innerHTML =
     `<div class="pKick">${esc([props.Town_name, props._ward != null ? 'Ward ' + props._ward : null]
       .filter(Boolean).join(' · '))}</div>` +
-    `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')} — ${rows.length} valuations</div>` +
-    `<div class="pSub">${esc(subText || 'portions or sectional-title units share this parcel')}</div>` +
+    `<div class="pAddr">${tf('Erf {erf} — {n} valuations', { erf: esc(props.TAG_VALUE || '?'), n: rows.length })}</div>` +
+    `<div class="pSub">${esc(subText || t('portions or sectional-title units share this parcel'))}</div>` +
     rows.slice(0, 40).map((r, i) =>
       `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(clWs(r.address) || r.erf || 'Unnamed')}</span>` +
       `<span class="v">${R(r.value)}</span></div>`).join('') +
-    (rows.length > 40 ? `<div class="pNote">Showing the 40 highest of ${rows.length}.</div>` : '');
+    (rows.length > 40 ? `<div class="pNote">${tf('Showing the 40 highest of {n}.', { n: rows.length })}</div>` : '');
   const sub = subText;
   $('pbody').querySelectorAll('.pPick').forEach(el =>
     el.addEventListener('click', () => renderDetail(rows[+el.dataset.i], props, rows, sub)));
@@ -430,16 +455,16 @@ function maybeInjectChooser() {
   const body = $('pbody'); if (!body) return;
   const bar = document.createElement('div');
   bar.className = 'pLink';
-  bar.textContent = `⇅ ${parcelCands.length} parcels overlap here — choose`;
+  bar.textContent = tf('⇅ {n} parcels overlap here — choose', { n: parcelCands.length });
   bar.onclick = renderParcelChooser;
   body.insertBefore(bar, body.firstChild);
 }
 
 function renderParcelChooser() {
   $('pbody').innerHTML =
-    `<div class="pKick">Overlapping parcels</div>` +
-    `<div class="pAddr">${parcelCands.length} parcels at this point</div>` +
-    `<div class="pSub">smallest (most specific) first — pick the one you mean</div>` +
+    `<div class="pKick">${t('Overlapping parcels')}</div>` +
+    `<div class="pAddr">${tf('{n} parcels at this point', { n: parcelCands.length })}</div>` +
+    `<div class="pSub">${t('smallest (most specific) first — pick the one you mean')}</div>` +
     parcelCands.map((f, i) =>
       `<div class="pRow pPick" data-i="${i}"><span class="k">Erf ${esc(f.properties.TAG_VALUE || '?')}` +
       `${f.properties.Town_name ? ' · ' + esc(clWs(f.properties.Town_name)) : ''}</span>` +
@@ -453,14 +478,14 @@ async function showValuation(props) {
   $('pbody').innerHTML =
     `<div class="pKick">${esc(props.Town_name || '')}</div>` +
     `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-    `<div class="pSub">Looking up valuation…</div>`;
+    `<div class="pSub">${t('Looking up valuation…')}</div>`;
   openPanel();
   maybeInjectChooser();          // let the user switch parcels immediately, even while loading
   let res;
   try { res = await lookupErf(props.TAG_VALUE, props.Town_name); }
   catch (e) {
     console.warn('valuation lookup failed', e);
-    $('pbody').innerHTML += `<div class="pNote">The valuation database is still loading — try the parcel again in a moment.</div>`;
+    $('pbody').innerHTML += `<div class="pNote">${t('The valuation database is still loading — try the parcel again in a moment.')}</div>`;
     resetDB();
     maybeInjectChooser();
     return;
@@ -469,17 +494,17 @@ async function showValuation(props) {
     $('pbody').innerHTML =
       `<div class="pKick">${esc(props.Town_name || '')}</div>` +
       `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-      `<div class="pVal" style="font-size:22px">No valuation found</div>` +
-      `<div class="pNote">Not in the extracted rolls — possibly state land, a supplementary roll, or another town name.${res.stale ? ' The search index is one update behind.' : ''}</div>`;
+      `<div class="pVal" style="font-size:22px">${t('No valuation found')}</div>` +
+      `<div class="pNote">${t('Not in the extracted rolls — possibly state land, a supplementary roll, or another town name.')}${res.stale ? t(' The search index is one update behind.') : ''}</div>`;
     maybeInjectChooser();
     return;
   }
   const sure = res.best >= 4;    // suburb-level match = genuinely this parcel's rows
   const note =
-    res.best === 0 ? `<div class="pNote">⚠ No town match — same erf number in several municipalities; verify the address.</div>` :
-    !sure ? `<div class="pNote">⚠ Same erf number, other townships — may not be this parcel.</div>` : '';
-  const listSub = sure ? 'portions or sectional-title units share this parcel'
-                       : 'same erf number, other townships — may not be this parcel';
+    res.best === 0 ? `<div class="pNote">${t('⚠ No town match — same erf number in several municipalities; verify the address.')}</div>` :
+    !sure ? `<div class="pNote">${t('⚠ Same erf number, other townships — may not be this parcel.')}</div>` : '';
+  const listSub = sure ? t('portions or sectional-title units share this parcel')
+                       : t('same erf number, other townships — may not be this parcel');
   if (res.rows.length === 1) { renderDetail(res.rows[0], props, null); }
   else { renderList(res.rows, props, listSub); }
   if (note) $('pbody').insertAdjacentHTML('beforeend', note);
@@ -516,6 +541,8 @@ async function ensureDB() {
 function resetDB() { dbw = null; dbwPromise = null; }
 
 function boot() {
+  wireLangToggle();
+  initI18n();
   if (!maplibregl) {
     document.getElementById('mapfail')?.removeAttribute('hidden');
     return;

@@ -9,12 +9,10 @@
     <p class="intro">${intro}</p>
     ${provenance_note}
     <div class="linkrow">
-      <a class="btn primary" href="../index.html#m/${slug}">Explore interactively →</a>
-      <a class="btn" href="../map.html">Satellite map</a>
+      <a class="btn primary" href="${root}index.html#m/${slug}">${explore_cta} →</a>
+      <a class="btn" href="${root}map.html">${satmap_cta}</a>
     </div>
-    <p class="caveat">Values are municipal valuations as at the roll's valuation date — the
-    municipal valuer's market value, set for calculating rates. A property can sell for more or
-    less than its roll value today.</p>
+    <p class="caveat">${caveat}</p>
   </header>
 ${kpi_section}
 ${standing_section}

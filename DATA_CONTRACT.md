@@ -383,8 +383,8 @@ per-municipality queries (the SPA alone exposes only 2 URLs):
   objections), grounded in the MPRA. Its own SEO URL; rendered through `shell.html` (so it sits one
   level deep in `guide/`, per rule 5). Muni/district/CoCT pages and the Atlas panel link to it via
   an **"How valuations work →"** line (`explainer_link_section()` / `renderAuthorities`).
-- **`sitemap.xml`** — now **generated** by the export (34 URLs, `lastmod` = export run date).
-  It is no longer hand-maintained.
+- **`sitemap.xml`** — now **generated** by the export (66 URLs since the Afrikaans mirror —
+  see rule 9; `lastmod` = export run date). It is no longer hand-maintained.
 - **`templates/*.html`** (this repo, git-tracked) — the page skeletons, rendered by
   `extract/export_pages.py` (extraction repo) via stdlib `string.Template`. Every optional section
   placeholder is always substituted ("" when data is absent). **No literal `$` may appear in a
@@ -417,9 +417,37 @@ Rules:
    `history.replaceState` only — never `pushState`). The static pages' "Explore interactively"
    buttons rely on it; breaking the hash format orphans those links. Unknown slugs fall back to
    the province view. `#m/city-of-cape-town` intentionally renders the existing no-data state.
-5. All generated pages sit exactly **one directory below the site root** — `templates/shell.html`
-   hardcodes `../` asset/nav paths on that assumption.
+5. All generated pages sit exactly **one directory below their language tree's root** — English
+   under `m/`, `d/`, `guide/`; Afrikaans under `af/m/`, `af/d/`, `af/gids/`. `templates/shell.html`
+   prefixes asset/nav paths with the `${root}` placeholder (`../` for English pages, `../../` for
+   `/af/` pages); links that should stay inside the language tree (e.g. the footer's browse link)
+   remain literal `../m/index.html`.
 6. `index.html`'s `#siteFooter` is the static (JS-free) crawl path into `m/index.html` — do not
    remove it; sitemaps alone are a weaker discovery signal than links.
 7. `404.html` is hand-written (NOT generated). GitHub Pages serves it automatically on the live
    domain; `python3 -m http.server` does not — that difference is not a bug.
+9. **Language variant (`/af/`, since 2026-07-16)** — the site is bilingual (English + Afrikaans,
+   informal *jy/jou* register):
+   - **The `/af/` tree is generated** — every generated English page has an Afrikaans twin
+     (`af/m/<slug>.html`, `af/m/index.html`, `af/d/<slug>.html`,
+     `af/gids/hoe-waardasies-werk.html`). Same golden rule: never hand-edit; re-run
+     `python3 extract/export_site.py`.
+   - **One string catalog:** `data/i18n-af.json` (this repo). gettext-style — **English source
+     strings are the keys**; `export_pages.t()/tn()/T()` (Python) and `atlas.js`/`map.js`
+     `t()/tn()/tf()` (JS) read the SAME file, so panel and static pages stay in lockstep. A key
+     missing from the catalog falls back to English (graceful degradation, never broken). When
+     adding/changing any user-facing English string, add its `af` entry to the catalog.
+   - **Slugs, URLs, hashes, and SQL filters stay English.** Only *display* names translate, via
+     the catalog's `names` map (e.g. City of Cape Town → Stad Kaapstad, Cape Winelands → Kaapse
+     Wynland, Mossel Bay → Mosselbaai). The Atlas search index carries both names as aliases.
+   - **Language selection:** `localStorage['wcv-lang']` (set by the EN|AF toggle, persistent)
+     → else `navigator.language` starting with `af` → else English. `assets/lang.js` (loaded by
+     every generated page) redirects a static page to its twin when the resolved language differs,
+     using the page's own toggle/hreflang URLs. The Atlas SPA, `map.html` and `404.html` are
+     **single-URL** and switch strings client-side (no `/af/index.html` exists).
+   - **SEO:** every generated page carries `<link rel="alternate" hreflang="en|af|x-default">`;
+     `sitemap.xml` lists both languages (66 URLs) with `xhtml:link` alternates; single-URL pages
+     (`/`, `map.html`) are listed once with no alternates. `<html lang>` is set per page/state.
+   - **Data prose:** `authorities.py` objection instructions and other authored English prose are
+     translated by exact-string lookup in the catalog — new authored prose without a catalog entry
+     simply renders in English on the `/af/` pages until translated.
