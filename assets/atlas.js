@@ -50,10 +50,15 @@ function wireLangToggle() {
   });
 }
 
+/* Language-aware compact Rand: Afrikaans large-number words differ from English
+ * (10⁹ = miljard, 10¹² = biljoen — NOT "billion"), so af uses mn./mjd./bilj.
+ * suffixes and the Afrikaans decimal comma. Mirrored in map.js + export_pages.py. */
+const AF_R = LANG === "af";
+const dsep = s => AF_R ? s.replace(".", ",") : s;
 const R = v => { v = +v; if (!isFinite(v)) return "—";
-  if (v >= 1e12) return "R" + (v / 1e12).toFixed(2) + "tn";
-  if (v >= 1e9) return "R" + (v / 1e9).toFixed(v >= 1e10 ? 0 : 1) + "bn";
-  if (v >= 1e6) return "R" + (v / 1e6).toFixed(2) + "m";
+  if (v >= 1e12) return "R" + dsep((v / 1e12).toFixed(2)) + (AF_R ? " bilj." : "tn");
+  if (v >= 1e9) return "R" + dsep((v / 1e9).toFixed(v >= 1e10 ? 0 : 1)) + (AF_R ? " mjd." : "bn");
+  if (v >= 1e6) return "R" + dsep((v / 1e6).toFixed(2)) + (AF_R ? " mn." : "m");
   if (v >= 1e3) return "R" + Math.round(v / 1e3) + "k";
   return "R" + Math.round(v); };
 const N = v => v == null ? "—" : (+v).toLocaleString("en-ZA").replace(/,/g, " ");

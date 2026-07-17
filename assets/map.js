@@ -305,8 +305,10 @@ async function pickParcel(f) {
 const N = v => Number(v).toLocaleString('en-ZA');
 const R = v => {
   if (v == null) return '—';
-  if (v >= 1e9) return 'R' + (v / 1e9).toFixed(2) + ' bn';
-  if (v >= 1e6) return 'R' + (v / 1e6).toFixed(2) + ' m';
+  // Afrikaans large-number words differ (10⁹ = miljard, not "billion") — see atlas.js R()
+  const af = LANG === 'af', d = s => af ? s.replace('.', ',') : s;
+  if (v >= 1e9) return 'R' + d((v / 1e9).toFixed(2)) + (af ? ' mjd.' : ' bn');
+  if (v >= 1e6) return 'R' + d((v / 1e6).toFixed(2)) + (af ? ' mn.' : ' m');
   return 'R' + N(Math.round(v));
 };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
