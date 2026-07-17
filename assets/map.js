@@ -403,10 +403,14 @@ async function lookupSchemes(cands) {
   for (const a of cands) {
     const name = clWs(a.ST_SCHM_NAME).toUpperCase();
     const exact = a.ST_SCHM_NO && a.ST_SCHM_YEAR ? `${name} SS${a.ST_SCHM_NO}/${a.ST_SCHM_YEAR}` : null;
-    const rows = await db.db.query(
+    const q = w => db.db.query(
       'SELECT muni,suburb,erf,address,extent,dwext,value,tenure,category,scheme FROM prop ' +
-      (exact ? 'WHERE scheme=? ' : "WHERE scheme LIKE ? ") +
-      'AND value>0 ORDER BY value DESC LIMIT 300', [exact || name + '%']);
+      `WHERE scheme ${w} AND value>0 ORDER BY value DESC LIMIT 300`,
+      [w === '=?' ? exact : name + '%']);
+    // the layer's scheme number is sometimes the PLAN number, not the roll's SS ref —
+    // when the exact ref finds nothing, retry by scheme name
+    let rows = exact ? await q('=?') : [];
+    if (!rows.length) rows = await q('LIKE ?');
     for (const r of rows) {
       const key = r.scheme || name;
       if (!seen.has(key)) { seen.add(key); groups.push({ scheme: key, rows: [] }); }
