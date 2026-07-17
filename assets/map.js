@@ -257,7 +257,7 @@ let selId = null;
 // subdivisions), so one click can land on several. We auto-pick the SMALLEST (most specific): an
 // individual erf beats the giant reservoir/complex sitting on top of it — and offer a chooser to
 // switch. See docs/superpowers/specs/2026-07-03-performance-and-stats-design.md.
-let parcelCands = [], parcelWard = null;
+let parcelCands = [], parcelWard = null, lastClickLL = null;
 
 // Approx footprint area (m²) of a parcel's outer ring (planar, scaled by mean latitude) — ranks
 // overlapping parcels smallest-first and labels them in the chooser. Relative order is what matters.
@@ -287,6 +287,7 @@ function onParcelClick(map) {
     }
     parcelCands.sort((a, b) => parcelAreaM2(a.geometry) - parcelAreaM2(b.geometry));
     parcelWard = wardAt(map, e.point);
+    lastClickLL = e.lngLat;              // for the CoCT sectional-scheme fallback
     pickParcel(parcelCands[0]);          // the smallest, most specific erf
   });
 }
@@ -365,6 +366,87 @@ async function lookupErf(tag, town) {
     const exact = rows.filter(r => parseInt((String(r.erf || '').match(/\d+/) || ['-1'])[0], 10) === nval);
     return { ...rankRows(exact, town), stale: true };
   }
+}
+
+/* ---- City of Cape Town sectional-scheme fallback ----------------------------------
+ * The CoCT sectional roll carries NO erf numbers (units are "SCHEME UNIT n" under a
+ * scheme ref like SS513/2006), so the erf join above can't find them — a click on a
+ * sectional building (e.g. Portside) matched nothing, or same-numbered erven in other
+ * towns. The City publishes its sectional-scheme polygons; when the erf lookup is weak
+ * we ask that layer what scheme covers the click, then look its units up by the
+ * `scheme` column in search.db. Metro-only by nature (the layer covers only CoCT). */
+const ST_SCHEME_URL = 'https://citymaps.capetown.gov.za/agsext/rest/services/Search_Layers/SL_WGDB_ST_SCHM/MapServer/0/query';
+const COCT_BBOX = { w: 18.2, e: 19.1, s: -34.4, n: -33.4 };   // rough metro extent — cheap gate
+
+async function schemesAtClick() {
+  const ll = lastClickLL;
+  if (!ll || ll.lng < COCT_BBOX.w || ll.lng > COCT_BBOX.e || ll.lat < COCT_BBOX.s || ll.lat > COCT_BBOX.n) return [];
+  const p = new URLSearchParams({
+    geometry: JSON.stringify({ x: ll.lng, y: ll.lat }), geometryType: 'esriGeometryPoint',
+    inSR: '4326', spatialRel: 'esriSpatialRelIntersects',
+    outFields: 'ST_SCHM_NAME,ST_SCHM_NO,ST_SCHM_YEAR', returnGeometry: 'false', f: 'json',
+  });
+  const ctl = new AbortController(); const tid = setTimeout(() => ctl.abort(), 6000);
+  try {
+    const json = await (await fetch(`${ST_SCHEME_URL}?${p}`, { signal: ctl.signal })).json();
+    return (json.features || []).map(f => f.attributes).filter(a => a.ST_SCHM_NAME);
+  } catch (e) { console.warn('scheme layer query failed', e); return []; }
+  finally { clearTimeout(tid); }
+}
+
+// Units of the scheme(s) under the click, grouped per distinct scheme ref. An exact
+// "NAME SSno/year" match is used when the layer gives the number; otherwise name-prefix
+// (which can span two same-named schemes — hence the grouping, so the user picks).
+async function lookupSchemes(cands) {
+  const db = await ensureDB();
+  const seen = new Set(), groups = [];
+  for (const a of cands) {
+    const name = clWs(a.ST_SCHM_NAME).toUpperCase();
+    const exact = a.ST_SCHM_NO && a.ST_SCHM_YEAR ? `${name} SS${a.ST_SCHM_NO}/${a.ST_SCHM_YEAR}` : null;
+    const rows = await db.db.query(
+      'SELECT muni,suburb,erf,address,extent,dwext,value,tenure,category,scheme FROM prop ' +
+      (exact ? 'WHERE scheme=? ' : "WHERE scheme LIKE ? ") +
+      'AND value>0 ORDER BY value DESC LIMIT 300', [exact || name + '%']);
+    for (const r of rows) {
+      const key = r.scheme || name;
+      if (!seen.has(key)) { seen.add(key); groups.push({ scheme: key, rows: [] }); }
+      groups.find(g => g.scheme === key).rows.push(r);
+    }
+  }
+  return groups;
+}
+
+function renderSchemeList(g, props) {
+  const total = g.rows.reduce((s, r) => s + (r.value || 0), 0);
+  $('pbody').innerHTML =
+    `<div class="pKick">${esc([props.Town_name, props._ward != null ? 'Ward ' + props._ward : null]
+      .filter(Boolean).join(' · '))}</div>` +
+    `<div class="pAddr">${esc(clWs(g.scheme))}</div>` +
+    `<div class="pVal">${R(total)}</div>` +
+    `<div class="pSub">${tf('sectional-title scheme — {n} units', { n: g.rows.length })}</div>` +
+    g.rows.slice(0, 40).map((r, i) =>
+      `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(clWs(r.address) || '—')}</span>` +
+      `<span class="v">${R(r.value)}</span></div>`).join('') +
+    (g.rows.length > 40 ? `<div class="pNote">${tf('Showing the 40 highest of {n}.', { n: g.rows.length })}</div>` : '');
+  const sub = t('sectional-title units of this scheme');
+  $('pbody').querySelectorAll('.pPick').forEach(el =>
+    el.addEventListener('click', () => renderDetail(g.rows[+el.dataset.i], props, g.rows, sub)));
+  openPanel();
+  maybeInjectChooser();
+}
+
+function renderSchemeChooser(groups, props) {
+  $('pbody').innerHTML =
+    `<div class="pKick">${esc(props.Town_name || '')}</div>` +
+    `<div class="pAddr">${tf('{n} schemes match here', { n: groups.length })}</div>` +
+    `<div class="pSub">${t('same scheme name registered more than once — pick the one you mean')}</div>` +
+    groups.map((g, i) =>
+      `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(clWs(g.scheme))}</span>` +
+      `<span class="v">${tf('{n} units', { n: g.rows.length })}</span></div>`).join('');
+  $('pbody').querySelectorAll('.pPick').forEach(el =>
+    el.addEventListener('click', () => renderSchemeList(groups[+el.dataset.i], props)));
+  openPanel();
+  maybeInjectChooser();
 }
 
 const $ = id => document.getElementById(id);
@@ -493,6 +575,18 @@ async function showValuation(props) {
     maybeInjectChooser();
     return;
   }
+  // Weak or empty erf match → maybe a CoCT sectional building (roll has no erf for
+  // those). Ask the City's scheme layer what sits under the click before giving up.
+  if (!res.rows.length || res.best < 4) {
+    try {
+      const cands = await schemesAtClick();
+      if (cands.length) {
+        const groups = await lookupSchemes(cands);
+        if (groups.length === 1) { renderSchemeList(groups[0], props); return; }
+        if (groups.length > 1) { renderSchemeChooser(groups, props); return; }
+      }
+    } catch (e) { console.warn('scheme fallback failed', e); }
+  }
   if (!res.rows.length) {
     $('pbody').innerHTML =
       `<div class="pKick">${esc(props.Town_name || '')}</div>` +
@@ -525,7 +619,7 @@ async function ensureDB() {
     // Served from Supabase Storage, NOT GitHub Pages (Pages gzip-corrupts the HTTP range
     // requests sql.js-httpvfs needs — see DATA_CONTRACT §8). ?db=<url> overrides for local dev.
     const DB_CONFIG = new URLSearchParams(location.search).get('db') ||
-      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v4/config.json';
+      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v5/config.json';
     const w = await createDbWorker([{ from: 'jsonconfig', configUrl: abs(DB_CONFIG) }],
       abs('assets/vendor/sqlite.worker.js'), abs('assets/vendor/sql-wasm.wasm'));
     // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot
