@@ -135,7 +135,7 @@ field is optional and is consumed defensively (see §5). New municipalities just
    `extract/provenance.py`. If a muni has no `provenance`, the roll date renders plain (no popover).
 2. **`data/db/`** — `search.db` split into 32 MB chunks + `config.json`. **Served from Supabase
    Storage, not this repo** (see §8) — these committed files are the *upload source*. Table
-   `prop(muni, suburb, erf, address, extent, value, tenure, category, erf_int)` + an FTS5 index
+   `prop(muni, suburb, erf, address, extent, dwext, value, tenure, category, scheme, erf_int)` + an FTS5 index
    `psearch` (address/suburb/erf, for in-any-order token search) with indexes
    `idx_addr, idx_sub, idx_muni_value, idx_value, idx_erf_int_value`. `erf_int` is the numeric core
    of `erf` ('SB17324' / '00017324' / '17324' → 17324) — the **map view's cadastre join key** (§9).
@@ -269,6 +269,18 @@ Degradation rules (keep these):
   Government (as-is)" is required on the parcels source (see MAP-FEASIBILITY.md in the extraction
   repo). Do not ingest owner names from cadastre services.
 - `?db=<configUrl>` on map.html overrides the search-DB location for local testing.
+
+**Cape Town sectional-scheme fallback (since 2026-07-17, search.db ≥ v5).** The CoCT sectional roll
+carries **no erf numbers** (units live under a scheme ref, e.g. "PORTSIDE SS240/2012"), so the
+erf_int join can never find them. When the erf lookup is empty or weak (`best < 4`) the map
+point-queries the City's sectional-scheme polygon layer
+(`citymaps.capetown.gov.za/agsext/...Search_Layers/SL_WGDB_ST_SCHM/MapServer/0`, CORS-verified) and
+resolves units via the `prop.scheme` column (= `property.ss_scheme`, indexed `idx_scheme` NOCASE).
+Rules: queries must **seek** idx_scheme — equality needs `COLLATE NOCASE`, name-prefix must be an
+explicit range (`scheme >= ? AND scheme < ?`, both NOCASE), never a parameterised LIKE (full scan
+over httpvfs). The layer's ST_SCHM_NO is sometimes a plan number, not the SS ref — exact-ref match
+falls back to name-prefix, and same-named schemes render as a chooser, never merged. Layer down /
+nothing found → the normal "No valuation found" card.
 
 If the live service ever becomes a bottleneck, the pre-built PMTiles pipeline sketched in
 MAP-FEASIBILITY.md is the upgrade path — swap `addParcels()`'s source, keep everything else.
