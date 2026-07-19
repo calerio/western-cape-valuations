@@ -15,6 +15,12 @@ const LAND = cssVar("--land"), NODATA = cssVar("--nodata");
 const YEAR = "2024 / 25";
 const $ = s => document.getElementById(s);
 
+// Make a clickable element keyboard-operable — tabbable, role, Enter/Space (audit 2026-07-19).
+function wireAct(el, fn, role = "button") {
+  el.tabIndex = 0; el.setAttribute("role", role);
+  el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fn(); } });
+}
+
 /* ============================ i18n ============================ */
 // Language: sticky toggle (localStorage) → device language → English. The Afrikaans
 // catalog (data/i18n-af.json) is the SAME file export_pages.py renders the static
@@ -99,7 +105,7 @@ let dbw = null, dbwPromise = null, areaIndex = null;
       fetch("data/geo/wc-municipalities.geojson").then(r => r.json()),
     ]);
   } catch (e) {
-    $("loadingMsg").textContent = t("Could not load the atlas data");
+    $("loadingMsg").textContent = t("Could not load the atlas data. Try reloading the page.");
     return;
   }
   clipMainland(); toPlanar(); buildHierarchy(); initMap();
@@ -123,9 +129,11 @@ let dbw = null, dbwPromise = null, areaIndex = null;
   });
   $("tlClose").onclick = closeTop;
   $("tlScrim").onclick = closeTop;
-  $("tlSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; tlN = +b.dataset.n; [...$("tlSeg").children].forEach(x => x.classList.toggle("on", x === b)); loadTop(); });
+  $("tlSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; tlN = +b.dataset.n;
+    [...$("tlSeg").children].forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-selected", String(x === b)); }); loadTop(); });
   $("pdClose").onclick = closeProp;
   $("pdScrim").onclick = closeProp;
+  trapTab($("toplist")); trapTab($("propdetail"));
   addEventListener("keydown", e => { if (e.key !== "Escape") return; if ($("propdetail").classList.contains("open")) closeProp(); else if ($("toplist").classList.contains("open")) closeTop(); });
   ensureDB().catch(() => {});   // pre-warm the SQLite worker so the first search / top-N is instant
 })();
@@ -409,7 +417,7 @@ function tip(e, nm, st, drill) { if (innerWidth <= 720) return;   // phones: tap
       `<span style="opacity:.6">${t("Total roll")}</span><span style="text-align:right;font-variant-numeric:tabular-nums">${R(st.total)}</span>` +
       `<span style="opacity:.6">${t("Parcels")}</span><span style="text-align:right;font-variant-numeric:tabular-nums">${N(st.parcels || st.valued)}</span></div>`
       : `<div style="font-size:12px;opacity:.7">${t("No public roll (search-only)")}</div>`) +
-    (drill && st ? `<div style="margin-top:8px;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:${ACCENT}">${t("Click to explore →")}</div>` : "");
+    (drill && st ? `<div style="margin-top:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:${ACCENT}">${t("Click to explore →")}</div>` : "");
   t.style.opacity = 1;
   let x = e.clientX + 16, y = e.clientY + 16;
   if (x + 250 > innerWidth) x = e.clientX - 250; if (y + 130 > innerHeight) y = e.clientY - 130;
@@ -445,7 +453,7 @@ function provInner(p) {
     `<div class="ppGrid">` + rows.map(([k, v]) => `<span class="ppK">${k}</span><span class="ppV">${v}</span>`).join("") + `</div>` +
     (p.note ? `<div class="ppNote">${esc(t(p.note))}</div>` : "") +
     // fixed caveat, every municipality: roll values are rating valuations, not sale prices
-    `<div class="ppNote">${t("Values are the municipal valuer's market value as at the date above, set for rates — a property can sell for more or less today.")}</div>` +
+    `<div class="ppNote">${t("Values are the municipal valuer’s market value as at the date above, set for rates — a property can sell for more or less today.")}</div>` +
     (p.source_url ? `<div class="ppSrc"><a href="${esc(p.source_url)}" target="_blank" rel="noopener">${t("Official source")} ↗</a></div>` : "");
 }
 function showProv(trigger, p) {
@@ -516,6 +524,9 @@ function wireSheet() {
     p.classList.toggle("full", moved ? (open0 ? dy < 60 : dy < -60) : !open0);
     y0 = null; };
   g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
+  g.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); p.classList.toggle("full"); }
+  });
 }
 
 /* ============================ chrome + dashboard ============================ */
@@ -552,7 +563,8 @@ function renderChrome(p) {
   steps.forEach((s, i) => {
     if (i) { const sep = document.createElement("span"); sep.textContent = "›"; sep.style.cssText = "font-size:13px;color:var(--label3)"; $("crumbs").appendChild(sep); }
     const a = document.createElement("span"); a.textContent = s.label; a.className = "o-clickable";
-    a.style.cssText = "font-size:13px;font-weight:500;color:var(--ink);cursor:pointer"; a.onclick = s.go; $("crumbs").appendChild(a);
+    a.style.cssText = "font-size:13px;font-weight:500;color:var(--ink);cursor:pointer"; a.onclick = s.go;
+    wireAct(a, s.go, "link"); $("crumbs").appendChild(a);
   });
 
   // The legend describes ONLY the value choropleth currently shaded on the map — nothing else:
@@ -561,8 +573,8 @@ function renderChrome(p) {
   // len 0 (South Africa — WC not yet opened) and len 3 (a single municipality + ward outlines,
   // which carry no value shading) have no choropleth, so the legend is hidden entirely.
   let e = null, lt = null;
-  if (len === 1) { e = ext(Object.keys(DISTRICTS).map(d => med(distStat(d)))); lt = t("MEDIAN VALUE · DISTRICT"); }
-  else if (len === 2) { e = ext(DISTRICTS[p[1].name].munis.map(m => med(muniStat(m)))); lt = t("MEDIAN VALUE · MUNICIPALITY"); }
+  if (len === 1) { e = ext(Object.keys(DISTRICTS).map(d => med(distStat(d)))); lt = t("Median value · district"); }
+  else if (len === 2) { e = ext(DISTRICTS[p[1].name].munis.map(m => med(muniStat(m)))); lt = t("Median value · municipality"); }
   const showLegend = !!e && innerWidth > 720;   // on phones the bottom sheet takes the legend's spot
   $("legendBox").style.display = showLegend ? "" : "none";
   if (showLegend) { $("legendTitle").textContent = lt; $("legendMin").textContent = R(e[0]); $("legendMax").textContent = R(e[1]); }
@@ -615,6 +627,7 @@ function renderDash(p) {
         <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
           <div style="height:100%;width:${Math.max(8, Math.round(c.s.median / maxMed * 100))}%;background:${color(c.s.median, [minMed, maxMed])};border-radius:3px"></div></div>`;
       row.onclick = c.go;
+      wireAct(row, c.go);
       rk.appendChild(row);
     });
   } else {
@@ -633,9 +646,9 @@ function renderDash(p) {
   ["hiCard", "loCard"].forEach(id => { const el = $(id); if (el) { el.style.cursor = scope ? "pointer" : "default"; el.style.pointerEvents = scope ? "auto" : "none"; } });
   // roll ≠ market price: rolls state "market value" as at the valuation date, for rating purposes —
   // an area's values can sit well off today's sale prices. Said once, wherever values are shown.
-  const CAVEAT = t(" Values are municipal valuations as at each roll's date — set for rates, not today's sale prices.");
+  const CAVEAT = t(" Values are municipal valuations as at each roll’s date — set for rates, not today’s sale prices.");
   $("dashNote").textContent = !scope
-    ? t("Cape Town publishes no downloadable roll — values are search-only at the City, so it can't be aggregated here.")
+    ? t("No aggregated data is available for this area yet.")
     : (isMuni
     ? t("Dashed lines on the map are ward boundaries (Municipal Demarcation Board), for orientation.")
     : t("Recomputed from each area's latest published valuation roll.")) + CAVEAT;
@@ -698,7 +711,7 @@ function renderCatMix(s) {
     .map(k => `<div style="width:${(mix[k][metric] / tot * 100).toFixed(2)}%;background:${CATCOL[k]}" title="${t(CATLAB[k])}"></div>`).join("");
   const legend = CATORDER.filter(k => mix[k] && mix[k].count > 0).map(k =>
     `<div class="clg"><span class="csw" style="background:${CATCOL[k]}"></span>${t(CATLAB[k])} <span class="cpct">${totC ? Math.round(mix[k].count / totC * 100) : 0}${t("% parcels")} · ${totV ? Math.round(mix[k].value / totV * 100) : 0}${t("% value")}</span></div>`).join("");
-  el.innerHTML = `<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">${t("Property mix")}</div>` +
+  el.innerHTML = `<div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">${t("Property mix")}</div>` +
     `<div class="cmrow"><div class="cmlab">${t("Share of parcels")}</div><div class="cmbar">${seg("count", totC)}</div></div>` +
     `<div class="cmrow"><div class="cmlab">${t("Share of value")}</div><div class="cmbar">${seg("value", totV)}</div></div>` +
     `<div class="cmleg">${legend}</div>`;
@@ -812,7 +825,7 @@ function renderAfford(s) {
   const income = monthly / 0.30;                          // banks cap the bond at ~30% of gross income
   const src = prime.source ? ` · <a href="${esc(prime.source)}" target="_blank" rel="noopener">SARB ↗</a>` : "";
   $("secAffordBody").innerHTML =
-    `<div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">${t("Illustrative estimate")}</div>` +
+    `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">${t("Illustrative estimate")}</div>` +
     `<div class="kpinum" style="font-size:26px">R${N(Math.round(monthly))}<span style="font-size:14px;font-weight:600;color:var(--label2)"> /mo</span></div>` +
     `<div style="font-size:12px;color:var(--label2);margin-top:8px;line-height:1.5">${tf("estimated bond on the median home of {home}", { home: R(home) })}</div>` +
     tilesHTML([[t("Gross income needed"), "R" + N(Math.round(income)) + t("/mo"), t("at 30% of income on the bond")],
@@ -913,8 +926,22 @@ function scopeFilter() {
   if (len === 2) { const ms = DISTRICTS[p[1].name].munis; return { where: `muni IN (${ms.map(() => "?").join(",")})`, args: ms, name: p[1].name }; }
   return { where: "", args: [], name: "the Western Cape" };   // scope names stay English (SQL filters + tn at display)
 }
+let tlPrevFocus = null, pdPrevFocus = null;
+// Keep Tab inside an open modal (audit 2026-07-19) — paired with focus restore on close.
+function trapTab(panel) {
+  panel.addEventListener("keydown", e => {
+    if (e.key !== "Tab") return;
+    const f = [...panel.querySelectorAll('button,[href],input,[tabindex]:not([tabindex="-1"])')]
+      .filter(x => !x.hidden && x.offsetParent !== null);
+    if (!f.length) return;
+    const first = f[0], last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+}
 function openTop(kind) {
   if (!tlEnabled) return;
+  tlPrevFocus = document.activeElement;
   tlKind = kind; tlN = 10;
   const sc = scopeFilter();
   $("tlKicker").textContent = t(kind === "hi" ? "Most valuable" : "Most affordable") + " · " + (sc.name === "the Western Cape" ? t("the Western Cape") : tn(sc.name));
@@ -922,14 +949,16 @@ function openTop(kind) {
   $("tlNote").textContent = kind === "hi"
     ? t("All categories, ranked by municipal market value.")
     : t("Residential only · nominal values under R100 000 excluded.");
-  [...$("tlSeg").children].forEach(b => b.classList.toggle("on", +b.dataset.n === tlN));
+  [...$("tlSeg").children].forEach(b => { const on = +b.dataset.n === tlN; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
   $("toplist").classList.add("open"); $("toplist").setAttribute("aria-hidden", "false");
   document.documentElement.style.overflow = "hidden";
+  $("tlClose").focus();
   loadTop();
 }
 function closeTop() {
   $("toplist").classList.remove("open"); $("toplist").setAttribute("aria-hidden", "true");
   document.documentElement.style.overflow = "";
+  if (tlPrevFocus && tlPrevFocus.focus) tlPrevFocus.focus();
 }
 async function loadTop() {
   const body = $("tlBody"); body.innerHTML = `<div style="padding:34px 0;color:var(--label2);font-size:14px">${t("Finding properties…")}</div>`;
@@ -942,7 +971,7 @@ async function loadTop() {
   let rows = null;
   for (let attempt = 0; attempt < 2 && rows === null; attempt++) {
     try { rows = await (await ensureDB()).db.query(sql, args); }
-    catch (e) { resetDB(); if (attempt === 1) { if (req === tlReq) body.innerHTML = `<div style="padding:34px 0;color:var(--bad);font-size:14px">${t("Couldn't load the list — please try again.")}</div>`; return; } }
+    catch (e) { resetDB(); if (attempt === 1) { if (req === tlReq) body.innerHTML = `<div style="padding:34px 0;color:var(--bad);font-size:14px">${t("Couldn’t load the list — try again.")}</div>`; return; } }
   }
   if (req !== tlReq) return;   // a newer request superseded this one
   if (!rows.length) { body.innerHTML = `<div style="padding:34px 0;color:var(--label2);font-size:14px">${t("No properties found for this area.")}</div>`; return; }
@@ -974,13 +1003,29 @@ function buildAreaIndex() {
 const SEARCH_PAIRS = [["search", "results"], ["msearch", "mresults"]];
 function wireSearch() {
   SEARCH_PAIRS.forEach(([inId, resId]) => {
-    const inp = $(inId); if (!inp) return; let timer;
-    inp.addEventListener("input", () => { clearTimeout(timer); const q = inp.value.trim(); if (q.length < 2) return hideResults(); timer = setTimeout(() => runSearch(q, inId, resId), 150); });
+    const inp = $(inId); if (!inp) return; let timer, active = -1;
+    const options = () => [...$(resId).querySelectorAll('[role="option"]')];
+    const mark = rs => rs.forEach((r, i) => {
+      r.setAttribute("aria-selected", String(i === active));
+      r.style.background = i === active ? "color-mix(in srgb, var(--accent) 14%, transparent)" : "";
+      if (i === active) { r.scrollIntoView({ block: "nearest" }); inp.setAttribute("aria-activedescendant", r.id); }
+    });
+    inp.addEventListener("input", () => { clearTimeout(timer); active = -1; inp.removeAttribute("aria-activedescendant");
+      const q = inp.value.trim(); if (q.length < 2) return hideResults(); timer = setTimeout(() => runSearch(q, inId, resId), 150); });
     inp.addEventListener("focus", () => { if (inp.value.trim().length >= 2) runSearch(inp.value.trim(), inId, resId); });
+    inp.addEventListener("keydown", e => {
+      if (e.key === "Escape") { hideResults(); inp.blur(); return; }
+      const rs = options();
+      if (!rs.length || $(resId).hidden) return;
+      if (e.key === "ArrowDown") { e.preventDefault(); active = Math.min(active + 1, rs.length - 1); mark(rs); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); active = Math.max(active - 1, 0); mark(rs); }
+      else if (e.key === "Enter") { e.preventDefault(); rs[active >= 0 ? active : 0].dispatchEvent(new MouseEvent("mousedown")); }
+    });
   });
   document.addEventListener("click", e => { if (!e.target.closest("#search,#results,#msearch,#mresults")) hideResults(); });
 }
-function hideResults() { ["results", "mresults"].forEach(id => { const r = $(id); if (r) { r.hidden = true; r.innerHTML = ""; } }); }
+function hideResults() { ["results", "mresults"].forEach(id => { const r = $(id); if (r) { r.hidden = true; r.innerHTML = ""; } });
+  ["search", "msearch"].forEach(id => { const i = $(id); if (i) { i.setAttribute("aria-expanded", "false"); i.removeAttribute("aria-activedescendant"); } }); }
 let searchSeq = 0;
 const SEARCH_NOISE = new Set(["street", "st", "straat", "str", "road", "rd", "weg", "avenue", "ave",
   "av", "laan", "lane", "ln", "drive", "dr", "rylaan", "crescent", "cres", "close", "cl", "way",
@@ -992,8 +1037,10 @@ function ftsQuery(q) {
 }
 function searchRow(box, inId, label, sub, go, right) {
   const d = document.createElement("div"); d.className = "o-clickable";
+  d.setAttribute("role", "option"); d.setAttribute("aria-selected", "false");
+  d.id = box.id + "-opt-" + box.children.length;
   d.style.cssText = "display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--sep);cursor:pointer";
-  d.innerHTML = `<span style="font-size:14px;color:var(--ink)">${esc(label)}</span><span style="font-size:10.5px;letter-spacing:.04em;color:var(--label2);text-transform:uppercase;white-space:nowrap">${esc(right || sub)}</span>`;
+  d.innerHTML = `<span style="font-size:14px;color:var(--ink)">${esc(label)}</span><span style="font-size:11px;letter-spacing:.04em;color:var(--label2);text-transform:uppercase;white-space:nowrap">${esc(right || sub)}</span>`;
   d.onmousedown = e => { e.preventDefault(); go(); const inp = $(inId); if (inp) inp.value = ""; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); hideResults(); };
   box.appendChild(d);
 }
@@ -1011,6 +1058,7 @@ async function runSearch(q, inId = "search", resId = "results") {
   areas.forEach(a => searchRow(box, inId, a.label, a.sub, a.go, a.sub));
   const ph = searchNote(box, t("Searching addresses…"));
   box.hidden = false;
+  $(inId).setAttribute("aria-expanded", "true");
   // 2) full-text property search (matches address/suburb/erf tokens in any order), with cold-start retry
   const fts = ftsQuery(q);
   let rows = fts ? null : [];
@@ -1044,7 +1092,7 @@ function ratesBlock(r) {
   if (!rr) return "";
   const cents = (rr.rate * 100).toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
   return `<div class="pdTax">
-      <div style="font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px">${t("Municipal rates · {year}").replace("{year}", esc(rr.year))}</div>
+      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px">${t("Municipal rates · {year}").replace("{year}", esc(rr.year))}</div>
       <div class="pdStat"><span class="k">${t("Per year")}</span><span class="v" style="font-family:var(--font-ui);font-weight:600;font-size:19px">${RZA(rr.annual)}</span></div>
       <div class="pdStat" style="border-bottom:none"><span class="k">${t("Per month")}</span><span class="v">${RZA(rr.monthly)}</span></div>
       <div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:10px">${esc(cents)}c/R${rr.reduction ? tf(" on value above {v}", { v: RZA(rr.reduction) }) : ""}${rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">${t("Official tariff")} ↗</a>` : ""}</div>
@@ -1068,12 +1116,20 @@ function openProp(r) {
     stats.map(([k, v]) => `<div class="pdStat"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("") +
     ratesBlock(r) +
     `<div id="pdGo" class="o-clickable">${tf("View {muni} on the map →", { muni: esc(tn(r.muni) || t("area")) })}</div>`;
-  $("pdGo").onclick = () => { const f = muniByName[r.muni]; closeProp();
+  const goMuni = () => { const f = muniByName[r.muni]; closeProp();
     if (f) navigate([wcCrumb(), { type: "district", name: f.properties.district }, { type: "municipality", name: r.muni }]); };
+  $("pdGo").onclick = goMuni;
+  wireAct($("pdGo"), goMuni);
+  pdPrevFocus = document.activeElement;
   $("propdetail").classList.add("open"); $("propdetail").setAttribute("aria-hidden", "false");
   document.documentElement.style.overflow = "hidden";
+  $("pdClose").focus();
 }
-function closeProp() { $("propdetail").classList.remove("open"); $("propdetail").setAttribute("aria-hidden", "true"); document.documentElement.style.overflow = ""; }
+function closeProp() {
+  $("propdetail").classList.remove("open"); $("propdetail").setAttribute("aria-hidden", "true");
+  document.documentElement.style.overflow = "";
+  if (pdPrevFocus && pdPrevFocus.focus) pdPrevFocus.focus();
+}
 
 async function ensureDB() {
   if (dbw) return dbw;

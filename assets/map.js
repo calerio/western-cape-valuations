@@ -24,7 +24,7 @@ const maplibregl = window.maplibregl;
 // plain.html pins light, so the same --map-* names resolve per page.
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 import { getRates, computeRates } from "./rates.js?v=1";
-import { initPlaceSearch } from "./places.js?v=1";
+import { initPlaceSearch } from "./places.js?v=2";
 
 // Which basemap this page wants (plain.html sets <body data-basemap="plain">).
 const MODE = document.body.dataset.basemap === 'plain' ? 'plain' : 'satellite';
@@ -181,13 +181,15 @@ function initWardChip(map) {
   const chip = $('wardchip');
   if (!chip) return;
   chip.hidden = false;
-  chip.addEventListener('click', () => {
+  const toggle = () => {
     const on = !chip.classList.contains('on');
     chip.classList.toggle('on', on);
     chip.setAttribute('aria-checked', String(on));
     WARD_LAYERS.forEach(id =>
       map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
-  });
+  };
+  chip.addEventListener('click', toggle);
+  chip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
 }
 
 // Ward containing a clicked point (null when wards are off/unavailable).
@@ -270,7 +272,7 @@ async function loadParcels(map) {
     if (json.error) throw new Error(json.error.message || 'cadastre error');
     map.getSource('parcels').setData(esriToGeoJSON(json));
     setHint(json.exceededTransferLimit ? t('Too many erven for one view — zoom in')
-                                       : t('Click an erf for its valuation'));
+                                       : t('Tap or click an erf for its valuation'));
   } catch (e) {
     if (e.name === 'AbortError') return;
     console.warn('parcel fetch failed', e);
@@ -504,7 +506,7 @@ function renderSchemeList(g, props) {
     (g.rows.length > 40 ? `<div class="pNote">${tf('Showing the 40 highest of {n}.', { n: g.rows.length })}</div>` : '');
   const sub = t('sectional-title units of this scheme');
   $('pbody').querySelectorAll('.pPick').forEach(el =>
-    el.addEventListener('click', () => renderDetail(g.rows[+el.dataset.i], props, g.rows, sub)));
+    wireAct(el, () => renderDetail(g.rows[+el.dataset.i], props, g.rows, sub)));
   openPanel();
   maybeInjectChooser();
 }
@@ -518,12 +520,19 @@ function renderSchemeChooser(groups, props) {
       `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(clWs(g.scheme))}</span>` +
       `<span class="v">${tf('{n} units', { n: g.rows.length })}</span></div>`).join('');
   $('pbody').querySelectorAll('.pPick').forEach(el =>
-    el.addEventListener('click', () => renderSchemeList(groups[+el.dataset.i], props)));
+    wireAct(el, () => renderSchemeList(groups[+el.dataset.i], props)));
   openPanel();
   maybeInjectChooser();
 }
 
 const $ = id => document.getElementById(id);
+
+// Make a clickable div keyboard-operable — tabbable, role=button, Enter/Space (audit 2026-07-19).
+function wireAct(el, fn) {
+  el.tabIndex = 0; el.setAttribute('role', 'button');
+  el.addEventListener('click', fn);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
+}
 
 /* ---- i18n (same catalog + resolution as atlas.js; see data/i18n-af.json) ---- */
 const LANG = (() => { try { const v = localStorage.getItem('wcv-lang'); if (v === 'af' || v === 'en') return v; } catch (_) {}
@@ -592,8 +601,8 @@ function renderDetail(r, props, backList, backSub) {
     statRow(t('Value per m²'), ppm) +
     (rr ? statRow(tf('Rates / year ({year})', { year: rr.year }), RZA(rr.annual)) +
           statRow(t('Rates / month'), RZA(rr.monthly)) : '') +
-    `<div class="pNote">${rr ? ratesNote(rr) + ' · ' : ''}${tf("Parcel {key}. Roll valuation as at the municipality's valuation date, set for rates — not today's sale price.", { key: esc(props.PRCL_KEY || '') })}</div>`;
-  if (backList) $('pback').onclick = () => renderList(backList, props, backSub);
+    `<div class="pNote">${rr ? ratesNote(rr) + ' · ' : ''}${tf("Parcel {key}. Roll valuation as at the municipality’s valuation date, set for rates — not today’s sale price.", { key: esc(props.PRCL_KEY || '') })}</div>`;
+  if (backList) wireAct($('pback'), () => renderList(backList, props, backSub));
   openPanel();
   maybeInjectChooser();
 }
@@ -610,7 +619,7 @@ function renderList(rows, props, subText) {
     (rows.length > 40 ? `<div class="pNote">${tf('Showing the 40 highest of {n}.', { n: rows.length })}</div>` : '');
   const sub = subText;
   $('pbody').querySelectorAll('.pPick').forEach(el =>
-    el.addEventListener('click', () => renderDetail(rows[+el.dataset.i], props, rows, sub)));
+    wireAct(el, () => renderDetail(rows[+el.dataset.i], props, rows, sub)));
   openPanel();
   maybeInjectChooser();
 }
@@ -623,7 +632,7 @@ function maybeInjectChooser() {
   const bar = document.createElement('div');
   bar.className = 'pLink';
   bar.textContent = tf('⇅ {n} parcels overlap here — choose', { n: parcelCands.length });
-  bar.onclick = renderParcelChooser;
+  wireAct(bar, renderParcelChooser);
   body.insertBefore(bar, body.firstChild);
 }
 
@@ -637,7 +646,7 @@ function renderParcelChooser() {
       `${f.properties.Town_name ? ' · ' + esc(clWs(f.properties.Town_name)) : ''}</span>` +
       `<span class="v">${N(Math.round(parcelAreaM2(f.geometry)))} m²</span></div>`).join('');
   $('pbody').querySelectorAll('.pPick').forEach(el =>
-    el.addEventListener('click', () => pickParcel(parcelCands[+el.dataset.i])));
+    wireAct(el, () => pickParcel(parcelCands[+el.dataset.i])));
   openPanel();
 }
 
@@ -680,8 +689,8 @@ async function showValuation(props) {
   }
   const sure = res.best >= 4;    // suburb-level match = genuinely this parcel's rows
   const note =
-    res.best === 0 ? `<div class="pNote">${t('⚠ No town match — same erf number in several municipalities; verify the address.')}</div>` :
-    !sure ? `<div class="pNote">${t('⚠ Same erf number, other townships — may not be this parcel.')}</div>` : '';
+    res.best === 0 ? `<div class="pNote">${t('No town match — the same erf number exists in several municipalities; verify the address.')}</div>` :
+    !sure ? `<div class="pNote">${t('Same erf number, other townships — this may not be the right parcel.')}</div>` : '';
   const listSub = sure ? t('portions or sectional-title units share this parcel')
                        : t('same erf number, other townships — may not be this parcel');
   if (res.rows.length === 1) { renderDetail(res.rows[0], props, null); }

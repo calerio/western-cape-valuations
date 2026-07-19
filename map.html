@@ -35,7 +35,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
-<link href="assets/tokens.css?v=3" rel="stylesheet" />
+<link href="assets/tokens.css?v=4" rel="stylesheet" />
 <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js"></script>
 <style>
@@ -56,10 +56,10 @@
   #viewsegWrap{top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;padding:4px;border-radius:12px}
   .viewseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
   .viewseg a{text-decoration:none;font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
-    padding:8px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
+    padding:11px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
   .viewseg a:hover{color:var(--ink)}
   .viewseg a[aria-current="page"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
-  @media (max-width:640px){ .viewseg a{font-size:11.5px;padding:8px 12px} }
+  @media (max-width:640px){ .viewseg a{font-size:11.5px;padding:12px 12px} }
   @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important;animation-iteration-count:1 !important}
   }
@@ -68,19 +68,21 @@
   #searchWrap{top:calc(env(safe-area-inset-top,0px) + 86px);left:16px;
     width:300px;max-width:calc(100vw - 32px);
     display:flex;align-items:center;gap:9px;padding:10px 14px}
+  #searchWrap{cursor:text}
   #searchWrap svg{flex:none;width:15px;height:15px;color:var(--label2)}
   #placeSearch{flex:1;min-width:0;border:0;background:none;outline:none;color:var(--ink);
     font-family:inherit;font-size:14px;letter-spacing:-.01em}
   #placeSearch::placeholder{color:var(--label2)}
   #placeSearch::-webkit-search-cancel-button{display:none}
   #placeClear{flex:none;border:0;background:var(--bg3);color:var(--label2);cursor:pointer;
-    width:20px;height:20px;border-radius:50%;font-size:14px;line-height:1;padding:0}
+    width:20px;height:20px;border-radius:50%;font-size:14px;line-height:1;padding:0;position:relative}
+  #placeClear::after{content:"";position:absolute;inset:-12px}   /* 44px hit area, same glyph */
   #placeClear:hover{color:var(--ink)}
   #placeResults{position:absolute;top:calc(100% + 8px);left:0;right:0;
     max-height:min(320px, 50dvh);overflow:auto;padding:6px}
   .sRow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
     padding:9px 10px;border-radius:8px;cursor:pointer}
-  .sRow[aria-selected="true"],.sRow:hover{background:rgba(10,132,255,.16)}
+  .sRow[aria-selected="true"],.sRow:hover{background:color-mix(in srgb, var(--accent) 16%, transparent)}
   .sName{font-weight:600;font-size:13.5px;letter-spacing:-.01em;color:var(--ink)}
   .sCtx{font-size:11.5px;color:var(--label2);white-space:nowrap;overflow:hidden;
     text-overflow:ellipsis;max-width:55%}
@@ -127,6 +129,7 @@
   }
   #pclose{position:absolute;top:10px;right:12px;border:0;background:none;font-size:20px;line-height:1;
     color:var(--label2);cursor:pointer;padding:4px}
+  #pclose::after{content:"";position:absolute;inset:-8px}   /* 44px hit area */
   .pKick{font-size:11px;letter-spacing:.06em;font-weight:600;color:var(--label2);text-transform:uppercase;
     margin:0 20px 4px 0}
   .pAddr{font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;color:var(--ink);margin-bottom:2px}
@@ -138,8 +141,8 @@
   .pRow .k{color:var(--label2)}
   .pRow .v{color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
   .pPick{cursor:pointer;border-radius:6px;transition:background .15s ease-out}
-  .pPick:hover{background:rgba(10,132,255,.12)}
-  .pNote{font-size:11px;line-height:1.55;color:var(--label3);margin-top:10px}
+  .pPick:hover{background:color-mix(in srgb, var(--accent) 12%, transparent)}
+  .pNote{font-size:11px;line-height:1.55;color:var(--label2);margin-top:10px}
   .pNote a{color:var(--accent)}
   .pLink{font-size:12.5px;letter-spacing:-.01em;font-weight:600;color:var(--accent);
     cursor:pointer;margin-bottom:10px}
@@ -148,7 +151,7 @@
   .maplibregl-ctrl-top-right{top:calc(env(safe-area-inset-top,0px) + 56px)}   /* clear the view switcher */
   .maplibregl-ctrl-group{border-radius:var(--r-chip);overflow:hidden;box-shadow:var(--shadow-platter);
     background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
-  .maplibregl-ctrl button{background:transparent}
+  .maplibregl-ctrl button{background:transparent;min-width:44px;min-height:44px}
   .maplibregl-ctrl button .maplibregl-ctrl-icon{filter:invert(1) hue-rotate(180deg)}
   .maplibregl-ctrl-attrib.maplibregl-compact{background:var(--platter-bg);color:var(--label2);border-radius:var(--r-chip)}
   .maplibregl-ctrl-attrib a{color:var(--label2)}
@@ -172,19 +175,20 @@
     <div id="brandKick" data-i18n="Municipal valuations">Municipal valuations</div>
     <div id="brandTitle">Western Cape</div>
   </div>
-  <div id="searchWrap" class="ovl platter" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-owns="placeResults">
+  <div id="searchWrap" class="ovl platter">
     <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.2" stroke="currentColor" stroke-width="1.6"/><path d="M11.2 11.2l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
     <input id="placeSearch" type="search" autocomplete="off" spellcheck="false"
            placeholder="Search a town or suburb" data-i18n-ph="Search a town or suburb"
-           aria-label="Search a town or suburb" aria-autocomplete="list" aria-controls="placeResults" />
+           aria-label="Search a town or suburb" role="combobox" aria-expanded="false"
+           aria-haspopup="listbox" aria-autocomplete="list" aria-controls="placeResults" />
     <button id="placeClear" hidden aria-label="Clear search" data-i18n-aria="Clear search">×</button>
     <div id="placeResults" class="platter" role="listbox" hidden></div>
   </div>
-  <div id="wardchip" class="ovl platter on" role="switch" aria-checked="true" aria-label="Toggle ward boundaries" hidden>
+  <div id="wardchip" class="ovl platter on" role="switch" tabindex="0" aria-checked="true" aria-label="Toggle ward boundaries" hidden>
     <span class="sw"></span><span data-i18n="Wards">Wards</span>
   </div>
 
-  <div id="maphint" class="ovl" hidden></div>
+  <div id="maphint" class="ovl" role="status" aria-live="polite" hidden></div>
 
   <aside id="ppanel" class="ovl platter" hidden aria-label="Property valuation">
     <button id="pclose" aria-label="Close">×</button>
@@ -198,6 +202,6 @@
     </div>
   </div>
 
-  <script type="module" src="assets/map.js?v=23"></script>
+  <script type="module" src="assets/map.js?v=24"></script>
 </body>
 </html>

@@ -137,7 +137,7 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
     : e.type === 'town' ? e.muni : '';
 
   function close() {
-    listbox.hidden = true; wrap.setAttribute('aria-expanded', 'false');
+    listbox.hidden = true; input.setAttribute('aria-expanded', 'false');
     active = -1; input.removeAttribute('aria-activedescendant');
   }
 
@@ -157,7 +157,7 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
       });
     }
     listbox.hidden = false;
-    wrap.setAttribute('aria-expanded', 'true');
+    input.setAttribute('aria-expanded', 'true');
   }
 
   function setActive(i) {
@@ -228,6 +228,8 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
     else if (ev.key === 'Enter') { ev.preventDefault(); select(rows[active >= 0 ? active : 0]); }
   });
   clearBtn.addEventListener('click', clearAll);
+  // the whole glass platter reads as the field — clicking any of it focuses the input
+  wrap.addEventListener('click', ev => { if (ev.target === wrap || ev.target.closest('svg')) input.focus(); });
   document.addEventListener('mousedown', ev => { if (!wrap.contains(ev.target)) close(); });
 
   // deep link: #p/t<mp> | #p/s<sp[_sp…]> | #p/m<normname>

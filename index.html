@@ -44,7 +44,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
-<link href="assets/tokens.css?v=3" rel="stylesheet" />
+<link href="assets/tokens.css?v=4" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <style>
   *{box-sizing:border-box}
@@ -87,7 +87,7 @@
   /* panel header block */
   #crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
   #crumbs[hidden]{display:none}
-  #panelKick{font-size:10.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--label2);margin-bottom:10px}
+  #panelKick{font-size:11px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--label2);margin-bottom:10px}
   #panelKick[hidden]{display:none}
   #scopeLabel{margin:0 0 5px;font-weight:800;font-size:30px;line-height:1.05;letter-spacing:-.02em;text-wrap:balance}
   #scopeSub{font-size:14px;line-height:1.5;color:var(--ink2);margin-bottom:6px}
@@ -103,7 +103,7 @@
   .kpis>div{padding:14px 14px 16px}
   .kpis>div:nth-child(odd){border-right:1px solid var(--sep)}
   .kpis>div:nth-child(-n+2){border-bottom:1px solid var(--sep)}
-  .kpilab{font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:9px}
+  .kpilab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:9px}
   .kpinum{font-weight:800;letter-spacing:-.02em;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
   .dsec{margin-top:34px}
   .dh{margin:0 0 16px;font-weight:600;letter-spacing:-.02em;font-size:19px;text-wrap:balance}
@@ -111,11 +111,11 @@
   /* stat tiles + property-mix bars */
   .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .stile{border:1px solid var(--hairline);border-radius:14px;padding:14px 14px 15px;background:var(--bg2);box-shadow:var(--shadow-card)}
-  .stl{font-size:9.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--label2);margin-bottom:8px;line-height:1.3}
+  .stl{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--label2);margin-bottom:8px;line-height:1.3}
   .stv{font-weight:600;letter-spacing:-.01em;font-size:20px;line-height:1.05;font-variant-numeric:tabular-nums;margin-bottom:6px}
   .stn{font-size:11px;line-height:1.4;color:var(--ink2)}
   .cmrow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-  .cmlab{flex:0 0 86px;font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);text-align:right}
+  .cmlab{flex:0 0 86px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);text-align:right}
   .cmbar{flex:1;display:flex;height:20px;border-radius:3px;overflow:hidden;background:var(--bg3)}
   .cmbar>div{height:100%}
   .cmleg{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px}
@@ -128,7 +128,7 @@
   .propcard::after{content:"›";position:absolute;top:16px;right:18px;font-size:20px;line-height:1;color:var(--label3)}
   .propcard:hover{border-color:var(--accent);box-shadow:var(--shadow-card)}
   .propcard:active{transform:scale(.992)}
-  .propcard:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,132,255,.3)}
+  .propcard:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent)}
 
   /* ---- floating chrome over the map ---- */
   .platter{background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
@@ -138,21 +138,21 @@
   #viewsegWrap{position:fixed;top:16px;right:16px;z-index:30;padding:4px;border-radius:12px}
   .viewseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
   .viewseg a{text-decoration:none;font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
-    padding:8px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
+    padding:11px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
   .viewseg a:hover{color:var(--ink)}
   .viewseg a[aria-current="page"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
   /* reset-to-overview control — a quiet glass pill under the view switcher */
-  #resetBtn{position:fixed;top:70px;right:16px;z-index:30;display:inline-flex;align-items:center;gap:6px;
+  #resetBtn{min-height:44px;position:fixed;top:70px;right:16px;z-index:30;display:inline-flex;align-items:center;gap:6px;
     padding:8px 14px 8px 11px;border:1px solid var(--sep);border-radius:var(--r-pill);
     font-family:var(--font-ui);font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
     cursor:pointer;opacity:0;transform:translateY(-4px);pointer-events:none;
     transition:opacity .25s ease-out,transform .25s ease-out,color .15s ease-out}
   #resetBtn:hover{color:var(--ink)}
-  #resetBtn:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(10,132,255,.3)}
+  #resetBtn:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent)}
   #resetBtn.on{opacity:1;transform:none;pointer-events:auto}
   #resetBtn svg{opacity:.75}
   #legendBox{position:fixed;right:16px;bottom:16px;z-index:20;padding:13px 15px 14px;min-width:220px}
-  #legendTitle{font-size:10px;letter-spacing:.12em;font-weight:600;color:var(--label2);text-transform:uppercase;margin-bottom:9px}
+  #legendTitle{font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--label2);text-transform:uppercase;margin-bottom:9px}
   #legendBar{height:8px;border-radius:4px}
   #legendScale{display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}
   #tip{position:fixed;z-index:50;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--ink);color:var(--bg);
@@ -191,9 +191,9 @@
     box-shadow:var(--shadow-overlay);opacity:0;transition:opacity .22s ease-out,transform .22s ease-out;border:1px solid var(--sep)}
   #toplist.open #tlPanel{opacity:1}
   #tlHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 14px;border-bottom:1px solid var(--sep)}
-  #tlKicker{font-size:10.5px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--accent);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #tlKicker{font-size:11px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--accent);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #tlTitle{font-weight:600;letter-spacing:-.02em;font-size:24px;line-height:1.05}
-  #tlClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
+  #tlClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:44px;height:44px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
   #tlControls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid var(--sep)}
   #tlSeg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:3px}
   #tlSeg button{appearance:none;-webkit-appearance:none;border:none;background:transparent;color:var(--ink2);font-size:13px;font-weight:600;padding:9px 15px;border-radius:7px;cursor:pointer}
@@ -209,7 +209,7 @@
   .tlRight{flex:0 0 auto;text-align:right;padding-left:6px}
   .tlVal{font-weight:600;font-size:16.5px;font-variant-numeric:tabular-nums}
   .tlMeta{font-size:11.5px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px}
-  .tlCat{display:inline-block;font-size:9px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:var(--ink2);border:1px solid var(--sep);border-radius:4px;padding:1px 5px;margin-left:7px;vertical-align:middle;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+  .tlCat{display:inline-block;font-size:11px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:var(--ink2);border:1px solid var(--sep);border-radius:4px;padding:1px 5px;margin-left:7px;vertical-align:middle;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
   @media (min-width:721px){
     #tlPanel{top:50%;left:50%;transform:translate(-50%,-46%);width:min(720px,92vw);max-height:86vh;border-radius:var(--r-panel)}
     #toplist.open #tlPanel{transform:translate(-50%,-50%)}
@@ -222,9 +222,9 @@
   #pdPanel{position:absolute;background:var(--bg2);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-overlay);opacity:0;transition:opacity .2s ease-out,transform .2s ease-out;border:1px solid var(--sep)}
   #propdetail.open #pdPanel{opacity:1}
   #pdHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 16px;border-bottom:1px solid var(--sep)}
-  #pdKicker{font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
+  #pdKicker{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
   #pdAddr{font-weight:600;letter-spacing:-.02em;font-size:23px;line-height:1.12}
-  #pdClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:40px;height:40px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
+  #pdClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:44px;height:44px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
   #pdBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 24px calc(env(safe-area-inset-bottom,0px) + 22px)}
   .pdVal{font-weight:800;letter-spacing:-.02em;font-size:34px;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 2px}
   .pdStat{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--sep);font-size:14px}
@@ -260,7 +260,7 @@
       display:flex;align-items:center;justify-content:center;flex:0 0 auto;padding-bottom:2px}
     #mback[hidden]{display:none}
     #mtext{min-width:0;flex:1}
-    #mkicker{font-size:9.5px;letter-spacing:.16em;font-weight:600;color:var(--label2);text-transform:uppercase;
+    #mkicker{font-size:11px;letter-spacing:.16em;font-weight:600;color:var(--label2);text-transform:uppercase;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
     #mloc{font-weight:600;letter-spacing:-.02em;font-size:22px;line-height:1.04;
       white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -292,7 +292,7 @@
 
     /* legend gives way to the sheet once drilled (JS toggles it) */
     #legendBox{left:14px;right:14px;min-width:0}
-    .viewseg a{font-size:11.5px;padding:8px 12px}
+    .viewseg a{font-size:11.5px;padding:12px 12px}
   }
 
   @media (prefers-reduced-motion:reduce){
@@ -335,18 +335,18 @@
   </div>
   <div id="msearchWrap">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-    <input id="msearch" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search a town or municipality" placeholder="Search a town or municipality" />
+    <input id="msearch" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search a town or municipality" placeholder="Search a town or municipality" aria-label="Search a town or municipality" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-autocomplete="list" aria-controls="mresults" />
   </div>
-  <div id="mresults" hidden></div>
+  <div id="mresults" role="listbox" aria-live="polite" hidden></div>
 </header>
 
 <!-- ===== The place panel: left rail (desktop) / bottom sheet (mobile) ===== -->
 <aside id="panel" aria-label="Valuation breakdown">
-  <div id="grab" role="button" aria-label="Expand or collapse the panel"></div>
+  <div id="grab" role="button" tabindex="0" aria-label="Expand or collapse the panel"></div>
   <div id="pHead">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-    <input id="search" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search a town, municipality or address" placeholder="Search a town, municipality or address" />
-    <div id="results" hidden></div>
+    <input id="search" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search a town, municipality or address" placeholder="Search a town, municipality or address" aria-label="Search a town, municipality or address" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-autocomplete="list" aria-controls="results" />
+    <div id="results" role="listbox" aria-live="polite" hidden></div>
   </div>
   <div id="pBody">
     <div id="crumbs" hidden></div>
@@ -401,14 +401,14 @@
       <!-- extreme properties -->
       <div class="dsec" style="display:flex;flex-direction:column;gap:16px">
         <div id="hiCard" class="propcard" role="button" tabindex="0" aria-label="View the most valuable properties" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:18px 20px">
-          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px" data-i18n="Most valuable property">Most valuable property</div>
+          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px" data-i18n="Most valuable property">Most valuable property</div>
           <div id="hiAddr" style="font-weight:600;letter-spacing:-.01em;font-size:18px;line-height:1.15;margin-bottom:3px"></div>
           <div id="hiSub" style="font-size:12px;color:var(--label2);margin-bottom:10px"></div>
           <div id="hiVal" style="font-weight:800;letter-spacing:-.01em;font-size:23px;font-variant-numeric:tabular-nums"></div>
           <div id="hiMeta" style="font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
         </div>
         <div id="loCard" class="propcard" role="button" tabindex="0" aria-label="View the most affordable homes" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:18px 20px">
-          <div style="font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ok);margin-bottom:10px" data-i18n="Most affordable home">Most affordable home</div>
+          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ok);margin-bottom:10px" data-i18n="Most affordable home">Most affordable home</div>
           <div id="loAddr" style="font-weight:600;letter-spacing:-.01em;font-size:18px;line-height:1.15;margin-bottom:3px"></div>
           <div id="loSub" style="font-size:12px;color:var(--label2);margin-bottom:10px"></div>
           <div id="loVal" style="font-weight:800;letter-spacing:-.01em;font-size:23px;font-variant-numeric:tabular-nums"></div>
@@ -447,7 +447,7 @@
 </button>
 
 <div id="legendBox" class="platter">
-  <div id="legendTitle">MEDIAN VALUE · DISTRICT</div>
+  <div id="legendTitle">Median value · district</div>
   <div id="legendBar"></div>
   <div id="legendScale"><span id="legendMin"></span><span id="legendMax"></span></div>
 </div>
@@ -474,13 +474,13 @@
     </div>
     <div id="tlControls">
       <div id="tlSeg" role="tablist" aria-label="How many to show">
-        <button data-n="10" class="on">Top 10</button>
-        <button data-n="20">Top 20</button>
-        <button data-n="30">Top 30</button>
+        <button data-n="10" class="on" role="tab" aria-selected="true">Top 10</button>
+        <button data-n="20" role="tab" aria-selected="false">Top 20</button>
+        <button data-n="30" role="tab" aria-selected="false">Top 30</button>
       </div>
       <div id="tlCount"></div>
     </div>
-    <div id="tlBody"></div>
+    <div id="tlBody" aria-live="polite"></div>
     <div id="tlNote"></div>
   </div>
 </div>
@@ -500,6 +500,6 @@
   </div>
 </div>
 
-<script type="module" src="assets/atlas.js?v=33"></script>
+<script type="module" src="assets/atlas.js?v=34"></script>
 </body>
 </html>
