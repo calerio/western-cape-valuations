@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Western Cape Property Valuation Atlas — Map</title>
+<meta name="description" content="Street map of the Western Cape with live cadastral parcels — click any erf to see its official municipal valuation. Free, public data." />
+<link rel="canonical" href="https://calerio.github.io/western-cape-valuations/plain.html" />
+<link rel="icon" href="favicon.ico" sizes="any" />
+<link rel="icon" type="image/svg+xml" href="favicon.svg" />
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#f5f5f7" />
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="Western Cape Property Valuation Atlas" />
+<meta property="og:title" content="Map — Western Cape property valuations" />
+<meta property="og:description" content="Click any erf on the street map to see its official municipal valuation. Free, public data." />
+<meta property="og:url" content="https://calerio.github.io/western-cape-valuations/plain.html" />
+<meta property="og:image" content="https://calerio.github.io/western-cape-valuations/assets/og-card.jpg" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="Map — Western Cape property valuations" />
+<meta name="twitter:description" content="Click any erf on the street map to see its official municipal valuation." />
+<meta name="twitter:image" content="https://calerio.github.io/western-cape-valuations/assets/og-card.jpg" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage",
+ "name":"Map — Western Cape property valuations",
+ "url":"https://calerio.github.io/western-cape-valuations/plain.html",
+ "description":"Street map of the Western Cape with live cadastral parcels; click any erf to see its official municipal valuation.",
+ "isPartOf":{"@type":"WebSite","name":"Western Cape Property Valuation Atlas","url":"https://calerio.github.io/western-cape-valuations/"}}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
+<link href="assets/tokens.css?v=3" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5/dist/maplibre-gl.js"></script>
+<style>
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:var(--map-bg);color:var(--ink);
+    font-family:var(--font-map);-webkit-font-smoothing:antialiased}
+  #map{position:fixed;inset:0}
+
+  /* floating platters over the full-bleed map (Apple Maps idiom) */
+  .ovl{position:fixed;z-index:10}
+  .platter{background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--sep);border-radius:var(--r-panel);box-shadow:var(--shadow-platter)}
+  #brand{top:calc(env(safe-area-inset-top,0px) + 16px);left:16px;max-width:70vw;padding:12px 16px 13px}
+  #brandKick{font-size:11px;letter-spacing:.06em;font-weight:600;color:var(--label2);
+    text-transform:uppercase;margin-bottom:2px}
+  #brandTitle{font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.1;color:var(--ink)}
+  /* iOS-style segmented view switcher — identical on Atlas and Satellite */
+  #viewsegWrap{top:calc(env(safe-area-inset-top,0px) + 16px);right:16px;padding:4px;border-radius:12px}
+  .viewseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
+  .viewseg a{text-decoration:none;font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
+    padding:8px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
+  .viewseg a:hover{color:var(--ink)}
+  .viewseg a[aria-current="page"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
+  @media (max-width:640px){ .viewseg a{font-size:11.5px;padding:8px 12px} }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important;animation-iteration-count:1 !important}
+  }
+
+  /* place search — glass combobox (same platter language as everything else) */
+  #searchWrap{top:calc(env(safe-area-inset-top,0px) + 86px);left:16px;
+    width:300px;max-width:calc(100vw - 32px);
+    display:flex;align-items:center;gap:9px;padding:10px 14px}
+  #searchWrap svg{flex:none;width:15px;height:15px;color:var(--label2)}
+  #placeSearch{flex:1;min-width:0;border:0;background:none;outline:none;color:var(--ink);
+    font-family:inherit;font-size:14px;letter-spacing:-.01em}
+  #placeSearch::placeholder{color:var(--label2)}
+  #placeSearch::-webkit-search-cancel-button{display:none}
+  #placeClear{flex:none;border:0;background:var(--bg3);color:var(--label2);cursor:pointer;
+    width:20px;height:20px;border-radius:50%;font-size:14px;line-height:1;padding:0}
+  #placeClear:hover{color:var(--ink)}
+  #placeResults{position:absolute;top:calc(100% + 8px);left:0;right:0;
+    max-height:min(320px, 50dvh);overflow:auto;padding:6px}
+  .sRow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+    padding:9px 10px;border-radius:8px;cursor:pointer}
+  .sRow[aria-selected="true"],.sRow:hover{background:rgba(10,132,255,.16)}
+  .sName{font-weight:600;font-size:13.5px;letter-spacing:-.01em;color:var(--ink)}
+  .sCtx{font-size:11.5px;color:var(--label2);white-space:nowrap;overflow:hidden;
+    text-overflow:ellipsis;max-width:55%}
+  .sEmpty{padding:12px 10px;font-size:12.5px;color:var(--label2)}
+
+  /* ward-boundary toggle chip */
+  #wardchip{top:calc(env(safe-area-inset-top,0px) + 142px);left:16px;
+    display:inline-flex;align-items:center;gap:8px;cursor:pointer;user-select:none;
+    padding:9px 14px;font-size:12px;letter-spacing:-.01em;font-weight:600;color:var(--label2);
+    transition:color .2s ease-out,border-color .2s ease-out}
+  #wardchip:hover{border-color:var(--accent)}
+  #wardchip .sw{width:16px;height:0;border-top:2px dashed var(--map-ward);opacity:.35}
+  #wardchip.on{color:var(--ink)}
+  #wardchip.on .sw{opacity:1}
+
+  /* phones: three view segments + EN|AF no longer fit beside the brand —
+     stack: switcher top-right, brand below it, then search, then ward chip.
+     (Must come after the base #brand/#searchWrap/#wardchip rules to win.) */
+  @media (max-width:640px){
+    #brand{top:calc(env(safe-area-inset-top,0px) + 64px)}
+    #searchWrap{top:calc(env(safe-area-inset-top,0px) + 134px)}
+    #wardchip{top:calc(env(safe-area-inset-top,0px) + 190px)}
+  }
+
+  #mapfail{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+    background:var(--bg);text-align:center;padding:24px}
+  #mapfail[hidden]{display:none}
+  #mapfail a{color:var(--accent);font-weight:600}
+
+  /* zoom/loading hint chip */
+  #maphint{bottom:calc(env(safe-area-inset-bottom,0px) + 34px);left:50%;transform:translateX(-50%);
+    background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+    border:1px solid var(--sep);color:var(--label2);border-radius:var(--r-pill);
+    padding:8px 16px;font-size:12.5px;letter-spacing:-.01em;white-space:nowrap;pointer-events:none}
+  #maphint[hidden]{display:none}
+
+  /* parcel valuation panel — floating platter; right rail on desktop, bottom sheet on phones */
+  #ppanel{top:calc(env(safe-area-inset-top,0px) + 78px);right:16px;width:340px;max-width:calc(100vw - 32px);
+    max-height:calc(100dvh - 140px);overflow:auto;padding:18px 20px 16px}
+  #ppanel[hidden]{display:none}
+  @media (max-width:640px){
+    #ppanel{top:auto;right:8px;left:8px;width:auto;bottom:calc(env(safe-area-inset-bottom,0px) + 8px);
+      max-height:55dvh;border-radius:var(--r-panel) var(--r-panel) 12px 12px}
+  }
+  #pclose{position:absolute;top:10px;right:12px;border:0;background:none;font-size:20px;line-height:1;
+    color:var(--label2);cursor:pointer;padding:4px}
+  .pKick{font-size:11px;letter-spacing:.06em;font-weight:600;color:var(--label2);text-transform:uppercase;
+    margin:0 20px 4px 0}
+  .pAddr{font-size:19px;font-weight:600;letter-spacing:-.02em;line-height:1.2;color:var(--ink);margin-bottom:2px}
+  .pVal{font-size:32px;font-weight:800;letter-spacing:-.02em;color:var(--ink);margin-top:10px;
+    font-variant-numeric:tabular-nums}
+  .pSub{font-size:12px;color:var(--label2);margin-bottom:10px}
+  .pRow{display:flex;justify-content:space-between;gap:12px;padding:8px 0;
+    border-bottom:1px solid var(--sep);font-size:13px}
+  .pRow .k{color:var(--label2)}
+  .pRow .v{color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+  .pPick{cursor:pointer;border-radius:6px;transition:background .15s ease-out}
+  .pPick:hover{background:rgba(10,132,255,.12)}
+  .pNote{font-size:11px;line-height:1.55;color:var(--label3);margin-top:10px}
+  .pNote a{color:var(--accent)}
+  .pLink{font-size:12.5px;letter-spacing:-.01em;font-weight:600;color:var(--accent);
+    cursor:pointer;margin-bottom:10px}
+
+  /* tone MapLibre's controls to the light platter language */
+  .maplibregl-ctrl-top-right{top:calc(env(safe-area-inset-top,0px) + 56px)}   /* clear the view switcher */
+  .maplibregl-ctrl-group{border-radius:var(--r-chip);overflow:hidden;box-shadow:var(--shadow-platter);
+    background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
+  .maplibregl-ctrl button{background:transparent}
+  .maplibregl-ctrl-attrib.maplibregl-compact{background:var(--platter-bg);color:var(--label2);border-radius:var(--r-chip)}
+  .maplibregl-ctrl-attrib a{color:var(--label2)}
+</style>
+</head>
+<body data-basemap="plain">
+  <div id="map"></div>
+
+  <div id="viewsegWrap" class="ovl platter" style="display:flex;gap:8px">
+    <nav class="viewseg" aria-label="Map view">
+      <a href="index.html" data-i18n="Explore">Explore</a>
+      <a href="plain.html" aria-current="page" data-i18n="Map">Map</a>
+      <a href="map.html" data-i18n="Satellite">Satellite</a>
+    </nav>
+    <nav class="viewseg" aria-label="Language / Taal">
+      <a href="#" data-lang="en">EN</a>
+      <a href="#" data-lang="af">AF</a>
+    </nav>
+  </div>
+  <div id="brand" class="ovl platter">
+    <div id="brandKick" data-i18n="Municipal valuations">Municipal valuations</div>
+    <div id="brandTitle">Western Cape</div>
+  </div>
+  <div id="searchWrap" class="ovl platter" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-owns="placeResults">
+    <svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="7" cy="7" r="5.2" stroke="currentColor" stroke-width="1.6"/><path d="M11.2 11.2l3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+    <input id="placeSearch" type="search" autocomplete="off" spellcheck="false"
+           placeholder="Search a town or suburb" data-i18n-ph="Search a town or suburb"
+           aria-label="Search a town or suburb" aria-autocomplete="list" aria-controls="placeResults" />
+    <button id="placeClear" hidden aria-label="Clear search" data-i18n-aria="Clear search">×</button>
+    <div id="placeResults" class="platter" role="listbox" hidden></div>
+  </div>
+  <div id="wardchip" class="ovl platter on" role="switch" aria-checked="true" aria-label="Toggle ward boundaries" hidden>
+    <span class="sw"></span><span data-i18n="Wards">Wards</span>
+  </div>
+
+  <div id="maphint" class="ovl" hidden></div>
+
+  <aside id="ppanel" class="ovl platter" hidden aria-label="Property valuation">
+    <button id="pclose" aria-label="Close">×</button>
+    <div id="pbody"></div>
+  </aside>
+
+  <div id="mapfail" hidden>
+    <div>
+      <div style="font-size:20px;font-weight:600;color:var(--ink);margin-bottom:10px" data-i18n="The map couldn’t load.">The map couldn’t load.</div>
+      <div style="font-size:14px;color:var(--label2)">View the <a href="index.html">Atlas</a> instead.</div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/map.js?v=23"></script>
+</body>
+</html>
