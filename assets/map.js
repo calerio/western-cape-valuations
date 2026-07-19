@@ -625,7 +625,7 @@ async function ensureDB() {
     // Served from Supabase Storage, NOT GitHub Pages (Pages gzip-corrupts the HTTP range
     // requests sql.js-httpvfs needs — see DATA_CONTRACT §8). ?db=<url> overrides for local dev.
     const DB_CONFIG = new URLSearchParams(location.search).get('db') ||
-      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v5/config.json';
+      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v6/config.json';
     const w = await createDbWorker([{ from: 'jsonconfig', configUrl: abs(DB_CONFIG) }],
       abs('assets/vendor/sqlite.worker.js'), abs('assets/vendor/sql-wasm.wasm'));
     // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot
