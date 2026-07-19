@@ -326,15 +326,33 @@ getRates().then(d => { RATESDATA = d; });
 // evidence outranks municipality evidence — several towns share one municipality
 // (Stellenbosch town vs Franschhoek are both muni "Stellenbosch"), so a muni match
 // alone must not tie with a town match.
+// Township-name normaliser: the cadastre labels towns in English with punctuation
+// ("BETTY`S BAY", "BOT RIVER", "STILL BAY EAST", "GROOT BRAK RIVER (MOSSEL BAY)") while the
+// rolls use Afrikaans/compact spellings ("BETTYS BAY", "BOTRIVIER", "STILBAAI OOS",
+// "GROOT BRAKRIVIER"). Both sides are normalised to the same shape, so pairs converge
+// regardless of which language either side used.
+function normTown(s) {
+  return (s || '').toUpperCase().replace(/\(.*?\)/g, '')
+    .replace(/\bRIVER\b/g, 'RIVIER').replace(/\bBAY\b/g, 'BAAI')
+    .replace(/\bEAST\b/g, 'OOS').replace(/\bWEST\b/g, 'WES')
+    .replace(/[^A-Z]/g, '').replace(/(.)\1+/g, '$1'); // collapse doubles: STILL/STIL, GRAAFF/GRAAF
+}
+// Cadastre name -> roll name where spelling genuinely differs (alias / roll typo).
+const TOWN_ALIAS = { ARNISTON: 'WAENHUISKRANS', MCGREGOR: 'MCREGOR', BELVEDERE: 'BELVIDERE', GRAAFWATER: 'GRAAFFWATER' };
 function rankRows(rows, town) {
   const t = (town || '').toUpperCase().trim();
+  const nt = normTown(t), at = TOWN_ALIAS[nt] ? normTown(TOWN_ALIAS[nt]) : null;
   const score = r => {
     const sub = (r.suburb || '').toUpperCase().trim(), mun = (r.muni || '').toUpperCase().trim();
     if (!t) return 0;
     if (sub === t) return 5;
-    if (sub && (sub.includes(t) || t.includes(sub))) return 4;
+    const ns = normTown(sub);
+    if (ns && ns === nt) return 5;
+    if (ns && nt && (ns.includes(nt) || nt.includes(ns))) return 4;
+    if (at && ns && (ns === at || ns.includes(at) || at.includes(ns))) return 4;
     if (mun === t) return 2;
-    if (mun && (mun.includes(t) || t.includes(mun))) return 1;
+    const nm = normTown(mun);
+    if (nm && nt && (nm.includes(nt) || nt.includes(nm))) return 1;
     return 0;
   };
   const scored = rows.map(r => [score(r), r]).sort((a, b) => b[0] - a[0] || b[1].value - a[1].value);
@@ -363,7 +381,18 @@ async function lookupErf(tag, town) {
       'WHERE erf_int=?1 AND value>0 ORDER BY (suburb=?2 COLLATE NOCASE) DESC, ' +
       "(?2<>'' AND (instr(upper(suburb),upper(?2))>0 OR instr(upper(?2),upper(suburb))>0)) DESC, " +
       'value DESC LIMIT 80', [nval, t]);
-    return { ...rankRows(rows, town), stale: false };
+    let res = rankRows(rows, town);
+    // No town match in the top 80? The right row may sit below the value cutoff under a
+    // spelling SQL can't see (normaliser/alias cases). Rows are clustered by erf_int, so
+    // fetching the erf's full row set is still only a few contiguous range reads.
+    if (res.best < 4 && rows.length === 80) {
+      const all = await db.db.query(
+        'SELECT muni,suburb,erf,address,extent,dwext,value,tenure,category FROM prop ' +
+        'WHERE erf_int=?1 AND value>0 ORDER BY value DESC LIMIT 600', [nval]);
+      const wide = rankRows(all, town);
+      if (wide.best > res.best) res = wide;
+    }
+    return { ...res, stale: false };
   } catch (err) {
     // The hosted search.db predates the erf_int column (upload pending): fall back to
     // the FTS index — bare + zero-padded erf tokens — then confirm the erf client-side.
