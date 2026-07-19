@@ -282,6 +282,28 @@ over httpvfs). The layer's ST_SCHM_NO is sometimes a plan number, not the SS ref
 falls back to name-prefix, and same-named schemes render as a chooser, never merged. Layer down /
 nothing found → the normal "No valuation found" card.
 
+**Town disambiguation (since 2026-07-19, search.db ≥ v6).** The same erf NUMBER recurs in
+100–500 townships, so a click is resolved by matching the cadastre's `Town_name` against
+`prop.suburb`. Three rules keep this working:
+- **Export**: `prop.suburb` falls back to the roll's *Town Allotment* when the Suburb column is
+  blank (`export_site.py` — Cape Agulhas, Swellendam, George, CoCT sectional). Never export a
+  blank locality when the roll has a town.
+- **Query**: the erf lookup orders town-matching rows ABOVE the value sort *before* the 80-row
+  cap (a plain `ORDER BY value DESC LIMIT 80` silently dropped modest-value houses in the clicked
+  town). If the top 80 still don't match, a wide re-fetch (LIMIT 600) re-ranks client-side —
+  cheap because rows are clustered by `erf_int`.
+- **Matching** (`normTown()` in map.js): both sides are normalised — parentheticals stripped,
+  RIVER→RIVIER / BAY→BAAI / EAST→OOS / WEST→WES, punctuation dropped, doubled letters collapsed —
+  so cadastre English ("BOT RIVER", "STILL BAY EAST", "BETTY\`S BAY") meets roll Afrikaans
+  ("BOTRIVIER", "STILBAAI OOS", "BETTYS BAY"). True aliases/typos live in `TOWN_ALIAS`
+  (ARNISTON→WAENHUISKRANS, MCGREGOR→MCREGOR roll typo, BELVEDERE→BELVIDERE,
+  GRAAFWATER→GRAAFFWATER).
+Audited 2026-07-19 against ~950 random cadastre parcels across all 316 WC townships: 72% resolve
+to a town-level match; most of the rest are parcels genuinely absent from the rolls (roads/public
+land/newer subdivisions, honest "no valuation"), plus townships absent from collected rolls —
+notably George's satellite towns (Wilderness, Hoekwil, Herolds Bay, Uniondale) whose roll
+coverage is a Phase-1 collection gap, not a map bug.
+
 If the live service ever becomes a bottleneck, the pre-built PMTiles pipeline sketched in
 MAP-FEASIBILITY.md is the upgrade path — swap `addParcels()`'s source, keep everything else.
 
