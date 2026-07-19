@@ -499,3 +499,53 @@ Rules:
    - **Data prose:** `authorities.py` objection instructions and other authored English prose are
      translated by exact-string lookup in the catalog — new authored prose without a catalog entry
      simply renders in English on the `/af/` pages until translated.
+
+## 14. Place search & boundary highlight (`data/geo/places.json` + `assets/places.js`)
+
+Both map views (`map.html`, `plain.html`) carry a town/suburb search box. Its data path has two
+halves with deliberately **asymmetric** failure modes:
+
+1. **The index (static, generated).** `extract/export_places.py` (data repo, invoked by
+   `export_site.py`) queries the Stats SA Census 2011 place-name boundary service —
+   `https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/StatsSA_CensusBoundaries/MapServer`
+   layer 3 (Main Places = towns) and layer 1 (Subplaces = suburbs) — and writes
+   `data/geo/places.json`: `{name, type: town|suburb|municipality, muni, town?, mp?/sp?[], bbox}`
+   per place (~1,880 entries, ~250 KB). Municipality entries are derived locally from the
+   committed `geo/wc-municipalities.geojson` (no network). **Generated — never hand-edit.**
+   - **Name cleaning is intentional — do not "fix" it:** StatsSA `"<name> NU"` non-urban
+     remainders are dropped (not searchable places; their bboxes span whole rural municipalities),
+     and `"<name> SP"` / `"<name> SP<N>"` numbered fragments are merged into one entry keyed on
+     `(cleaned name, MP_CODE)` carrying all fragment `SP_CODE`s — so one suburb renders as one
+     merged highlight, and same-named suburbs in different towns stay distinct.
+   - On any fetch failure the exporter **keeps the previously committed places.json** (warns,
+     never ships an empty index).
+2. **The boundary polygon (live, per selection).** Selecting a result flies the map to the
+   index bbox IMMEDIATELY, then `assets/places.js` live-fetches the polygon (`f=geojson`,
+   `geometryPrecision=5`) from the same service by `MP_CODE`/`SP_CODE IN (…)` — same host, CORS
+   posture and degrade-quietly contract as the cadastre (§9). Municipality highlights come from
+   the local geojson, no network. **Fetch failure degrades to the fly-to only** (hint chip
+   "Boundary unavailable — zoomed to the area") — the navigate half of search never depends on
+   the live service. Boundaries render as a translucent accent fill + stroke; deliberately **no
+   symbol/text label layer** (the satellite inline style has no `glyphs` URL, so label text would
+   silently not render — the place name lives in the search input instead).
+   Deep links: `#p/t<mp>` / `#p/s<sp[_sp…]>` / `#p/m<normalizedname>` restore a selection on load
+   and survive switching between the two map views (the view links carry the hash).
+
+## 15. The plain "Map" view (`plain.html`)
+
+`plain.html` is the non-satellite twin of `map.html`: same shared `assets/map.js` (mode selected
+by `<body data-basemap="plain">`), same parcels/valuation/wards/search. Differences, all
+deliberate:
+- **Basemap:** OpenFreeMap vector style (`https://tiles.openfreemap.org/styles/liberty` — the
+  `PLAIN_STYLE` const in `map.js` is the single swap point, exactly like §9's `BASEMAP`;
+  `/bright` and `/positron` are drop-in alternates, PMTiles self-hosting the escape hatch if the
+  keyless community service ever degrades). Vector tiles overzoom crisply to parcel zoom.
+- **Theme:** pins `data-theme="light"` (`map.html` pins dark). The six `--map-*` overlay tokens
+  in `assets/tokens.css` exist on BOTH theme pins with per-theme values — `map.js` reads the same
+  token names via `cssVar()` and needs no JS branching. Don't move those tokens back to base
+  `:root`.
+- **Layer order:** in plain mode every overlay layer is inserted *before* the style's first
+  symbol layer (`firstSymbolLayerId()`), so OpenFreeMap's road/place labels stay legible above
+  the translucent fills. Satellite mode appends as before.
+- `plain.html` is listed in `sitemap.xml` (priority 0.8, like `map.html`) and in every generated
+  page's view-switcher nav (`templates/shell.html` `${nav_map}`).
