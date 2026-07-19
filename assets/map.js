@@ -12,11 +12,22 @@
  * service becomes a bottleneck. Everything degrades quietly: no parcels → imagery map;
  * no valuation match → an honest "no match" card.
  * Design: docs/superpowers/specs/2026-06-22-map-view-design.md (+ 2026-07-02 parcels spec)
+ *
+ * This module now serves TWO pages: map.html (satellite, pins dark theme) and
+ * plain.html (OpenFreeMap vector basemap, pins light theme) — selected by
+ * <body data-basemap="plain">. Same parcels/valuation/wards/search on both.
+ * Place search + boundary highlight live in places.js.
+ * Design: docs/superpowers/specs/2026-07-19-place-search-and-plain-map-design.md
  */
 const maplibregl = window.maplibregl;
-// design tokens (assets/tokens.css) — read once at boot; map.html pins dark
+// design tokens (assets/tokens.css) — read once at boot; map.html pins dark,
+// plain.html pins light, so the same --map-* names resolve per page.
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 import { getRates, computeRates } from "./rates.js?v=1";
+import { initPlaceSearch } from "./places.js?v=1";
+
+// Which basemap this page wants (plain.html sets <body data-basemap="plain">).
+const MODE = document.body.dataset.basemap === 'plain' ? 'plain' : 'satellite';
 
 // Western Cape framing extent — the map is FIT to this on load (with padding) so the
 // whole province frames itself on any screen/aspect, phone or desktop. [lng, lat]: SW, NE.
@@ -37,6 +48,12 @@ const BASEMAP = {
   attribution: 'Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community',
 };
 
+// Plain (non-satellite) basemap — OpenFreeMap: free, keyless OSM vector tiles,
+// crisp at parcel zoom (overzoomed vectors, unlike raster). To change the look
+// swap this one URL — '/bright' and '/positron' are drop-in alternates, or
+// self-host PMTiles if the community service ever becomes unreliable.
+const PLAIN_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
+
 // WC SG planning cadastre, layer 1 "Erven (Surveyor General)" — the join fields
 // TAG_VALUE (erf number) + Town_name were validated live in MAP-FEASIBILITY.md.
 // No published open licence: attributed to the Surveyor-General, served as-is.
@@ -50,7 +67,9 @@ const CADASTRE = {
 function initMap() {
   const map = new maplibregl.Map({
     container: 'map',
-    style: {
+    // satellite: raster imagery added onto a bare inline style; plain: the
+    // OpenFreeMap style URL brings its own basemap + label layers.
+    style: MODE === 'plain' ? PLAIN_STYLE : {
       version: 8,
       sources: {},
       // neutral backdrop shown wherever imagery tiles are missing (degrade quietly)
@@ -85,7 +104,7 @@ function addBasemap(map) {
 
 // Municipality outlines for orientation while zoomed out (same GeoJSON the Atlas uses,
 // served same-origin from Pages). Purely contextual — failure to load is ignored.
-async function addBoundaries(map) {
+async function addBoundaries(map, beforeId) {
   try {
     const gj = await (await fetch('data/geo/wc-municipalities.geojson')).json();
     map.addSource('munis', { type: 'geojson', data: gj });
@@ -93,7 +112,7 @@ async function addBoundaries(map) {
       id: 'munis-line', type: 'line', source: 'munis',
       maxzoom: CADASTRE.minzoom,     // hand over to parcel lines once erven appear
       paint: { 'line-color': cssVar('--map-muni-line'), 'line-width': 1 },
-    });
+    }, beforeId);
   } catch (e) { console.warn('muni boundaries unavailable', e); }
 }
 
@@ -106,7 +125,7 @@ async function addBoundaries(map) {
 // Failure to load degrades quietly: no wards, everything else keeps working.
 const WARD_LAYERS = ['ward-fill', 'ward-lines', 'ward-labels'];
 
-async function addWards(map) {
+async function addWards(map, beforeId) {
   try {
     const gj = await (await fetch('data/geo/wc-wards.geojson')).json();
     map.addSource('wards', {
@@ -118,7 +137,7 @@ async function addWards(map) {
     map.addLayer({
       id: 'ward-fill', type: 'fill', source: 'wards',
       paint: { 'fill-opacity': 0 },
-    });
+    }, beforeId);
     map.addLayer({
       id: 'ward-lines', type: 'line', source: 'wards',
       minzoom: 8.5,                       // below this, municipalities are the story
@@ -128,7 +147,7 @@ async function addWards(map) {
         'line-width': ['interpolate', ['linear'], ['zoom'], 8.5, 0.8, 13, 1.4, 18, 2.2],
         'line-opacity': ['interpolate', ['linear'], ['zoom'], 8.5, 0.5, 11, 0.8],
       },
-    });
+    }, beforeId);
     map.addLayer({
       id: 'ward-labels', type: 'symbol', source: 'wards',
       minzoom: 10.5,
@@ -137,15 +156,25 @@ async function addWards(map) {
         'text-size': ['interpolate', ['linear'], ['zoom'], 10.5, 10, 16, 13],
         'text-letter-spacing': 0.08,
         'text-transform': 'uppercase',
+        // satellite's inline style has no glyphs URL → MapLibre draws the default
+        // font locally; the OpenFreeMap style serves glyphs but not that default
+        // font (404s), so plain mode must name a font its endpoint actually has.
+        ...(MODE === 'plain' ? { 'text-font': ['Noto Sans Regular'] } : {}),
       },
       paint: {
         'text-color': cssVar('--map-ward-label'),
         'text-halo-color': 'rgba(12,21,18,.85)',
         'text-halo-width': 1.3,
       },
-    });
+    }, beforeId);
     initWardChip(map);
   } catch (e) { console.warn('ward boundaries unavailable', e); }
+}
+
+// First symbol (label) layer of the current style — overlay anchor for plain mode.
+function firstSymbolLayerId(map) {
+  const l = map.getStyle().layers.find(l => l.type === 'symbol');
+  return l && l.id;
 }
 
 function initWardChip(map) {
@@ -186,7 +215,7 @@ function esriToGeoJSON(esri) {
   };
 }
 
-function addParcels(map) {
+function addParcels(map, beforeId) {
   map.addSource('parcels', {
     type: 'geojson', data: EMPTY_FC,
     promoteId: 'PRCL_KEY',           // feature-state (selection highlight) keys on the SG key
@@ -199,7 +228,7 @@ function addParcels(map) {
       'fill-color': cssVar('--map-parcel-sel'),
       'fill-opacity': ['case', ['boolean', ['feature-state', 'sel'], false], 0.30, 0.03],
     },
-  });
+  }, beforeId);
   const SEL = ['boolean', ['feature-state', 'sel'], false];
   map.addLayer({
     id: 'parcels-line', type: 'line', source: 'parcels',
@@ -212,7 +241,7 @@ function addParcels(map) {
         15.5, ['case', SEL, 2.5, 0.5],
         19, ['case', SEL, 3.2, 1.4]],
     },
-  });
+  }, beforeId);
   const refresh = () => { clearTimeout(parcelTimer); parcelTimer = setTimeout(() => loadParcels(map), 250); };
   map.on('moveend', refresh);
   refresh();
@@ -507,8 +536,16 @@ async function initI18n() {
   if (LANG !== 'af') return;
   try { I18N = await (await fetch('data/i18n-af.json')).json(); } catch (_) { return; }
   document.documentElement.lang = 'af';
-  document.title = t('Western Cape Property Valuation Atlas — Satellite map');
+  document.title = t(MODE === 'plain'
+    ? 'Western Cape Property Valuation Atlas — Map'
+    : 'Western Cape Property Valuation Atlas — Satellite map');
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPh);
+    if (el.getAttribute('aria-label')) el.setAttribute('aria-label', t(el.dataset.i18nPh));
+  });
+  document.querySelectorAll('[data-i18n-aria]').forEach(el =>
+    el.setAttribute('aria-label', t(el.dataset.i18nAria)));
   $('brandTitle').textContent = tn('Western Cape');
 }
 function wireLangToggle() {
@@ -692,11 +729,16 @@ function boot() {
   const map = initMap();
   window._map = map;                 // closePanel needs it to clear the selection
   map.on('load', () => {
-    addBasemap(map);
-    addBoundaries(map);
-    addWards(map);
-    addParcels(map);
+    // plain mode: our overlays slot in UNDER the OpenFreeMap style's first symbol
+    // layer so its road/place labels stay legible above our translucent fills.
+    // satellite mode: no pre-existing layers, append order is fine (undefined).
+    const beforeId = MODE === 'plain' ? firstSymbolLayerId(map) : undefined;
+    if (MODE === 'satellite') addBasemap(map);
+    addBoundaries(map, beforeId);
+    addWards(map, beforeId);
+    addParcels(map, beforeId);
     onParcelClick(map);
+    initPlaceSearch(map, { t, setHint, beforeId });
   });
   map.on('error', (e) => console.warn('map error', e && e.error)); // tile gaps degrade quietly
   $('pclose').addEventListener('click', closePanel);

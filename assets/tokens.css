@@ -63,13 +63,10 @@
   --cat-vacant: #d9c893;
   --cat-other: #cfcfd6;
 
-  /* satellite map layers */
-  --map-bg: #0b0b0d;
-  --map-parcel-line: rgba(255, 255, 255, .85);
-  --map-parcel-sel: #0a84ff;
-  --map-ward: #e8b93c;
-  --map-ward-label: #f3dfa0;
-  --map-muni-line: rgba(255, 255, 255, .55);
+  /* map overlay layers (parcels/wards/highlights): the values live on the
+   * theme pins below — map.html pins dark (white lines on satellite imagery),
+   * plain.html pins light (ink lines on the OpenFreeMap vector basemap) —
+   * so map.js's cssVar() reads resolve per page with no JS branching. */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -101,6 +98,17 @@
   }
 }
 
+/* plain.html pins light regardless of system preference (OpenFreeMap liberty
+ * is a light basemap; the chrome + overlay inks match it) */
+:root[data-theme="light"] {
+  --map-bg: #eef0ee;                       /* neutral fallback before vector tiles paint */
+  --map-parcel-line: rgba(29, 29, 31, .55);
+  --map-parcel-sel: #0071e3;
+  --map-ward: #b8790a;
+  --map-ward-label: #8a5a06;
+  --map-muni-line: rgba(29, 29, 31, .35);
+}
+
 /* map.html pins dark regardless of system preference */
 :root[data-theme="dark"] {
   --bg: #1c1c1e;
@@ -127,4 +135,11 @@
   --map-stroke: #1c1c1e;
   --map-outline: #f5f5f7;
   --map-halo: rgba(20, 20, 22, .85);
+  /* satellite map layers (white/amber over dark imagery) */
+  --map-bg: #0b0b0d;
+  --map-parcel-line: rgba(255, 255, 255, .85);
+  --map-parcel-sel: #0a84ff;
+  --map-ward: #e8b93c;
+  --map-ward-label: #f3dfa0;
+  --map-muni-line: rgba(255, 255, 255, .55);
 }
