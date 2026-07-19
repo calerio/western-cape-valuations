@@ -352,9 +352,17 @@ async function lookupErf(tag, town) {
   const nval = parseInt(dm[0], 10);
   const db = await ensureDB();
   try {
+    // Town-match rows FIRST, then by value, THEN the row cap: common erf numbers recur in
+    // 100-500 townships, so a plain "ORDER BY value DESC LIMIT 80" silently dropped the
+    // clicked town's modest-value house before rankRows ever saw it. Rows are physically
+    // clustered by erf_int (export_site.py), so scanning all of one erf's rows is a few
+    // contiguous range reads.
+    const t = String(town || '').trim();
     const rows = await db.db.query(
       'SELECT muni,suburb,erf,address,extent,dwext,value,tenure,category FROM prop ' +
-      'WHERE erf_int=? AND value>0 ORDER BY value DESC LIMIT 80', [nval]);
+      'WHERE erf_int=?1 AND value>0 ORDER BY (suburb=?2 COLLATE NOCASE) DESC, ' +
+      "(?2<>'' AND (instr(upper(suburb),upper(?2))>0 OR instr(upper(?2),upper(suburb))>0)) DESC, " +
+      'value DESC LIMIT 80', [nval, t]);
     return { ...rankRows(rows, town), stale: false };
   } catch (err) {
     // The hosted search.db predates the erf_int column (upload pending): fall back to
