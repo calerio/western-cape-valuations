@@ -304,6 +304,20 @@ land/newer subdivisions, honest "no valuation"), plus townships absent from coll
 notably George's satellite towns (Wilderness, Hoekwil, Herolds Bay, Uniondale) whose roll
 coverage is a Phase-1 collection gap, not a map bug.
 
+**Supplementary rolls (since 2026-07-19, search.db ≥ v9).** `extract/jobs.py` now loads
+current-cycle SUPPLEMENTARY rolls (SV#) for 9 municipalities (Overstrand, Witzenberg,
+Drakenstein, Bergrivier, Swellendam, Cape Agulhas, George, Knysna, Mossel Bay);
+`build.supersede()` keeps only the LATEST roll's row per property identity, so an SV
+revaluation replaces its GV row instead of duplicating it. Identity township is
+engine-dependent (`jobs.SV_TOWN_KEY_MUNIS`): setvolume munis key on `town`, all others on
+`suburb`. Rules when adding SVs: GV job lines must precede SV lines, SVs ascending; verify
+the SV's cycle from its OWN title page (filenames lie); verify the muni's engine parses the
+SV layout AND emits the same township convention as its GV — if it can't, do NOT ingest
+(currently deferred for that reason: Theewaterskloof, Matzikama, Bitou, Cederberg,
+Stellenbosch, Oudtshoorn, Hessequa; Langeberg SVs are scanned images; Breede Valley &
+Kannaland have no current-cycle SVs). Knysna's SVs use a dedicated `knysnasv` engine —
+its SV01 ADDS townships the GV omitted entirely (all of Belvidere).
+
 If the live service ever becomes a bottleneck, the pre-built PMTiles pipeline sketched in
 MAP-FEASIBILITY.md is the upgrade path — swap `addParcels()`'s source, keep everything else.
 
