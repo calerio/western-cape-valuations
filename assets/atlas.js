@@ -1086,7 +1086,7 @@ async function ensureDB() {
     // against the COMPRESSED bytes, so SQLite reads garbage and every search returns nothing.
     // Supabase Storage serves raw byte-ranges (no transfer compression) with CORS — verified.
     // config.json's urlPrefix ("search.db.") resolves the chunks relative to this configUrl.
-    const DB_CONFIG = "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v6/config.json";
+    const DB_CONFIG = "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v7/config.json";
     const w = await createDbWorker([{ from: "jsonconfig", configUrl: DB_CONFIG }],
       abs("assets/vendor/sqlite.worker.js"), abs("assets/vendor/sql-wasm.wasm"));
     // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot

@@ -338,7 +338,9 @@ function normTown(s) {
     .replace(/[^A-Z]/g, '').replace(/(.)\1+/g, '$1'); // collapse doubles: STILL/STIL, GRAAFF/GRAAF
 }
 // Cadastre name -> roll name where spelling genuinely differs (alias / roll typo).
-const TOWN_ALIAS = { ARNISTON: 'WAENHUISKRANS', MCGREGOR: 'MCREGOR', BELVEDERE: 'BELVIDERE', GRAAFWATER: 'GRAAFFWATER' };
+const TOWN_ALIAS = { ARNISTON: 'WAENHUISKRANS', MCGREGOR: 'MCREGOR', BELVEDERE: 'BELVIDERE', GRAAFWATER: 'GRAAFFWATER',
+  // Afrikaans↔English pairs the normaliser can't derive (keys/values are normTown output)
+  BETIESBAI: 'BETYSBAI' };
 function rankRows(rows, town) {
   const t = (town || '').toUpperCase().trim();
   const nt = normTown(t), at = TOWN_ALIAS[nt] ? normTown(TOWN_ALIAS[nt]) : null;
@@ -662,7 +664,7 @@ async function ensureDB() {
     // Served from Supabase Storage, NOT GitHub Pages (Pages gzip-corrupts the HTTP range
     // requests sql.js-httpvfs needs — see DATA_CONTRACT §8). ?db=<url> overrides for local dev.
     const DB_CONFIG = new URLSearchParams(location.search).get('db') ||
-      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v6/config.json';
+      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v7/config.json';
     const w = await createDbWorker([{ from: 'jsonconfig', configUrl: abs(DB_CONFIG) }],
       abs('assets/vendor/sqlite.worker.js'), abs('assets/vendor/sql-wasm.wasm'));
     // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot
