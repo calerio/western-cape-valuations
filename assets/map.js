@@ -406,20 +406,31 @@ function normTown(s) {
     .replace(/[^A-Z]/g, '').replace(/(.)\1+/g, '$1'); // collapse doubles: STILL/STIL, GRAAFF/GRAAF
 }
 // Cadastre name -> roll name where spelling genuinely differs (alias / roll typo).
-const TOWN_ALIAS = { ARNISTON: 'WAENHUISKRANS', MCGREGOR: 'MCREGOR', BELVEDERE: 'BELVIDERE', GRAAFWATER: 'GRAAFFWATER',
-  // Afrikaans↔English pairs the normaliser can't derive (keys/values are normTown output)
+// Single source: data/geo/town-aliases.json (also read by the offline linker in extract/match).
+// The literal is the fallback while the file loads / if it fails. Keys/values are normTown output.
+let TOWN_ALIAS = { ARNISTON: 'WAENHUISKRANS', MCGREGOR: 'MCREGOR', BELVEDERE: 'BELVIDERE', GRAAFWATER: 'GRAAFFWATER',
   BETIESBAI: 'BETYSBAI' };
+fetch('data/geo/town-aliases.json').then(r => r.json()).then(d => { if (d && typeof d === 'object') TOWN_ALIAS = d; }).catch(() => {});
 function rankRows(rows, town) {
   const t = (town || '').toUpperCase().trim();
   const nt = normTown(t), at = TOWN_ALIAS[nt] ? normTown(TOWN_ALIAS[nt]) : null;
-  const score = r => {
-    const sub = (r.suburb || '').toUpperCase().trim(), mun = (r.muni || '').toUpperCase().trim();
-    if (!t) return 0;
+  // town evidence from ONE label: the roll's suburb, or its town column where the export carries
+  // it (George "GEORGE"/"PACALTSDORP", Beaufort West's five towns — DATA_CONTRACT §9)
+  const scoreLabel = label => {
+    const sub = (label || '').toUpperCase().trim();
+    if (!t || !sub) return 0;
     if (sub === t) return 5;
     const ns = normTown(sub);
     if (ns && ns === nt) return 5;
     if (ns && nt && (ns.includes(nt) || nt.includes(ns))) return 4;
     if (at && ns && (ns === at || ns.includes(at) || at.includes(ns))) return 4;
+    return 0;
+  };
+  const score = r => {
+    const mun = (r.muni || '').toUpperCase().trim();
+    if (!t) return 0;
+    const s = Math.max(scoreLabel(r.suburb), scoreLabel(r.town));   // max: the two labels are not independent
+    if (s) return s;
     if (mun === t) return 2;
     const nm = normTown(mun);
     if (nm && nt && (nm.includes(nt) || nt.includes(nm))) return 1;
@@ -439,6 +450,17 @@ function rankRows(rows, town) {
 // noise (erf 15773 exists in 14 towns). The municipality comes from the click point itself
 // (muniAt), so it holds even when the cadastre's town attributes go missing. Rows from another
 // municipality are allowed only with town-level (suburb) evidence — a boundary-sliver safety net.
+// search.db ≥ v10 carries prop.town (the roll's own town column, DATA_CONTRACT §4.2); older
+// hosted DBs don't — detect once so the same JS works against either.
+let townColPromise = null;
+function hasTownCol() {
+  if (!townColPromise) townColPromise = (async () => {
+    try { const db = await ensureDB(); return (await db.db.query('PRAGMA table_info(prop)')).some(c => c.name === 'town'); }
+    catch (e) { return false; }
+  })();
+  return townColPromise;
+}
+
 async function lookupErf(tag, town, muni) {
   const dm = String(tag || '').match(/\d+/);
   if (!dm) return { rows: [], best: 0, stale: false };
@@ -453,10 +475,12 @@ async function lookupErf(tag, town, muni) {
     // clustered by erf_int (export_site.py), so scanning all of one erf's rows is a few
     // contiguous range reads.
     const t = String(town || '').trim();
+    const tc = await hasTownCol();
     const q = (gate, lim) => db.db.query(
-      'SELECT muni,suburb,erf,address,extent,dwext,value,tenure,category FROM prop ' +
-      `WHERE erf_int=?1 AND value>0 ${gate ? 'AND muni=?3 ' : ''}ORDER BY (suburb=?2 COLLATE NOCASE) DESC, ` +
-      "(?2<>'' AND (instr(upper(suburb),upper(?2))>0 OR instr(upper(?2),upper(suburb))>0)) DESC, " +
+      `SELECT muni,suburb,erf,address,extent,dwext,value,tenure,category${tc ? ',town' : ''} FROM prop ` +
+      `WHERE erf_int=?1 AND value>0 ${gate ? 'AND muni=?3 ' : ''}ORDER BY (suburb=?2 COLLATE NOCASE${tc ? ' OR town=?2 COLLATE NOCASE' : ''}) DESC, ` +
+      "(?2<>'' AND (instr(upper(suburb),upper(?2))>0 OR instr(upper(?2),upper(suburb))>0" +
+      `${tc ? " OR instr(upper(coalesce(town,'')),upper(?2))>0" : ''})) DESC, ` +
       `value DESC LIMIT ${lim}`, gate ? [nval, t, m] : [nval, t]);
     const rows = await q(!!m, 80);
     res = rankRows(rows, town);
