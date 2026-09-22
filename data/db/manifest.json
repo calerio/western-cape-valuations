@@ -1,8 +1,8 @@
 {
  "schema": "search.db v10",
- "built": "2026-09-22T19:26:54",
- "size_bytes": 632139776,
- "sha256": "fb842e46e0816b00947a33997b38cc07509a2129b658aa7486b48bb7ae633036",
+ "built": "2026-09-22T20:13:25",
+ "size_bytes": 538370048,
+ "sha256": "01aecf1bac29a8716943147f283e204d3ad547a498eb556b92e95a0c5586e35e",
  "rows": {
   "prop": 1459474,
   "link": 1336817
@@ -28,7 +28,7 @@
    "order": 0,
    "name": "search.db.000",
    "size_bytes": 33554432,
-   "sha256": "e5574b1c12eb95c525ef717acd1a29dd1b31ca90a97fbe5b8826148b796cae2c",
+   "sha256": "e262291114a41682499e37b196f0e0735f6670cddb67fa43d45b37a08e78ce01",
    "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.000"
   },
   {
@@ -98,64 +98,50 @@
    "order": 10,
    "name": "search.db.010",
    "size_bytes": 33554432,
-   "sha256": "72625ba901ff74bc72665f801256540ac067a442720a843505f6d7e9893a9dff",
+   "sha256": "18e0055727338be8569c336279ef69f09548c3352aa0092455dc0dd8ca3b16b4",
    "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.010"
   },
   {
    "order": 11,
    "name": "search.db.011",
    "size_bytes": 33554432,
-   "sha256": "f6022c9ca77297d05637db8bd18f0af877ab1cf5fbe99f3bb26757dfc1381f5f",
+   "sha256": "1f577f6bb29a01bb62b4606d06ce27d328962dd66a87794faad54157876ce3af",
    "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.011"
   },
   {
    "order": 12,
    "name": "search.db.012",
    "size_bytes": 33554432,
-   "sha256": "166450f74a0d283f5beaf084a2d04dcdeb5d1a363178178448c6be98afd817b8",
+   "sha256": "56e13f23271c857ca521c660588ef20447afe1312cb583b00491ffb038b39e08",
    "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.012"
   },
   {
    "order": 13,
    "name": "search.db.013",
    "size_bytes": 33554432,
-   "sha256": "de9381d5065ec1670443d798cff9c65238e788d240c49164f31ad411da59f0ea",
+   "sha256": "6dc9c846ad4c83ff0e7aeb7c55b24d40c288977237398c2066b51f8fa103d90a",
    "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.013"
   },
   {
    "order": 14,
    "name": "search.db.014",
    "size_bytes": 33554432,
-   "sha256": "9e637c8e2e2d602090f312761db1166808250cb2c13c5754f821180295719b5b",
+   "sha256": "cb7f5d480d36e21942b0aec046f0e772c6f3b2b793c4d2dcf73402aea3c7bfc9",
    "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.014"
   },
   {
    "order": 15,
    "name": "search.db.015",
    "size_bytes": 33554432,
-   "sha256": "e41f89ccafc3eb14347add6985befe04fafaee743c363d88a15fceeb6cd96106",
+   "sha256": "b88eaeeeec7661aec6d432081026b98d9f9baefb26bbe9b3f1c660d1707bcec6",
    "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.015"
   },
   {
    "order": 16,
    "name": "search.db.016",
-   "size_bytes": 33554432,
-   "sha256": "be916d2da166ae71b2d78a52283047c6518067c2ec78c5908e258a97951bcf83",
+   "size_bytes": 1499136,
+   "sha256": "bed188e4722c68f38f9ec21a12105fe4598c292e678114a69b0bbbfdf6924d1b",
    "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.016"
-  },
-  {
-   "order": 17,
-   "name": "search.db.017",
-   "size_bytes": 33554432,
-   "sha256": "45dc7e42445ab2a710fd02d25c81389f52ef7ffbae8b0577f4d3bf05fac40929",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.017"
-  },
-  {
-   "order": 18,
-   "name": "search.db.018",
-   "size_bytes": 28160000,
-   "sha256": "40780faa99053824841256a645f873bc7fd2704e0482da0520ba35a4bd01bd0d",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.018"
   }
  ],
  "concatenation": [
@@ -175,9 +161,8 @@
   "search.db.013",
   "search.db.014",
   "search.db.015",
-  "search.db.016",
-  "search.db.017",
-  "search.db.018"
+  "search.db.016"
  ],
- "remote_prefix": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/"
+ "remote_prefix": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/",
+ "version": "v10"
 }
