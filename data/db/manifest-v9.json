@@ -1,0 +1,118 @@
+{
+ "schema": "search.db v9 (prop without town/pid/link)",
+ "remote_prefix": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/",
+ "size_bytes": 332963840,
+ "sha256": "f28f7ec9ad992848564d41e975eed39bb9b61c05cf2962c6fed82b892f4444e1",
+ "rows": {
+  "prop": 1459474,
+  "psearch": 1459474
+ },
+ "prop_columns": [
+  "id",
+  "muni",
+  "suburb",
+  "erf",
+  "address",
+  "extent",
+  "dwext",
+  "value",
+  "tenure",
+  "category",
+  "scheme",
+  "erf_int"
+ ],
+ "chunks": [
+  {
+   "order": 0,
+   "name": "search.db.000",
+   "size_bytes": 33554432,
+   "sha256": "9aad22d9237c8c96a22ce2eb7209bfda1d5c8069163645fbebd52448dd5f0b12",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.000"
+  },
+  {
+   "order": 1,
+   "name": "search.db.001",
+   "size_bytes": 33554432,
+   "sha256": "d16ad516136ebf7cc91ee6deb1da3fea7f04a981ebe9e11faf72af2a1b5d9870",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.001"
+  },
+  {
+   "order": 2,
+   "name": "search.db.002",
+   "size_bytes": 33554432,
+   "sha256": "50dabeed754fe831fe1f51bb7fd66c012b53340e5e2b50b32c33927e3d1c4f2e",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.002"
+  },
+  {
+   "order": 3,
+   "name": "search.db.003",
+   "size_bytes": 33554432,
+   "sha256": "c767211d60c498aae2e7bbfca3cb013d5fc90ac8b00059cf7f42e43ffc73ac01",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.003"
+  },
+  {
+   "order": 4,
+   "name": "search.db.004",
+   "size_bytes": 33554432,
+   "sha256": "4f18513ec80e0b9adf28a2877c8a34063d72257598e85f4eaf2dde9620469be3",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.004"
+  },
+  {
+   "order": 5,
+   "name": "search.db.005",
+   "size_bytes": 33554432,
+   "sha256": "c69741e0fc6a827258eb84953e03c8878eb85f703368c3a4075b215886b40aca",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.005"
+  },
+  {
+   "order": 6,
+   "name": "search.db.006",
+   "size_bytes": 33554432,
+   "sha256": "081d1983bc53db91fabb4281d3692f59b9f877219d6f7d620945e3edc84a0ce9",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.006"
+  },
+  {
+   "order": 7,
+   "name": "search.db.007",
+   "size_bytes": 33554432,
+   "sha256": "d2ff9363ab6f1729d9d13be0edd824b45189bd3c1ccfba326b78eaf2ef031dda",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.007"
+  },
+  {
+   "order": 8,
+   "name": "search.db.008",
+   "size_bytes": 33554432,
+   "sha256": "fd8287ddef22f142f2ef0253bd5fab9958d8af6c14beaa014068b5883000ffff",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.008"
+  },
+  {
+   "order": 9,
+   "name": "search.db.009",
+   "size_bytes": 30973952,
+   "sha256": "c44cd1c3828dd5d4d342f7faa915659d2f96a38e8ac4e5d8b13d28a058990d08",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/search.db.009"
+  }
+ ],
+ "concatenation": [
+  "search.db.000",
+  "search.db.001",
+  "search.db.002",
+  "search.db.003",
+  "search.db.004",
+  "search.db.005",
+  "search.db.006",
+  "search.db.007",
+  "search.db.008",
+  "search.db.009"
+ ],
+ "config": {
+  "serverMode": "chunked",
+  "requestChunkSize": 65536,
+  "databaseLengthBytes": 332963840,
+  "serverChunkSize": 33554432,
+  "urlPrefix": "search.db.",
+  "suffixLength": 3
+ },
+ "source": "website repo git ab4d58d data/db chunks = Supabase valuations/v9",
+ "registered": "2026-09-22T15:58:00"
+}

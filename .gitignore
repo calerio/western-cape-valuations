@@ -2,3 +2,6 @@ node_modules/
 .DS_Store
 *.tmp
 *.zip
+
+# search.db chunks are served from Supabase Storage (DATA_CONTRACT §8); only config + manifests are tracked
+data/db/search.db.[0-9][0-9][0-9]

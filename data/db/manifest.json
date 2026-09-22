@@ -1,0 +1,183 @@
+{
+ "schema": "search.db v10",
+ "built": "2026-09-22T19:26:54",
+ "size_bytes": 632139776,
+ "sha256": "fb842e46e0816b00947a33997b38cc07509a2129b658aa7486b48bb7ae633036",
+ "rows": {
+  "prop": 1459474,
+  "link": 1336817
+ },
+ "prop_columns": [
+  "id",
+  "muni",
+  "suburb",
+  "erf",
+  "address",
+  "extent",
+  "dwext",
+  "value",
+  "tenure",
+  "category",
+  "scheme",
+  "erf_int",
+  "town",
+  "pid"
+ ],
+ "chunks": [
+  {
+   "order": 0,
+   "name": "search.db.000",
+   "size_bytes": 33554432,
+   "sha256": "e5574b1c12eb95c525ef717acd1a29dd1b31ca90a97fbe5b8826148b796cae2c",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.000"
+  },
+  {
+   "order": 1,
+   "name": "search.db.001",
+   "size_bytes": 33554432,
+   "sha256": "2022377cc5e35ddd489f8ba72a92f4413d65969178c7582ff3ddd3cca1f407d6",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.001"
+  },
+  {
+   "order": 2,
+   "name": "search.db.002",
+   "size_bytes": 33554432,
+   "sha256": "82917ef88d5052f0ded0d154199eb7c9e302d3d3c2e3bc6972436fec119a4ae6",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.002"
+  },
+  {
+   "order": 3,
+   "name": "search.db.003",
+   "size_bytes": 33554432,
+   "sha256": "07c74a62011b9eb46710b5eabe1aec57dd0b001856905e7253a9592d44e6b48c",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.003"
+  },
+  {
+   "order": 4,
+   "name": "search.db.004",
+   "size_bytes": 33554432,
+   "sha256": "7bde891084e91f2be42eda3192e7d0cecf6c8a4f5e295402b3bba317fabb9d2e",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.004"
+  },
+  {
+   "order": 5,
+   "name": "search.db.005",
+   "size_bytes": 33554432,
+   "sha256": "065daac5237cfa1cee3cc8b0abadc4dee2dab893b072320091e97af68bc63c7d",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.005"
+  },
+  {
+   "order": 6,
+   "name": "search.db.006",
+   "size_bytes": 33554432,
+   "sha256": "eb09a82ff0a7b7d1a016a88a06e03ebe81278862a1a3adcef90ecdca1f456c40",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.006"
+  },
+  {
+   "order": 7,
+   "name": "search.db.007",
+   "size_bytes": 33554432,
+   "sha256": "57e997dd9bfb060340df3f9e2e22ffba323422b76b65c9a9c83c333d6126da0f",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.007"
+  },
+  {
+   "order": 8,
+   "name": "search.db.008",
+   "size_bytes": 33554432,
+   "sha256": "75ae652cdbf9b96780671c2167209bf47e2601b657461215a662ac6870d4a812",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.008"
+  },
+  {
+   "order": 9,
+   "name": "search.db.009",
+   "size_bytes": 33554432,
+   "sha256": "98c209e05362279e6a5f757f98b6bd0dd48c5dbb319e56bc9258bcd93319f7d5",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.009"
+  },
+  {
+   "order": 10,
+   "name": "search.db.010",
+   "size_bytes": 33554432,
+   "sha256": "72625ba901ff74bc72665f801256540ac067a442720a843505f6d7e9893a9dff",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.010"
+  },
+  {
+   "order": 11,
+   "name": "search.db.011",
+   "size_bytes": 33554432,
+   "sha256": "f6022c9ca77297d05637db8bd18f0af877ab1cf5fbe99f3bb26757dfc1381f5f",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.011"
+  },
+  {
+   "order": 12,
+   "name": "search.db.012",
+   "size_bytes": 33554432,
+   "sha256": "166450f74a0d283f5beaf084a2d04dcdeb5d1a363178178448c6be98afd817b8",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.012"
+  },
+  {
+   "order": 13,
+   "name": "search.db.013",
+   "size_bytes": 33554432,
+   "sha256": "de9381d5065ec1670443d798cff9c65238e788d240c49164f31ad411da59f0ea",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.013"
+  },
+  {
+   "order": 14,
+   "name": "search.db.014",
+   "size_bytes": 33554432,
+   "sha256": "9e637c8e2e2d602090f312761db1166808250cb2c13c5754f821180295719b5b",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.014"
+  },
+  {
+   "order": 15,
+   "name": "search.db.015",
+   "size_bytes": 33554432,
+   "sha256": "e41f89ccafc3eb14347add6985befe04fafaee743c363d88a15fceeb6cd96106",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.015"
+  },
+  {
+   "order": 16,
+   "name": "search.db.016",
+   "size_bytes": 33554432,
+   "sha256": "be916d2da166ae71b2d78a52283047c6518067c2ec78c5908e258a97951bcf83",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.016"
+  },
+  {
+   "order": 17,
+   "name": "search.db.017",
+   "size_bytes": 33554432,
+   "sha256": "45dc7e42445ab2a710fd02d25c81389f52ef7ffbae8b0577f4d3bf05fac40929",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.017"
+  },
+  {
+   "order": 18,
+   "name": "search.db.018",
+   "size_bytes": 28160000,
+   "sha256": "40780faa99053824841256a645f873bc7fd2704e0482da0520ba35a4bd01bd0d",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/search.db.018"
+  }
+ ],
+ "concatenation": [
+  "search.db.000",
+  "search.db.001",
+  "search.db.002",
+  "search.db.003",
+  "search.db.004",
+  "search.db.005",
+  "search.db.006",
+  "search.db.007",
+  "search.db.008",
+  "search.db.009",
+  "search.db.010",
+  "search.db.011",
+  "search.db.012",
+  "search.db.013",
+  "search.db.014",
+  "search.db.015",
+  "search.db.016",
+  "search.db.017",
+  "search.db.018"
+ ],
+ "remote_prefix": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v10/"
+}
