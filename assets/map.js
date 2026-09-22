@@ -61,7 +61,7 @@ const PLAIN_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 // No published open licence: attributed to the Surveyor-General, served as-is.
 const CADASTRE = {
   url: 'https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/SG_PlanningCadastre/MapServer/1/query',
-  fields: 'TAG_VALUE,Town_name,Town_code,PRCL_KEY',
+  fields: 'TAG_VALUE,Town_name,Town_code,PRCL_KEY,WSTATUS',
   minzoom: 15.5,       // a viewport at this zoom holds well under the server's 1000-feature cap
   attribution: 'Parcels: Surveyor-General / Western Cape Government (as-is)',
 };
@@ -242,7 +242,9 @@ function esriToGeoJSON(esri) {
   // for outline + hit-test purposes, so rings are used as-is.
   return {
     type: 'FeatureCollection',
-    features: (esri.features || []).map(f => ({
+    // belt and braces: the query already asks for WSTATUS='C'; drop anything else client-side so an
+    // obsolete erf can never be drawn or hit-tested even if the server ignores the filter
+    features: (esri.features || []).filter(f => !f.attributes || f.attributes.WSTATUS == null || f.attributes.WSTATUS === 'C').map(f => ({
       type: 'Feature',
       properties: f.attributes,
       geometry: { type: 'Polygon', coordinates: f.geometry.rings },
@@ -514,6 +516,92 @@ async function lookupErf(tag, town, muni) {
   return { ...res, stale };
 }
 
+/* ---- Offline parcel link table (DATA_CONTRACT §9, extract/match in the data repo) ----------
+ * Every clickable SG parcel is adjudicated OFFLINE into one decision keyed by PRCL_KEY:
+ *   accepted_high  one roll row tied to this parcel by town + erf (+ area)  → detail card, "verified"
+ *   accepted_group one sectional scheme's units                            → unit list
+ *   review         one leading candidate, locality not confirmed          → list, never a certain card
+ *   ambiguous      several rows fit equally                               → unverified list
+ *   not_in_roll    roll covers the town, no entry for this erf            → "No valuation found"
+ *   abstain        evidence insufficient/conflicting                      → "Could not link" + unverified list
+ * `pids` are property ids (= prop.pid). Detected once so the same JS works against an older DB. */
+let linkTablePromise = null;
+function hasLinkTable() {
+  if (!linkTablePromise) linkTablePromise = (async () => {
+    try {
+      const db = await ensureDB();
+      return (await db.db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='link'")).length > 0;
+    } catch (e) { return false; }
+  })();
+  return linkTablePromise;
+}
+const LINK_DISABLED = new URLSearchParams(location.search).get('nolink') === '1';
+async function lookupLink(prclKey) {
+  if (LINK_DISABLED || !(await hasLinkTable())) return null;   // whole table unavailable → heuristic
+  const db = await ensureDB();
+  const l = prclKey
+    ? (await db.db.query('SELECT pids,cands,group_key,decision,tier,conf,method,reasons FROM link WHERE prcl_key=?', [prclKey]))[0]
+    : null;
+  if (!l) return { decision: 'missing', rows: [], cands: [] };   // integrity/version gap — NOT a fallback
+  const fetchRows = async (csv, cap) => {
+    const ids = String(csv || '').split(',').filter(Boolean).map(Number).slice(0, cap);
+    return ids.length
+      ? db.db.query(`SELECT muni,suburb,town,erf,address,extent,dwext,value,tenure,category,scheme,pid FROM prop WHERE pid IN (${ids.map(() => '?').join(',')}) ORDER BY value DESC`, ids)
+      : [];
+  };
+  return { ...l, rows: await fetchRows(l.pids, 400), cands: await fetchRows(l.cands, 40) };
+}
+// The linker's OWN candidates for an explicit ambiguous/abstain decision, shown only as an
+// unverified list (never a detail card). The click-time heuristic is not consulted here.
+async function renderUnverified(props, title, note, rows) {
+  if (rows.length) {
+    renderList(rows, props, t('unverified — same erf number in this municipality'));
+    $('pbody').insertAdjacentHTML('afterbegin', `<div class="pKick">${esc(props.Town_name || '')}</div><div class="pAddr">${esc(title)}</div>`);
+  } else {
+    $('pbody').innerHTML =
+      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
+      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
+      `<div class="pVal" style="font-size:22px">${esc(title)}</div>`;
+  }
+  $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${note}</div>`);
+  maybeInjectChooser();
+}
+async function renderLink(link, props) {
+  const d = link.decision, rows = link.rows || [];
+  const why = `${t('Evidence')}: ${esc(String(link.reasons || '').replace(/,/g, ' · '))}`;
+  if (d === 'accepted_high' && rows.length === 1) {
+    renderDetail(rows[0], props, null);
+    $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${t('Verified link: this roll entry is tied to this parcel by its town and erf number.')} ${why}</div>`);
+  } else if (d === 'accepted_group' && rows.length) {
+    renderList(rows, props, t('sectional-title units on this parcel (verified scheme)'));
+    $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${why}</div>`);
+  } else if ((d === 'review' || d === 'accepted_high' || d === 'accepted_group') && rows.length) {
+    // review — or an accepted decision whose rows this DB build cannot show: a list, never a certain card
+    renderList(rows, props, t('possible match — town not confirmed'));
+    $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${t('Likely but unconfirmed: the roll entry fits the erf number, but its locality could not be tied to this SG town with certainty.')} ${why}</div>`);
+  } else if (d === 'ambiguous') {
+    await renderUnverified(props, tf('Erf {erf} — several entries fit', { erf: esc(props.TAG_VALUE || '?') }),
+      `${t('Several roll entries fit this erf number and cannot be told apart.')} ${why}`, link.cands);
+  } else if (d === 'missing') {
+    $('pbody').innerHTML =
+      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
+      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
+      `<div class="pVal" style="font-size:22px">${t('Not in this data build')}</div>` +
+      `<div class="pNote">${t('This parcel is newer than, or missing from, the current link table — no valuation is shown rather than a guess.')}</div>`;
+    maybeInjectChooser();
+  } else if (d === 'not_in_roll') {
+    $('pbody').innerHTML =
+      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
+      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
+      `<div class="pVal" style="font-size:22px">${t('No valuation found')}</div>` +
+      `<div class="pNote">${t('Checked: the roll covers this town but has no entry for this erf.')} ${why}</div>`;
+    maybeInjectChooser();
+  } else {
+    await renderUnverified(props, t('Could not link this parcel to the roll'),
+      `${t('The evidence is insufficient or conflicting; any entries below are unverified.')} ${why}`, link.cands);
+  }
+}
+
 /* ---- City of Cape Town sectional-scheme fallback ----------------------------------
  * The CoCT sectional roll carries NO erf numbers (units are "SCHEME UNIT n" under a
  * scheme ref like SS513/2006), so the erf join above can't find them — a click on a
@@ -733,6 +821,13 @@ async function showValuation(props) {
     `<div class="pSub">${t('Looking up valuation…')}</div>`;
   openPanel();
   maybeInjectChooser();          // let the user switch parcels immediately, even while loading
+  // Offline link table first (search.db ≥ v10 with `link`): one explicit, evidence-backed decision
+  // for EVERY current parcel. Any decision — abstain and ambiguous included — wins over the
+  // click-time heuristic below. A key missing from the table is a data-build mismatch and is
+  // reported as such; the heuristic runs only when the whole table is absent (older hosted DB)
+  // or intentionally disabled with ?nolink=1.
+  const link = await lookupLink(props.PRCL_KEY);
+  if (link) { await renderLink(link, props); return; }
   let res;
   try { res = await lookupErf(props.TAG_VALUE, props.Town_name, props._muni); }
   catch (e) {
