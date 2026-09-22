@@ -568,6 +568,19 @@ async function renderUnverified(props, title, note, rows) {
 }
 async function renderLink(link, props) {
   const d = link.decision, rows = link.rows || [];
+  // Sectional buildings: the roll's units carry no erf (CoCT), so the offline linker can only say
+  // not_in_roll/abstain. The City's scheme-polygon layer is an independent evidence route (not
+  // the erf heuristic), so it is still consulted for those two decisions before the card.
+  if (d === 'not_in_roll' || d === 'abstain') {
+    try {
+      const cands = await schemesAtClick();
+      if (cands.length) {
+        const groups = await lookupSchemes(cands);
+        if (groups.length === 1) { renderSchemeList(groups[0], props); return; }
+        if (groups.length > 1) { renderSchemeChooser(groups, props); return; }
+      }
+    } catch (e) { console.warn('scheme fallback failed', e); }
+  }
   const why = `${t('Evidence')}: ${esc(String(link.reasons || '').replace(/,/g, ' · '))}`;
   if (d === 'accepted_high' && rows.length === 1) {
     renderDetail(rows[0], props, null);
