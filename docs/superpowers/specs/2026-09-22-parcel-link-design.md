@@ -72,9 +72,24 @@ share, confidence_tier, evidence, contra, status, version, created)`. Methods:
   proposes entries and records who approved them).
 Tiers: **A** = `name`/`manual`, or `erfdist` and `statssa` agreeing; **B** = `erfdist` alone with
 ≥ 50 observations at ≥ 0.97, or `statssa` alone with ≥ 30 votes; **C** = `erfdist` at the minimum
-thresholds. Any `contra` share > 0.05 → no crosswalk (the label is recorded as `conflicting`).
+thresholds; **span** = consistent but not the label's home (shared numbering, ≥ 5 obs at ≥ 5%).
 Name and Stats SA routes share the label's *name*; erfdist is independent of it — the tiering
-reflects that dependence.
+reflects that dependence. Every row records its `route` (the exact evidence behind the tier).
+
+Revisions made during the conflict review (2026-09-22, see `extract/match/crosswalk.py` semantics):
+- A label maps to a *distribution* of towns (one row per consistent town), never a forced single
+  answer; a 90/10 split without a name match is `span-only`.
+- **§2b:** when a label uniquely *names* a town, no other town can rise above `span` on numbers
+  alone (`route = span:demoted-by-name`). Exclusivity is computed within the municipality, so the
+  town owning the top of the numbering range collects "exclusive" votes by density (Overstrand:
+  every Zwelihle-labelled erf above 2117 is "exclusive" to HERMANUS only because HERMANUS numbers
+  run to 9805). A manual entry can still lift such a town.
+- **Conflict** (name says X, numbers establish Y ≠ X) is declared only when X was *testable* —
+  has ≥ 20 exclusive erf numbers in the cadastre. A fully shadowed allotment (ZWELIHLE has 0) cannot
+  be contradicted by a route that cannot see it.
+- **Leave-one-out:** the adjudicator recomputes a pair's tier with the row's own vote removed.
+- Same-named allotments inside one municipality are kept as sets (`span:name-ambiguous`), never
+  collapsed.
 
 **candidates** — `cand(prcl_key, prop_id, via)` for every current parcel: roll rows in the
 parcel's municipality with `ident.erf_int = parcel erf` (namespace `erf` or `unit`). Indexed join;
