@@ -586,7 +586,7 @@ async function renderLink(link, props) {
     renderDetail(rows[0], props, null);
     $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${t('Verified link: this roll entry is tied to this parcel by its town and erf number.')} ${why}</div>`);
   } else if (d === 'accepted_group' && rows.length) {
-    renderList(rows, props, t('sectional-title units on this parcel (verified scheme)'));
+    renderList(rows, props, tf('{n} sectional-title units on this parcel (verified scheme) — list may be incomplete; no parcel valuation is implied', { n: rows.length }));
     $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${why}</div>`);
   } else if ((d === 'review' || d === 'accepted_high' || d === 'accepted_group') && rows.length) {
     // review — or an accepted decision whose rows this DB build cannot show: a list, never a certain card
@@ -670,13 +670,11 @@ async function lookupSchemes(cands) {
 }
 
 function renderSchemeList(g, props) {
-  // A sectional scheme is a GROUP: the headline is the sum of the units found, shown only when
-  // there are several and labelled as a sum. A single unit is never presented as the parcel's
-  // valuation — it is listed as one unit of the scheme.
-  const total = g.rows.reduce((s, r) => s + (r.value || 0), 0);
-  const head = g.rows.length >= 2
-    ? `<div class="pVal">${R(total)}</div><div class="pSub">${tf('sum of the {n} sectional-title units found in this scheme', { n: g.rows.length })}</div>`
-    : `<div class="pSub">${t('one sectional-title unit found — not the parcel valuation')}</div>`;
+  // A sectional scheme is a GROUP of units. Nothing independent tells us how many units the
+  // sectional plan has, so the list can never be known to be complete: no aggregate is shown,
+  // the count is stated, the list is marked possibly incomplete, and no parcel valuation is
+  // implied. (A single matched unit is likewise never the parcel's value.)
+  const head = `<div class="pSub">${tf('{n} sectional-title units matched — list may be incomplete; no parcel valuation is implied', { n: g.rows.length })}</div>`;
   $('pbody').innerHTML =
     `<div class="pKick">${esc([props.Town_name, props._ward != null ? 'Ward ' + props._ward : null]
       .filter(Boolean).join(' · '))}</div>` +
