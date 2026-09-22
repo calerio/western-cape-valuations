@@ -296,6 +296,9 @@ async function loadParcels(map) {
     geometry: JSON.stringify({ xmin: b.getWest(), ymin: b.getSouth(), xmax: b.getEast(), ymax: b.getNorth(),
       spatialReference: { wkid: 4326 } }),
     geometryType: 'esriGeometryEnvelope', inSR: '4326', spatialRel: 'esriSpatialRelIntersects',
+    // current erven only: obsolete ones (WSTATUS='H', 5.4%) sit inside their successors and the
+    // smallest-first chooser used to prefer them — a click landed on a parcel that no longer exists
+    where: "WSTATUS='C'",
     outFields: CADASTRE.fields, returnGeometry: 'true', outSR: '4326', geometryPrecision: '6', f: 'json',
   });
   try {
