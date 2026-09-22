@@ -563,8 +563,10 @@ async function lookupLink(prclKey) {
   if (LINK_DISABLED || !(await hasLinkTable())) return null;   // whole table unavailable → heuristic
   if (!(await verifyBuild())) throw new Error('build mismatch');   // fail closed (integrity card)
   const db = await ensureDB();
+  // SELECT * so a build without the newer columns (complete, parent_ids) still reads; a missing
+  // column is simply undefined and the feature it gates stays off
   const l = prclKey
-    ? (await db.db.query('SELECT pids,cands,group_key,decision,tier,conf,method,reasons,n_rejected,n_weak,show FROM link WHERE prcl_key=?', [prclKey]))[0]
+    ? (await db.db.query('SELECT * FROM link WHERE prcl_key=?', [prclKey]))[0]
     : null;
   if (!l) return { decision: 'missing', rows: [], cands: [] };   // integrity/version gap — NOT a fallback
   const fetchRows = async (csv, cap) => {
@@ -621,6 +623,7 @@ async function renderLink(link, props) {
     $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${t('Verified link: this roll entry is tied to this parcel by its town and erf number.')} ${why}</div>`);
   } else if (d === 'accepted_group' && rows.length) {
     renderList(rows, props, tf('{n} sectional-title units on this parcel (verified scheme) — list may be incomplete; no parcel valuation is implied', { n: rows.length }));
+    if (link.complete) renderSchemeSum(rows);
     $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${why}</div>`);
   } else if ((d === 'review' || d === 'accepted_high' || d === 'accepted_group') && rows.length && link.show !== 0) {
     // review — or an accepted decision whose rows this DB build cannot show: a list, never a certain card
@@ -696,23 +699,40 @@ async function lookupSchemes(cands) {
     // the layer's scheme number is sometimes the PLAN number, not the roll's SS ref —
     // when the exact ref finds nothing, retry by scheme name
     let rows = exact ? await db.db.query(SEL + 'scheme = ? COLLATE NOCASE' + TAIL, [exact]) : [];
+    const isExact = rows.length > 0;
     if (!rows.length) rows = await db.db.query(
       SEL + 'scheme >= ? COLLATE NOCASE AND scheme < ? COLLATE NOCASE' + TAIL, [name, name + '￿']);
     for (const r of rows) {
       const key = r.scheme || name;
-      if (!seen.has(key)) { seen.add(key); groups.push({ scheme: key, rows: [] }); }
+      if (!seen.has(key)) { seen.add(key); groups.push({ scheme: key, rows: [], exact: isExact }); }
       groups.find(g => g.scheme === key).rows.push(r);
     }
   }
   return groups;
 }
 
+// Sum of the unit valuations, shown ONLY when the unit set is the roll's complete set for the
+// scheme (offline link with `complete`=1, or a Cape Town exact scheme-reference match, which
+// returns every roll row of that reference). Always labelled as a sum of units — the erf's own
+// official valuation is R0 (the roll values the units, not the land parcel).
+function renderSchemeSum(rows) {
+  const total = rows.reduce((s, r) => s + (r.value || 0), 0);
+  const scheme = clWs(rows[0].scheme || '') || 'the scheme';
+  const sub = $('pbody').querySelector('.pSub');
+  sub.insertAdjacentHTML('beforebegin',
+    `<div class="pVal">${R(total)}</div>` +
+    `<div class="pSub">${tf('sum of the {n} unit valuations on the roll for scheme {scheme} — not the erf’s official valuation, which is R0', { n: rows.length, scheme: esc(scheme) })}</div>`);
+  sub.textContent = tf('{n} sectional-title units on this parcel', { n: rows.length });
+}
 function renderSchemeList(g, props) {
-  // A sectional scheme is a GROUP of units. Nothing independent tells us how many units the
-  // sectional plan has, so the list can never be known to be complete: no aggregate is shown,
-  // the count is stated, the list is marked possibly incomplete, and no parcel valuation is
-  // implied. (A single matched unit is likewise never the parcel's value.)
-  const head = `<div class="pSub">${tf('{n} sectional-title units matched — list may be incomplete; no parcel valuation is implied', { n: g.rows.length })}</div>`;
+  // A sectional scheme is a GROUP of units. The list is the roll's complete set only when the
+  // City's scheme reference matched exactly (`g.exact`); otherwise no aggregate is shown, the
+  // count is stated and the list is marked possibly incomplete. A single matched unit is never
+  // the parcel's value.
+  const total = g.rows.reduce((s, r) => s + (r.value || 0), 0);
+  const head = g.exact
+    ? `<div class="pVal">${R(total)}</div><div class="pSub">${tf('sum of the {n} unit valuations on the roll for scheme {scheme} — not the erf’s official valuation, which is R0', { n: g.rows.length, scheme: esc(clWs(g.scheme)) })}</div>`
+    : `<div class="pSub">${tf('{n} sectional-title units matched — list may be incomplete; no parcel valuation is implied', { n: g.rows.length })}</div>`;
   $('pbody').innerHTML =
     `<div class="pKick">${esc([props.Town_name, props._ward != null ? 'Ward ' + props._ward : null]
       .filter(Boolean).join(' · '))}</div>` +

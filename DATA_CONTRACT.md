@@ -371,7 +371,15 @@ Erf numbers restart in every SG township, so an erf-number match alone is provin
   contradiction (`cands`, filtered offline) as an explicitly unverified list; rows tied to OTHER
   towns are never listed, they are reported as "n entries found but rejected" (`n_rejected`);
   entries with no evidence are counted (`n_weak`), not shown; a `review` whose leading row has no
-  positive evidence (`show=0`) shows no possible match; not_in_roll → "No valuation found". **A key missing from the table is a data-build mismatch** and renders "Not in this data
+  positive evidence (`show=0`) shows no possible match; not_in_roll → "No valuation found".
+  **Sectional schemes:** a full-title row valued R0 (or a Stellenbosch register `sectional_parent`
+  row) that shares its erf with a scheme group is the scheme's land parcel; the link merges it
+  (`parent_ids`, reason `SCHEME_PARENT_R0`) and the units are listed. `complete=1` means the group
+  holds every unit row of that scheme in the roll; only then is the **sum of the unit valuations**
+  shown, labelled "sum of the n unit valuations on the roll for scheme X — not the erf's official
+  valuation, which is R0". The Cape Town scheme-polygon route shows the sum only on an exact
+  scheme-reference match (which returns every roll row of that reference); name-prefix matches
+  show counts only. **A key missing from the table is a data-build mismatch** and renders "Not in this data
   build" — it is NOT a fallback trigger. The click-time heuristic below runs only when the whole
   table is absent (older hosted DB) or disabled with `?nolink=1`.
   Regeneration order: `build.py` → `match/run.py` → `export_site.py` (which verifies the DB,
