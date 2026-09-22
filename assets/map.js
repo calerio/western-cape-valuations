@@ -536,6 +536,9 @@ function hasLinkTable() {
   return linkTablePromise;
 }
 const LINK_DISABLED = new URLSearchParams(location.search).get('nolink') === '1';
+// test hook for the smoke matrix (extract/match/smoke_matrix.py): module scope is not reachable from
+// the automation, so the link-path functions are exposed read-only here. Not used by the UI.
+window._integrity = Object.freeze({ hasLinkTable: () => hasLinkTable(), lookupLink: k => lookupLink(k), linkDisabled: LINK_DISABLED });
 async function lookupLink(prclKey) {
   if (LINK_DISABLED || !(await hasLinkTable())) return null;   // whole table unavailable → heuristic
   const db = await ensureDB();
