@@ -1,8 +1,8 @@
 #!/bin/bash
 # One-step switch of the search DB the live site reads: point map.js + atlas.js at the given
 # Supabase version prefix, bump the cache-busting ?v= on the pages, commit and push.
-#   scripts/rollback_db.sh v9        # roll back to v9
-#   scripts/rollback_db.sh v10       # forward again
+#   scripts/rollback_db.sh v9                 # roll back to v9
+#   scripts/rollback_db.sh b-01aecf1bac29     # forward to an immutable, content-addressed build
 # The chunks themselves stay on Supabase (valuations/<version>/); nothing is re-uploaded.
 set -euo pipefail
 VER="${1:?version prefix, e.g. v9}"
@@ -12,7 +12,7 @@ import re, sys
 ver = sys.argv[1]
 for f in ('assets/map.js', 'assets/atlas.js'):
     s = open(f).read()
-    s2 = re.sub(r'(supabase\.co/storage/v1/object/public/valuations/)v\d+(/config\.json)', rf'\g<1>{ver}\g<2>', s)
+    s2 = re.sub(r'(supabase\.co/storage/v1/object/public/valuations/)[A-Za-z0-9-]+(/config\.json)', rf'\g<1>{ver}\g<2>', s)
     assert s2 != s or ver in s, f'{f}: configUrl not found'
     open(f, 'w').write(s2)
 for f in ('map.html', 'plain.html', 'index.html'):

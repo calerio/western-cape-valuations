@@ -525,6 +525,26 @@ async function lookupErf(tag, town, muni) {
  *   not_in_roll    roll covers the town, no entry for this erf            → "No valuation found"
  *   abstain        evidence insufficient/conflicting                      → "Could not link" + unverified list
  * `pids` are property ids (= prop.pid). Detected once so the same JS works against an older DB. */
+// Build verification (fails closed): the DB carries its build_id in link_meta; config.json and
+// manifest.json (fetched fresh, no long-lived cache) carry the same id. Any disagreement means the
+// chunks being read do not belong to the manifest — the link table is then treated as UNREADABLE
+// (integrity card on every click), never as absent and never as a reason to run the heuristic.
+let buildCheckPromise = null;
+function verifyBuild() {
+  if (!buildCheckPromise) buildCheckPromise = (async () => {
+    const cfgUrl = new URLSearchParams(location.search).get('db') || DB_CONFIG_URL;
+    const abs = new URL(cfgUrl, location.href);
+    const fresh = u => fetch(u, { cache: 'no-store' }).then(r => r.ok ? r.json() : null).catch(() => null);
+    const [cfg, man] = await Promise.all([fresh(abs.href), fresh(new URL('manifest.json', abs).href)]);
+    const db = await ensureDB();
+    const meta = Object.fromEntries((await db.db.query('SELECT key, value FROM link_meta')).map(r => [r.key, r.value]));
+    const ids = [cfg && cfg.buildId, man && man.build_id, meta.build_id];
+    const ok = ids.every(Boolean) && ids.every(x => x === ids[0]) && (!man || !cfg || man.size_bytes === cfg.databaseLengthBytes);
+    if (!ok) console.warn('build verification failed', { config: ids[0], manifest: ids[1], db: ids[2] });
+    return ok;
+  })();
+  return buildCheckPromise;
+}
 let linkTablePromise = null;
 function hasLinkTable() {
   if (!linkTablePromise) linkTablePromise = (async () => {
@@ -538,9 +558,10 @@ function hasLinkTable() {
 const LINK_DISABLED = new URLSearchParams(location.search).get('nolink') === '1';
 // test hook for the smoke matrix (extract/match/smoke_matrix.py): module scope is not reachable from
 // the automation, so the link-path functions are exposed read-only here. Not used by the UI.
-window._integrity = Object.freeze({ hasLinkTable: () => hasLinkTable(), lookupLink: k => lookupLink(k), linkDisabled: LINK_DISABLED });
+window._integrity = Object.freeze({ hasLinkTable: () => hasLinkTable(), lookupLink: k => lookupLink(k), verifyBuild: () => verifyBuild(), linkDisabled: LINK_DISABLED });
 async function lookupLink(prclKey) {
   if (LINK_DISABLED || !(await hasLinkTable())) return null;   // whole table unavailable → heuristic
+  if (!(await verifyBuild())) throw new Error('build mismatch');   // fail closed (integrity card)
   const db = await ensureDB();
   const l = prclKey
     ? (await db.db.query('SELECT pids,cands,group_key,decision,tier,conf,method,reasons,n_rejected,n_weak,show FROM link WHERE prcl_key=?', [prclKey]))[0]
@@ -917,6 +938,8 @@ async function showValuation(props) {
 
 /* ─────────────────────── search.db worker (same pattern as atlas.js) ─────────────────────── */
 
+// The production search DB (immutable, content-addressed namespace; see DATA_CONTRACT §8/§9).
+const DB_CONFIG_URL = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/config.json';
 let dbw = null, dbwPromise = null;
 async function ensureDB() {
   if (dbw) return dbw;
@@ -926,8 +949,7 @@ async function ensureDB() {
     const abs = p => new URL(p, location.href).href;
     // Served from Supabase Storage, NOT GitHub Pages (Pages gzip-corrupts the HTTP range
     // requests sql.js-httpvfs needs — see DATA_CONTRACT §8). ?db=<url> overrides for local dev.
-    const DB_CONFIG = new URLSearchParams(location.search).get('db') ||
-      'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/v9/config.json';
+    const DB_CONFIG = new URLSearchParams(location.search).get('db') || DB_CONFIG_URL;
     const w = await createDbWorker([{ from: 'jsonconfig', configUrl: abs(DB_CONFIG) }],
       abs('assets/vendor/sqlite.worker.js'), abs('assets/vendor/sql-wasm.wasm'));
     // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot

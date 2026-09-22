@@ -254,6 +254,24 @@ repo (full GETs, so gzip is fine).
 
 ---
 
+### 8b. Immutable, content-addressed builds (since 2026-09-22)
+
+- Every search-DB build is published under its own namespace `valuations/b-<sha256[:12]>/` (the
+  sha of the whole reassembled DB, from `data/db/manifest.json`). **A namespace is never
+  overwritten** — `extract/match/upload_supabase.sh` refuses if `config.json` already exists there.
+  Version-style paths (`v9`, `v10`) are legacy; `v10` was written once as a staging path and is not
+  referenced.
+- Cache policy: chunks `Cache-Control: public, max-age=31536000, immutable` (their content is fixed
+  by the namespace); `config.json` and `manifest.json` `max-age=60`. The site fetches config and
+  manifest with `cache: 'no-store'`.
+- `build_id` (stamped by `export_site.py`) lives in three places: `link_meta` inside the DB,
+  `manifest.json`, `config.json`. `map.js verifyBuild()` compares all three (and manifest
+  `size_bytes` vs config `databaseLengthBytes`) before the link table is trusted. **Mismatch fails
+  closed:** every click renders the integrity card ("link table could not be read"); the heuristic
+  never runs. Switching builds = `scripts/rollback_db.sh <namespace>` (one commit + push).
+- Any build reconstructs from Supabase + its tracked manifest: `scripts/verify_remote_db.sh
+  data/db/manifest*.json` (per-chunk hashes, order, whole-file hash, integrity_check).
+
 ## 9. The map view's data path (map.html + assets/map.js)
 
 The satellite map draws **cadastral parcels live** from the WC Surveyor-General planning cadastre
