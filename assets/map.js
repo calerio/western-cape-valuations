@@ -670,13 +670,18 @@ async function lookupSchemes(cands) {
 }
 
 function renderSchemeList(g, props) {
+  // A sectional scheme is a GROUP: the headline is the sum of the units found, shown only when
+  // there are several and labelled as a sum. A single unit is never presented as the parcel's
+  // valuation — it is listed as one unit of the scheme.
   const total = g.rows.reduce((s, r) => s + (r.value || 0), 0);
+  const head = g.rows.length >= 2
+    ? `<div class="pVal">${R(total)}</div><div class="pSub">${tf('sum of the {n} sectional-title units found in this scheme', { n: g.rows.length })}</div>`
+    : `<div class="pSub">${t('one sectional-title unit found — not the parcel valuation')}</div>`;
   $('pbody').innerHTML =
     `<div class="pKick">${esc([props.Town_name, props._ward != null ? 'Ward ' + props._ward : null]
       .filter(Boolean).join(' · '))}</div>` +
-    `<div class="pAddr">${esc(clWs(g.scheme))}</div>` +
-    `<div class="pVal">${R(total)}</div>` +
-    `<div class="pSub">${tf('sectional-title scheme — {n} units', { n: g.rows.length })}</div>` +
+    `<div class="pAddr">${esc(clWs(g.scheme))}</div>` + head +
+    `<div class="pNote">${t('Scheme identified from the City’s sectional-scheme layer at the click point; units matched by scheme reference or name.')}</div>` +
     g.rows.slice(0, 40).map((r, i) =>
       `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(clWs(r.address) || '—')}</span>` +
       `<span class="v">${R(r.value)}</span></div>`).join('') +
