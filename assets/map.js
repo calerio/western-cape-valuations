@@ -859,7 +859,20 @@ async function showValuation(props) {
   // click-time heuristic below. A key missing from the table is a data-build mismatch and is
   // reported as such; the heuristic runs only when the whole table is absent (older hosted DB)
   // or intentionally disabled with ?nolink=1.
-  const link = await lookupLink(props.PRCL_KEY);
+  let link = null;
+  try { link = await lookupLink(props.PRCL_KEY); }
+  catch (e) {
+    // the table exists but cannot be read (schema mismatch between this JS and the hosted DB): an
+    // integrity error card — never a hang, never the heuristic
+    console.warn('link table unreadable', e);
+    $('pbody').innerHTML =
+      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
+      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
+      `<div class="pVal" style="font-size:22px">${t('Not in this data build')}</div>` +
+      `<div class="pNote">${t('The link table in this data build could not be read — no valuation is shown rather than a guess.')}</div>`;
+    maybeInjectChooser();
+    return;
+  }
   if (link) { await renderLink(link, props); return; }
   let res;
   try { res = await lookupErf(props.TAG_VALUE, props.Town_name, props._muni); }
