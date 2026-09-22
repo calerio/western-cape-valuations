@@ -540,7 +540,7 @@ async function lookupLink(prclKey) {
   if (LINK_DISABLED || !(await hasLinkTable())) return null;   // whole table unavailable → heuristic
   const db = await ensureDB();
   const l = prclKey
-    ? (await db.db.query('SELECT pids,cands,group_key,decision,tier,conf,method,reasons FROM link WHERE prcl_key=?', [prclKey]))[0]
+    ? (await db.db.query('SELECT pids,cands,group_key,decision,tier,conf,method,reasons,n_rejected,n_weak,show FROM link WHERE prcl_key=?', [prclKey]))[0]
     : null;
   if (!l) return { decision: 'missing', rows: [], cands: [] };   // integrity/version gap — NOT a fallback
   const fetchRows = async (csv, cap) => {
@@ -551,11 +551,20 @@ async function lookupLink(prclKey) {
   };
   return { ...l, rows: await fetchRows(l.pids, 400), cands: await fetchRows(l.cands, 40) };
 }
-// The linker's OWN candidates for an explicit ambiguous/abstain decision, shown only as an
-// unverified list (never a detail card). The click-time heuristic is not consulted here.
-async function renderUnverified(props, title, note, rows) {
+// What may be LISTED for an explicit ambiguous/abstain/review decision (display rule, 2026-09-22):
+// only the linker's own candidates that carry positive locality or area evidence and no hard
+// contradiction (`cands`, filtered offline). Rows that share the erf number but are tied to OTHER
+// towns are never listed — they are reported as rejected. The click-time heuristic is never consulted.
+function rejectedNote(link) {
+  const n = link.n_rejected || 0, w = link.n_weak || 0;
+  const parts = [];
+  if (n) parts.push(tf('{n} roll entries with this erf number were found but rejected: their locality refers to other towns.', { n }));
+  if (w) parts.push(tf('{n} further entries share the number but carry no locality or area evidence and are not shown.', { n: w }));
+  return parts.join(' ');
+}
+async function renderUnverified(props, title, note, rows, link) {
   if (rows.length) {
-    renderList(rows, props, t('unverified — same erf number in this municipality'));
+    renderList(rows, props, t('unverified — same erf number, with some locality or area evidence'));
     $('pbody').insertAdjacentHTML('afterbegin', `<div class="pKick">${esc(props.Town_name || '')}</div><div class="pAddr">${esc(title)}</div>`);
   } else {
     $('pbody').innerHTML =
@@ -563,7 +572,8 @@ async function renderUnverified(props, title, note, rows) {
       `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
       `<div class="pVal" style="font-size:22px">${esc(title)}</div>`;
   }
-  $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${note}</div>`);
+  const rej = rejectedNote(link || {});
+  $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${note}${rej ? ' ' + esc(rej) : ''}</div>`);
   maybeInjectChooser();
 }
 async function renderLink(link, props) {
@@ -588,13 +598,17 @@ async function renderLink(link, props) {
   } else if (d === 'accepted_group' && rows.length) {
     renderList(rows, props, tf('{n} sectional-title units on this parcel (verified scheme) — list may be incomplete; no parcel valuation is implied', { n: rows.length }));
     $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${why}</div>`);
-  } else if ((d === 'review' || d === 'accepted_high' || d === 'accepted_group') && rows.length) {
+  } else if ((d === 'review' || d === 'accepted_high' || d === 'accepted_group') && rows.length && link.show !== 0) {
     // review — or an accepted decision whose rows this DB build cannot show: a list, never a certain card
     renderList(rows, props, t('possible match — town not confirmed'));
-    $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${t('Likely but unconfirmed: the roll entry fits the erf number, but its locality could not be tied to this SG town with certainty.')} ${why}</div>`);
+    $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${t('Likely but unconfirmed: the roll entry fits the erf number, but its locality could not be tied to this SG town with certainty.')} ${why}${rejectedNote(link) ? ' ' + esc(rejectedNote(link)) : ''}</div>`);
+  } else if (d === 'review') {
+    // the leading row has no positive locality/area evidence of its own: nothing is listed
+    await renderUnverified(props, t('Could not link this parcel to the roll'),
+      `${t('The evidence is insufficient or conflicting; no entry can be shown as a possible match.')} ${why}`, [], link);
   } else if (d === 'ambiguous') {
     await renderUnverified(props, tf('Erf {erf} — several entries fit', { erf: esc(props.TAG_VALUE || '?') }),
-      `${t('Several roll entries fit this erf number and cannot be told apart.')} ${why}`, link.cands);
+      `${t('Several roll entries fit this erf number and cannot be told apart.')} ${why}`, link.cands, link);
   } else if (d === 'missing') {
     $('pbody').innerHTML =
       `<div class="pKick">${esc(props.Town_name || '')}</div>` +
@@ -611,7 +625,7 @@ async function renderLink(link, props) {
     maybeInjectChooser();
   } else {
     await renderUnverified(props, t('Could not link this parcel to the roll'),
-      `${t('The evidence is insufficient or conflicting; any entries below are unverified.')} ${why}`, link.cands);
+      `${link.cands.length ? t('The evidence is insufficient or conflicting; any entries below are unverified.') : t('The evidence is insufficient or conflicting; no entry can be shown as a possible match.')} ${why}`, link.cands, link);
   }
 }
 

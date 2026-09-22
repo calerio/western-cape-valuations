@@ -349,8 +349,11 @@ Erf numbers restart in every SG township, so an erf-number match alone is provin
   `decision` ∈ accepted_high · accepted_group · review · ambiguous · not_in_roll · abstain, `tier`,
   `conf`, `method`, `reasons`, `pipeline`. Rendering: accepted_high → detail card marked verified;
   accepted_group → unit list; review → list ("possible match"), never a certain card; ambiguous /
-  abstain → the linker's candidates as an explicitly unverified list; not_in_roll → "No valuation
-  found". **A key missing from the table is a data-build mismatch** and renders "Not in this data
+  abstain → ONLY the linker's candidates that carry positive locality or area evidence and no hard
+  contradiction (`cands`, filtered offline) as an explicitly unverified list; rows tied to OTHER
+  towns are never listed, they are reported as "n entries found but rejected" (`n_rejected`);
+  entries with no evidence are counted (`n_weak`), not shown; a `review` whose leading row has no
+  positive evidence (`show=0`) shows no possible match; not_in_roll → "No valuation found". **A key missing from the table is a data-build mismatch** and renders "Not in this data
   build" — it is NOT a fallback trigger. The click-time heuristic below runs only when the whole
   table is absent (older hosted DB) or disabled with `?nolink=1`.
   Regeneration order: `build.py` → `match/run.py` → `export_site.py` (which verifies the DB,
