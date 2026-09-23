@@ -4,7 +4,7 @@
  * Everything reads tokens from tokens.css; the map pages do not load this file. */
 
 /* local chart colours (the two groups tokens.css has no category colour for) */
-.explore { --cat-ind: #b8744f; --cat-pub: #7fa3c4; --bar-h: 64px; }
+.explore { --bar-h: 64px; }
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
@@ -39,13 +39,8 @@ input, button { font: inherit; color: inherit; }
 #results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 5; background: var(--bg);
   border: 1px solid var(--rule); border-radius: var(--r-ctl); box-shadow: var(--shadow-overlay); overflow: hidden auto; max-height: 60vh; }
 #viewsegWrap { display: flex; gap: var(--s-2); }
-.viewseg { display: inline-flex; background: var(--bg3); border-radius: var(--r-ctl); padding: 2px; }
-.viewseg a, .viewseg button { appearance: none; border: 0; background: none; margin: 0; text-decoration: none;
-  font-size: var(--t-13); font-weight: 500; color: var(--ink2); padding: 8px 12px; border-radius: 6px; cursor: pointer; min-height: 36px;
-  display: inline-flex; align-items: center; }
-.viewseg a:hover, .viewseg button:hover { color: var(--ink); }
-.viewseg a[aria-current="page"], .viewseg button[aria-pressed="true"] { background: var(--seg-on); color: var(--ink);
-  box-shadow: 0 0 0 1px var(--rule); }
+/* .viewseg (the segmented Explore / Map / Satellite and EN / AF switch) lives in assets/viewseg.css,
+   shared with the generated static pages (templates/shell.html). */
 
 /* ---------- layout: rail + reading column ---------- */
 .layout { display: grid; grid-template-columns: 460px minmax(0, 72ch); gap: var(--s-7); padding: 0 var(--s-5) var(--s-7);

@@ -122,6 +122,8 @@
   --cat-state: #9291a0;
   --cat-vacant: #d9c893;
   --cat-other: #cfcfd6;
+  --cat-ind: #b8744f;                              /* Explore 8-group bar: industrial */
+  --cat-pub: #7fa3c4;                              /* Explore 8-group bar: public infrastructure */
 
   /* map overlay layers (parcels/wards/highlights): the values live on the
    * theme pins below — map.html pins dark (white lines on satellite imagery),

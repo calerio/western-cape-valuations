@@ -2,7 +2,7 @@ import { getRates, computeRates } from "./rates.js?v=1";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 import { fmtR, fmtN } from "./format.js?v=2";
 import { dur } from "./motion.js?v=1";
-import { renderSections, renderCoverage } from "./explore-sections.js?v=2";
+import { renderSections, renderCoverage } from "./explore-sections.js?v=3";
 
 // d3 comes from the UMD bundle loaded in <head> — importing the jsdelivr +esm build
 // as well would fetch the whole ~30-module d3 graph a second time (and trigger a wall
@@ -110,8 +110,9 @@ const partyColour = p => PARTY_COLOURS[p] || "#8a8f98";
 let dbw = null, dbwPromise = null, areaIndex = null;
 
 /* ============================ boot ============================ */
-// d3 is a deferred classic script ahead of this module in index.html, so both have run by
-// DOMContentLoaded; boot waits for it (a module normally executes just before it fires).
+// window.d3 is already set when this module runs: index.html loads d3 as a deferred classic script
+// placed BEFORE this module script, and deferred classic scripts and modules execute in document
+// order. boot() itself still waits for DOMContentLoaded when the document is loading.
 async function boot() {
   wireMenu();
   wireLangToggle();
@@ -510,7 +511,7 @@ function provEl() {
 function provInner(p) {
   const rows = [];
   if (p.valued_as_at) rows.push([t("Values as at"), esc(p.valued_as_at)]);
-  if (p.cycle) rows.push([t("Rating cycle"), esc(String(p.cycle).replace("-draft", t(" · draft")))]);
+  if (p.cycle) rows.push([t("Rating cycle"), esc(String(p.cycle).replace("-draft", " " + t("draft")))]);
   if (p.properties != null) rows.push([t("Properties valued"), N(p.properties)]);
   if (p.coverage) rows.push([t("Coverage"), esc(p.coverage)]);
   return `<div class="ppTitle">${t(KIND_LABEL[p.kind] || "Valuation roll")}</div>` +
@@ -705,7 +706,7 @@ function renderStanding(p, s, isMuni) {
     const vals = pool.map(x => x[key]).filter(v => v != null); if (vals.length < 2) return null;
     return tf("#{rank} of {n}", { rank: vals.filter(v => v > mine).length + 1, n: vals.length }); };
   const rankOf = key => { const d = rankIn(sibs, key); if (!d) return null;
-    const w = rankIn(wc, key); return d + (w ? ` <span style="color:var(--label2)">· ${t("WC")} ${w}</span>` : ""); };
+    const w = rankIn(wc, key); return d + (w ? ` <span style="color:var(--label2)">(${tf("{rank} in the Western Cape", { rank: w })})</span>` : ""); };
   const rows = [];
   const add = (l, key) => { const r = rankOf(key); if (r) rows.push([l, r]); };
   add(t("Median value"), "median"); add(t("Total roll value"), "total");
@@ -713,10 +714,10 @@ function renderStanding(p, s, isMuni) {
   if (s.vacant_share != null) add(t("Vacant-land share"), "vacant_share");
   let topTown = null; townsOf(muni).forEach(t => { if (!topTown || t.total > topTown.total) topTown = t; });
   let topCat = null; if (s.cat_mix) CATORDER.forEach(k => { const c = s.cat_mix[k]; if (c && c.value > 0 && (!topCat || c.value > topCat.value)) topCat = { k, value: c.value }; });
-  let html = `<div style="font-size:12px;color:var(--label2);margin-bottom:6px">${tf("Rank among the {n} municipalities in {district} · then all {m} in the Western Cape", { n: sibs.length, district: esc(tn(dist)), m: wc.filter(x => x.median != null).length })}</div>`;
+  let html = `<div style="font-size:12px;color:var(--label2);margin-bottom:6px">${tf("Rank among the {n} municipalities in {district}; in brackets, among all {m} in the Western Cape", { n: sibs.length, district: esc(tn(dist)), m: wc.filter(x => x.median != null).length })}</div>`;
   html += rows.map(([l, v]) => hairRow(l, v)).join("");
-  if (topTown) html += hairRow(t("Biggest suburb by value"), esc(topTown.name) + " · " + R(topTown.total));
-  if (topCat) html += hairRow(t("Largest category by value"), t(CATLAB[topCat.k]) + " · " + R(topCat.value));
+  if (topTown) html += hairRow(t("Biggest suburb by value"), tf("{name} ({value})", { name: esc(topTown.name), value: R(topTown.total) }));
+  if (topCat) html += hairRow(t("Largest category by value"), tf("{name} ({value})", { name: t(CATLAB[topCat.k]), value: R(topCat.value) }));
   $("secStandingBody").innerHTML = html;
 }
 
@@ -731,7 +732,7 @@ function renderGrowth(s) {
   const since = s.growth_from ? tf("since the {cycle} roll", { cycle: s.growth_from }) : t("since the previous roll");
   $("secGrowthBody").innerHTML = `<div style="font-size:12px;color:var(--label2);margin-bottom:16px">${esc(since)}</div>` +
     `<div class="statgrid">` + gt(t("Median value"), s.median_growth) + gt(t("Total roll value"), s.total_growth) +
-    gt(t("Residential median"), s.res_median_growth) + gt(t("Annualised · CAGR"), s.cagr, t("compound, per year")) + `</div>`;
+    gt(t("Residential median"), s.res_median_growth) + gt(t("Annualised growth (CAGR)"), s.cagr, t("compound, per year")) + `</div>`;
 }
 
 // Affordability — estimated monthly bond + income needed for the median home (clearly an estimate)
@@ -742,9 +743,9 @@ function renderAfford(s) {
   const r = prime.pct / 100 / 12, n = 240;
   const monthly = home * r / (1 - Math.pow(1 + r, -n));   // 20-yr bond, full value, at prime
   const income = monthly / 0.30;                          // banks cap the bond at ~30% of gross income
-  const src = prime.source ? ` · <a href="${esc(prime.source)}" target="_blank" rel="noopener">SARB ↗</a>` : "";
+  const src = prime.source ? ` ${t("Source:")} <a href="${esc(prime.source)}" target="_blank" rel="noopener">SARB ↗</a>` : "";
   $("secAffordBody").innerHTML =
-    `<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px">${t("Illustrative estimate")}</div>` +
+    `<div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:10px">${t("Illustrative estimate")}</div>` +
     `<div class="kpinum" style="font-size:26px">R${N(Math.round(monthly))}<span style="font-size:14px;font-weight:600;color:var(--label2)"> /mo</span></div>` +
     `<div style="font-size:12px;color:var(--label2);margin-top:8px;line-height:1.5">${tf("estimated bond on the median home of {home}", { home: R(home) })}</div>` +
     tilesHTML([[t("Gross income needed"), "R" + N(Math.round(income)) + t("/mo"), t("at 30% of income on the bond")],
@@ -760,7 +761,7 @@ function renderQuality(s) {
   const pct = v => v == null ? "" : (v > 0 && v < .001 ? "<0.1" : (v * 100).toFixed(1)) + "%" + t(" of parcels");
   const tiles = [];
   if (s.dq_no_value > 0) tiles.push([t("No value recorded"), N(s.dq_no_value), pct(s.dq_no_value_share)]);
-  if (s.dq_nominal > 0) tiles.push([t("Nominal values · ≤ R1 000"), N(s.dq_nominal), t("placeholder entries in the roll")]);
+  if (s.dq_nominal > 0) tiles.push([t("Nominal values (R1 000 or less)"), N(s.dq_nominal), t("placeholder entries in the roll")]);
   if (s.dq_no_extent > 0) tiles.push([t("No recorded size"), N(s.dq_no_extent), pct(s.dq_no_extent_share)]);
   if (s.dq_no_cat > 0) tiles.push([t("No category"), N(s.dq_no_cat), pct(s.dq_no_cat_share)]);
   $("secQualityBody").innerHTML = tiles.length
@@ -776,13 +777,13 @@ function renderAuthorities(s) {
   const link = `<div style="margin-top:16px;font-size:12.5px"><a href="${GUIDE()}">${t("How valuations work")}</a></div>`;
   const rows = [];
   const valuer = p.valuer || (p.valuer_note ? t(p.valuer_note) : null);
-  if (valuer) rows.push(aRow(t("Municipal valuer"), esc(valuer) + (p.cycle ? ` <span style="color:var(--label2)">· ${esc(p.cycle)}</span>` : "")));
+  if (valuer) rows.push(aRow(t("Municipal valuer"), esc(valuer) + (p.cycle ? ` <span style="color:var(--label2)">(${esc(p.cycle)})</span>` : "")));
   const d = p.dept || {};
   if (d.name) rows.push(aRow(t("Valuations office"), esc(t(d.name))));
   const contact = [];
   if (d.phone) contact.push(esc(d.phone));
   if (d.email) contact.push(`<a href="mailto:${esc(d.email)}">${esc(d.email)}</a>`);
-  if (contact.length) rows.push(aRow(t("Contact"), contact.join(" · ")));
+  if (contact.length) rows.push(aRow(t("Contact"), contact.join(", ")));
   if (d.address) rows.push(aRow(t("Address"), esc(d.address)));
   if (d.url) rows.push(aRow(t("Official page"), `<a href="${esc(d.url)}" target="_blank" rel="noopener">${t("Valuations page")} ↗</a>`));
   const o = p.objections || {};
@@ -795,8 +796,8 @@ function renderAuthorities(s) {
   const one = x => x && x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(t(x.name))} ↗</a>` : (x ? esc(t(x.name)) : "");
   const shared = (sh.appeal_board || sh.province || sh.national)
     ? `<div style="margin-top:14px;font-size:11.5px;line-height:1.6;color:var(--label2)">${t("Other role-players:")} `
-      + [sh.appeal_board, sh.province, sh.national].filter(Boolean).map(one).join(" · ")
-      + " " + t("Appeals against the valuer’s decision go to the Valuation Appeal Board.") + `</div>`
+      + [sh.appeal_board, sh.province, sh.national].filter(Boolean).map(one).join(", ")
+      + ". " + t("Appeals against the valuer’s decision go to the Valuation Appeal Board.") + `</div>`
     : "";
   $("secAuthoritiesBody").innerHTML = rows.join("") + shared + link;
 }
@@ -817,7 +818,7 @@ function renderPolitics(s) {
     + (g.as_of ? ` <span style="color:var(--label2)">(${t("as of")} ${esc(g.as_of)})</span>` : ""));
   if (m.name) line.push(`<strong>${esc(t(m.title || "Mayor"))}:</strong> ${esc(m.name)}`
     + (m.party ? ` (${esc(m.party)})` : ""));
-  let html = line.length ? `<div style="font-size:13.5px;line-height:1.7">${line.join(" · ")}</div>` : "";
+  let html = line.length ? `<div style="font-size:13.5px;line-height:1.7">${line.join("<br>")}</div>` : "";
   if (seats.length) {
     const total = e.total_seats || seats.reduce((a, x) => a + x.seats, 0) || 1;
     const bar = seats.map(x =>
@@ -827,7 +828,7 @@ function renderPolitics(s) {
       `<span style="white-space:nowrap;margin-right:12px">`
       + `<span style="display:inline-block;width:9px;height:9px;border-radius:2px;`
       + `background:${partyColour(x.party)};margin-right:5px"></span>${esc(x.party)} ${x.seats}`
-      + (x.votes_pct != null ? ` · ${x.votes_pct.toFixed(1)}%` : "") + `</span>`).join("");
+      + (x.votes_pct != null ? ` (${x.votes_pct.toFixed(1)}%)` : "") + `</span>`).join("");
     html += `<div style="display:flex;border-radius:4px;overflow:hidden;margin:10px 0 8px">${bar}</div>`
       + `<div style="font-size:11.5px;line-height:1.9;color:var(--label2)">${legend}</div>`;
   }
@@ -870,11 +871,12 @@ function openTop(kind) {
   tlPrevFocus = document.activeElement;
   tlKind = kind; tlN = 10;
   const sc = scopeFilter();
-  $("tlKicker").textContent = t(kind === "hi" ? "Most valuable" : "Most affordable") + " · " + (sc.name === "the Western Cape" ? t("the Western Cape") : tn(sc.name));
+  const place = sc.name === "the Western Cape" ? t("the Western Cape") : tn(sc.name);
+  $("tlKicker").textContent = kind === "hi" ? tf("Most valuable in {place}", { place }) : tf("Most affordable in {place}", { place });
   $("tlTitle").textContent = t(kind === "hi" ? "Most valuable properties" : "Most affordable homes");
   $("tlNote").textContent = kind === "hi"
     ? t("All categories, ranked by municipal market value.")
-    : t("Residential only · nominal values under R100 000 excluded.");
+    : t("Residential only; nominal values under R100 000 are excluded.");
   [...$("tlSeg").children].forEach(b => { const on = +b.dataset.n === tlN; b.classList.toggle("on", on); b.setAttribute("aria-selected", String(on)); });
   $("toplist").classList.add("open"); $("toplist").setAttribute("aria-hidden", "false");
   document.documentElement.style.overflow = "hidden";
@@ -905,9 +907,9 @@ async function loadTop() {
   tlRows = rows;
   body.innerHTML = rows.map((r, i) => {
     const addr = esc(dispAddr(r));
-    const sub = esc((muniScope ? [clSub(r.suburb)] : [clSub(r.suburb), tn(r.muni)]).filter(Boolean).join(" · "));
+    const sub = esc((muniScope ? [clSub(r.suburb)] : [clSub(r.suburb), tn(r.muni)]).filter(Boolean).join(", "));
     const cat = r.category ? `<span class="tlCat">${esc(r.category)}</span>` : "";
-    const meta = (r.extent ? N(Math.round(r.extent)) + " m²" : t("extent n/a")) + (r.extent ? " · R" + N(Math.round(r.value / r.extent)) + "/m²" : "");
+    const meta = r.extent ? tf("{m2} m², R{ppm} per m²", { m2: N(Math.round(r.extent)), ppm: N(Math.round(r.value / r.extent)) }) : t("extent n/a");
     return `<div class="tlRow o-clickable" data-i="${i}" role="button" tabindex="0"><div class="tlRank">${i + 1}</div>` +
       `<div class="tlMain"><div class="tlAddr">${addr}${cat}</div><div class="tlSub">${sub}</div></div>` +
       `<div class="tlRight"><div class="tlVal">${R(r.value)}</div><div class="tlMeta">${meta}</div></div></div>`;
@@ -968,7 +970,7 @@ function searchRow(box, inId, label, sub, go, right) {
   d.setAttribute("role", "option"); d.setAttribute("aria-selected", "false");
   d.id = box.id + "-opt-" + box.children.length;
   d.style.cssText = "display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--sep);cursor:pointer";
-  d.innerHTML = `<span style="font-size:14px;color:var(--ink)">${esc(label)}</span><span style="font-size:11px;letter-spacing:.04em;color:var(--label2);text-transform:uppercase;white-space:nowrap">${esc(right || sub)}</span>`;
+  d.innerHTML = `<span style="font-size:14px;color:var(--ink)">${esc(label)}</span><span style="font-size:12px;color:var(--label2);white-space:nowrap">${esc(right || sub)}</span>`;
   d.onmousedown = e => { e.preventDefault(); go(); const inp = $(inId); if (inp) inp.value = ""; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); hideResults(); };
   box.appendChild(d);
 }
@@ -1020,10 +1022,10 @@ function ratesBlock(r) {
   if (!rr) return "";
   const cents = (rr.rate * 100).toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
   return `<div class="pdTax">
-      <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:12px">${t("Municipal rates · {year}").replace("{year}", esc(rr.year))}</div>
+      <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:12px">${tf("Municipal rates, {year}", { year: esc(rr.year) })}</div>
       <div class="pdStat"><span class="k">${t("Per year")}</span><span class="v" style="font-family:var(--font-ui);font-weight:600;font-size:19px">${RZA(rr.annual)}</span></div>
       <div class="pdStat" style="border-bottom:none"><span class="k">${t("Per month")}</span><span class="v">${RZA(rr.monthly)}</span></div>
-      <div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:10px">${esc(cents)}c/R${rr.reduction ? tf(" on value above {v}", { v: RZA(rr.reduction) }) : ""}${rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">${t("Official tariff")} ↗</a>` : ""}</div>
+      <div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:10px">${esc(cents)}c/R${rr.reduction ? tf(" on value above {v}", { v: RZA(rr.reduction) }) : ""}${rr.source ? `. <a href="${esc(rr.source)}" target="_blank" rel="noopener">${t("Official tariff")} ↗</a>` : ""}</div>
     </div>`;
 }
 // B4: the roll's own rating cycle (stats.json provenance / cycle), never a hard-coded year

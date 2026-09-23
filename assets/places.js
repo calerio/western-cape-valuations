@@ -204,7 +204,7 @@ export function initPlaceSearch(map, { t, setHint, beforeId, writeHash }) {
     } catch (err) {
       if (err.name === 'AbortError') return;
       console.warn('boundary fetch failed', err);
-      setHint(t('Boundary unavailable — zoomed to the area'));   // fly-to already happened
+      setHint('Boundary unavailable — zoomed to the area');   // fly-to already happened
     }
   }
 

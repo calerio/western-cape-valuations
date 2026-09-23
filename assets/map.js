@@ -27,12 +27,12 @@ let maplibregl = null;          // window.maplibregl — the deferred CDN script
 // design tokens (assets/tokens.css). The --map-* overlay inks live on the [data-theme] pins;
 // setBasemap() flips the pin (sat → dark, map → light) and re-reads them (applyOverlayTokens).
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=1";
+import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=2";
 import { dur } from "./motion.js?v=1";
-import { initPlaceSearch } from "./places.js?v=3";
+import { initPlaceSearch } from "./places.js?v=4";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
 import { hatchImageData } from "./map/hatch.js?v=1";
-import { shouldRefetch } from "./map/bbox.js?v=1";
+import { shouldRefetch } from "./map/bbox.js?v=2";
 import { parseMapHash, buildMapHash } from "./map/hash.js?v=1";
 import { transformStyle, applyBasemap, applyLanguage } from "./map/style.js?v=1";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
@@ -288,8 +288,9 @@ function wardAt(map, point) {
 const EMPTY_FC = { type: 'FeatureCollection', features: [] };
 let parcelAbort = null, parcelTimer = null;
 // The last SUCCESSFUL cadastre fetch now in the 'parcels' source: { bbox, zoom, truncated }. A moveend
-// that stays inside it (at the same or a higher zoom, not truncated) needs no refetch. Cleared on any
-// error, abort, or when the source is emptied.
+// that stays inside it (at the same or a higher zoom, not truncated) needs no refetch. Cleared on a
+// fetch error and when the source is emptied (zoomed out below minzoom). An ABORTED fetch leaves it
+// alone: the source still holds the erven that lastFetch describes.
 let lastFetch = null, parcelInFlight = false;
 
 function esriToGeoJSON(esri) {
@@ -391,20 +392,22 @@ async function loadParcels(map) {
     dropSel();
     lastFetch = null;
     map.getSource('parcels').setData(EMPTY_FC);
-    setHint(t('Zoom in to see erven'));
+    setHint('Zoom in to see erven');
     return;
   }
   const b = map.getBounds();
   const view = { bbox: { w: b.getWest(), s: b.getSouth(), e: b.getEast(), n: b.getNorth() }, zoom: map.getZoom() };
   if (!selKey && !shouldRefetch(lastFetch, view)) {
-    // the loaded erven already cover this view; drop a fetch for an earlier view still in flight
-    if (parcelInFlight && parcelAbort) { parcelAbort.abort(); parcelInFlight = false; setHint(t('Tap or click an erf for its valuation')); }
+    // the loaded erven already cover this view; drop a fetch for an earlier view still in flight.
+    // Always re-set the hint: a place fly-to or a stale "Loading erven…" must not linger.
+    if (parcelInFlight && parcelAbort) { parcelAbort.abort(); parcelInFlight = false; }
+    setHint('Tap or click an erf for its valuation');
     return;
   }
   if (parcelAbort) parcelAbort.abort();
   const ctl = (parcelAbort = new AbortController());
   parcelInFlight = true;
-  setHint(t('Loading erven…'));
+  setHint('Loading erven…');
   const params = new URLSearchParams({
     geometry: JSON.stringify({ xmin: b.getWest(), ymin: b.getSouth(), xmax: b.getEast(), ymax: b.getNorth(),
       spatialReference: { wkid: 4326 } }),
@@ -420,16 +423,16 @@ async function loadParcels(map) {
     if (ctl.signal.aborted) { dropSel(); return; }
     if (json.error) throw new Error(json.error.message || 'cadastre error');
     map.getSource('parcels').setData(esriToGeoJSON(json));
-    lastFetch = json.exceededTransferLimit ? null : { ...view, truncated: false };
-    setHint(json.exceededTransferLimit ? t('Too many erven for one view — zoom in')
-                                       : t('Tap or click an erf for its valuation'));
+    lastFetch = { ...view, truncated: !!json.exceededTransferLimit };   // shouldRefetch() refuses a truncated one
+    setHint(lastFetch.truncated ? 'Too many erven for one view — zoom in'
+                                : 'Tap or click an erf for its valuation');
     if (selKey) map.once('idle', () => selectPending(map, selKey));
   } catch (e) {
     dropSel();
     if (e.name === 'AbortError') return;
     lastFetch = null;
     console.warn('parcel fetch failed', e);
-    setHint(t('Erf boundaries unavailable right now'));   // imagery keeps working — degrade quietly
+    setHint('Erf boundaries unavailable right now');   // imagery keeps working — degrade quietly
   } finally {
     if (parcelAbort === ctl) parcelInFlight = false;
   }
@@ -585,9 +588,12 @@ function initSheet() {
   });
   p.addEventListener('pointercancel', e => { if (e.pointerId === id) id = null; });
   p.addEventListener('click', e => { if (dragged) { dragged = false; e.stopPropagation(); e.preventDefault(); } }, true);
-  // Peek clips #pbody: keyboard focus moving past the handle and close button expands the sheet.
+  // Peek clips #pbody: KEYBOARD focus moving past the handle and close button expands the sheet. Focus
+  // that is not :focus-visible (engines that focus a tapped button) is a tap, not navigation — ignored.
+  const kbdFocus = el => { try { return el.matches(':focus-visible'); } catch (_) { return true; } };
   p.addEventListener('focusin', e => {
-    if (p.dataset.sheet === 'peek' && e.target !== $('pclose') && e.target !== $('pgrab') && isPhone()) setSheet('open');
+    if (p.dataset.sheet === 'peek' && e.target !== p && e.target !== $('pclose') && e.target !== $('pgrab') &&
+        isPhone() && kbdFocus(e.target)) setSheet('open');
   });
   if (typeof ResizeObserver === 'function') new ResizeObserver(syncSheetH).observe(p);
   new MutationObserver(syncSheetH).observe(p, { attributes: true, attributeFilter: ['hidden', 'data-sheet'] });
@@ -934,7 +940,14 @@ function wireLangToggle() {
   onLangChange(refreshLang);
   applyPageI18n();
 }
-function setHint(text) { const h = $('maphint'); if (h) { h.textContent = text; h.hidden = !text; } }
+// setHint takes the ENGLISH catalogue key, not translated text: the key is kept in data-i18n, so
+// applyDom() re-translates the hint in place on an EN↔AF switch (never stale, never the old language).
+// tests/check-i18n.mjs scans the string literals passed to setHint exactly like t() calls.
+function setHint(key) {
+  const h = $('maphint'); if (!h) return;
+  if (key) { h.dataset.i18n = key; h.textContent = t(key); } else { delete h.dataset.i18n; h.textContent = ''; }
+  h.hidden = !key;
+}
 function closePanel() {
   selection.begin();                      // an in-flight lookup must not reopen the panel after a close
   const wasOpen = !$('ppanel').hidden;

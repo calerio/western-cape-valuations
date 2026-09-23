@@ -123,6 +123,17 @@ export function labelSheet() {
   g.setAttribute('aria-expanded', String(open));
   g.setAttribute('aria-label', t(open ? 'Collapse' : 'Expand'));
 }
+// Last input modality. A panel opened by a tap or click still moves focus to #pclose (keyboard and
+// screen-reader users land on it), but WebKit paints :focus-visible on a programmatic focus even after
+// a touch; data-quiet-focus hides that ring until the next key press or until focus leaves.
+let pointerLast = false;
+if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
+  document.addEventListener('pointerdown', () => { pointerLast = true; }, true);
+  document.addEventListener('keydown', () => {
+    pointerLast = false;
+    const q = document.querySelector('[data-quiet-focus]'); if (q) q.removeAttribute('data-quiet-focus');
+  }, true);
+}
 // Show the panel; focus moves to its close button only when it was closed (re-renders and drill-ins
 // inside an open panel never steal focus). A fresh open always starts as a peek on phones.
 export function openPanel() {
@@ -131,7 +142,12 @@ export function openPanel() {
   setSheet('peek');
   p.hidden = false;
   const c = $('pclose');
-  if (c) c.focus({ preventScroll: true });
+  if (!c) return;
+  if (pointerLast) {
+    c.setAttribute('data-quiet-focus', '');
+    c.addEventListener('blur', () => c.removeAttribute('data-quiet-focus'), { once: true });
+  }
+  c.focus({ preventScroll: true });
 }
 
 /* ---- state model ---- */

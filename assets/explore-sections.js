@@ -41,11 +41,17 @@ const cardOpen = id => (id in userOpen ? userOpen[id] : CARD_ORDER.indexOf(id) <
 function shell(id, { h2, lede, body, notes = [], sql = '', howExtra = '' }) {
   const el = $(id); if (!el) return null;
   el.hidden = false;
-  const head = `<h2>${esc(h2)}</h2>` + (lede ? `<p class="lede">${esc(lede)}</p>` : '');
+  // ids let a phone card's <summary> (role button, which flattens the h2 inside it for assistive
+  // tech) take the heading as its accessible name and the key sentence as its description; the
+  // section itself is labelled by the same heading in both layouts.
+  const hid = id + '-h', lid = id + '-lede';
+  const head = `<h2 id="${hid}">${esc(h2)}</h2>` + (lede ? `<p class="lede" id="${lid}">${esc(lede)}</p>` : '');
+  el.setAttribute('aria-labelledby', hid);
   const inner = `<div class="sec-body"><div class="chart">${body}</div>` +
     notes.filter(Boolean).map(n => `<p class="note">${esc(n)}</p>`).join('') + how(sql, howExtra) + `</div>`;
   if (isPhone()) {
-    el.innerHTML = `<details class="card"${cardOpen(id) ? ' open' : ''}><summary>${head}</summary>${inner}</details>`;
+    el.innerHTML = `<details class="card"${cardOpen(id) ? ' open' : ''}><summary aria-labelledby="${hid}"` +
+      (lede ? ` aria-describedby="${lid}"` : '') + `>${head}</summary>${inner}</details>`;
     const d = el.querySelector('details.card');
     d.addEventListener('toggle', () => { if (isPhone()) userOpen[id] = d.open; });
   } else el.innerHTML = head + inner;
@@ -79,6 +85,23 @@ function histBins(X, counts) {
     return { lo, hi, n: counts[i] || 0 };
   });
 }
+// Cape Town lists each multi-use property twice (a HOLDING / MULTIPLE PURPOSES parent row plus per-use
+// ALLOCATION rows; explore.json meta.caveats). Value totals include both; every SHARE on the page leaves
+// the allocation rows out, so the ledger, its lede and the findings show ONE Cape Town share. explore.json
+// carries that share (findings ct_share, query f_ct_share) but not the excluded rand amount D, so D is
+// recovered from it: s = (C − D) / (T − D)  ⇒  D = (C − s·T) / (1 − s), with C Cape Town's roll total and
+// T the total of the rows being compared. Returns null when it does not apply (no finding, no Cape Town
+// row, a single row, or an implausible result) — shares then divide by the plain totals.
+const CT = 'City of Cape Town';
+export function ctExclusion(X, rows, total) {
+  const f = X && (X.findings || []).find(x => x.id === 'ct_share');
+  const ct = rows.find(r => r.name === CT);
+  if (!f || !(f.value > 0 && f.value < 1) || !ct || rows.length < 2 || !(total > 0)) return null;
+  const D = (ct.total - f.value * total) / (1 - f.value);
+  if (!(D >= 0 && D < ct.total)) return null;
+  return { excluded: D, total: total - D, shareOf: r => (r.name === CT ? r.total - D : r.total) / (total - D) };
+}
+const findingById = (X, id) => (X && X.findings || []).find(f => f.id === id) || null;
 const rollBySlug = (X, slug) => (X && X.rolls || []).find(r => r.slug === slug) || null;
 const dateBySlug = (X, slug) => (X && X.dates || []).find(d => d.slug === slug) || null;
 
@@ -97,14 +120,15 @@ function valueRows(ctx) {
     return {
       name: c.name, label: tn(c.name), href: '#m/' + c.slug, properties: s.properties, total: s.total,
       median: fh ? fh.p50 : (s.res_median != null ? s.res_median : null),
+      medFrom: fh ? 'fh' : (s.res_median != null ? 'res' : null),   // explore.json freehold p50, or stats.json fallback
       date: d ? d.valued_as_at : null,
       dateText: d && d.valued_as_at ? fmtDate(d.valued_as_at, L()) : (prov.valued_as_at && !d ? prov.valued_as_at : ''),
       dateNote: roll ? roll.date_note : null, cycle: (d && d.cycle) || s.cycle,
     };
   });
 }
-function sortRows(rows) {
-  const { key, dir } = tableState;
+// Sorted copy; the rank column is the position in THIS order (re-ranked on every sort).
+export function sortRows(rows, { key, dir } = tableState) {
   const val = r => key === 'name' ? r.label : key === 'date' ? (r.date || null) : r[key];
   return rows.slice().sort((a, b) => {
     const va = val(a), vb = val(b);
@@ -124,33 +148,41 @@ function renderValue(ctx) {
   const listed = rows.reduce((a, r) => a + (r.total || 0), 0);
   const tot = muni && ctx.stat && ctx.stat.total > 0 ? ctx.stat.total : listed;
   const rest = muni ? Math.max(0, tot - listed) : 0;
+  const ex = muni ? null : ctExclusion(X, rows, tot);
+  const share = r => (ex ? ex.shareOf(r) : (tot ? r.total / tot : 0));
+  const showAll = tableState.expanded || rows.length <= FIRST;
+  // degraded mode (no explore.json): the median falls back to stats.json's residential median, which
+  // counts every residential category (sectional-title units included), not only freehold homes
+  const resFallback = !muni && rows.some(r => r.medFrom === 'res');
   const meds = rows.map(r => r.median).filter(v => v > 0);
   const mMin = meds.length ? Math.min(...meds) : 1, mMax = meds.length ? Math.max(...meds) : 1;
   const top = rows.slice().sort((a, b) => b.total - a.total)[0];
   const hiM = rows.filter(r => r.median > 0).sort((a, b) => b.median - a.median);
   let lede;
-  if (muni) lede = tf('{top} holds {pct} of the value on the {place} roll.', { top: top.label, pct: P(top.total / tot), place: tn(ctx.name) });
+  if (muni) lede = tf('{top} holds {pct} of the value on the {place} roll.', { top: top.label, pct: P(share(top)), place: tn(ctx.name) });
   else if (rows.length === 1) lede = tf('{top} is the only municipality here.', { top: top.label });
-  else if (!hiM.length) lede = tf('{top} holds {pct} of the value.', { top: top.label, pct: P(top.total / tot) });
-  else lede = tf('{top} holds {pct} of the value; the median home value runs from {lo} in {loName} to {hi} in {hiName}.', {
-    top: top.label, pct: P(top.total / tot), lo: R(hiM[hiM.length - 1].median, { short: true }), loName: hiM[hiM.length - 1].label,
+  else if (!hiM.length) lede = tf('{top} holds {pct} of the value.', { top: top.label, pct: P(share(top)) });
+  else lede = tf(resFallback ? '{top} holds {pct} of the value; the median residential value runs from {lo} in {loName} to {hi} in {hiName}.'
+    : '{top} holds {pct} of the value; the median home value runs from {lo} in {loName} to {hi} in {hiName}.', {
+    top: top.label, pct: P(share(top)), lo: R(hiM[hiM.length - 1].median, { short: true }), loName: hiM[hiM.length - 1].label,
     hi: R(hiM[0].median, { short: true }), hiName: hiM[0].label });
   const th = (key, label, cls = '') => `<th scope="col" data-sort="${key}" class="${cls}" aria-sort="${tableState.key === key ? (tableState.dir < 0 ? 'descending' : 'ascending') : 'none'}"><button type="button">${esc(label)}</button></th>`;
   const head = `<thead><tr><th scope="col" class="c-rank"><span class="sr">${esc(t('Rank'))}</span></th>` +
     th('name', t(muni ? 'Town or suburb' : 'Municipality'), 'c-name') + th('properties', t('Properties'), 'c-props num') +
-    th('total', t('Total value'), 'c-total num') + th('median', t(muni ? 'Median value' : 'Median home value'), 'c-med num') +
+    th('total', t('Total value'), 'c-total num') + th('median', t(muni ? 'Median value' : resFallback ? 'Median residential value' : 'Median home value'), 'c-med num') +
     (muni ? '' : th('date', t('Date of valuation'), 'c-date')) + `</tr></thead>`;
   const body = () => {
     const sorted = sortRows(rows), shown = tableState.expanded ? sorted : sorted.slice(0, FIRST);
-    return shown.map((r, i) => `<tr${r.href ? ` data-href="${esc(r.href)}"` : ''}><td class="c-rank num">${i + 1}</td>` +
+    return shown.map((r, i) => `<tr${r.href ? ` data-href="${esc(r.href)}"` : ''}><td class="c-rank num">${i + 1}</td>` +   // i + 1 = sort position
       `<td class="c-name">${r.href ? `<a href="${esc(r.href)}">${esc(r.label)}</a>` : esc(r.label)}</td>` +
       `<td class="c-props num">${esc(N(r.properties))}</td>` +
-      `<td class="c-total num"><span class="fig">${esc(R(r.total))}</span>${shareBar(tot ? r.total / tot : 0, { width: 96, lang: L() })}</td>` +
+      `<td class="c-total num"><span class="fig">${esc(R(r.total))}</span>${shareBar(share(r), { width: 96, lang: L() })}</td>` +
       `<td class="c-med num"><span class="fig">${esc(r.median > 0 ? R(r.median, { short: true }) : '—')}</span>${markerScale(r.median, { min: mMin, max: mMax, width: 110, lang: L() })}</td>` +
-      (muni ? '' : `<td class="c-date"${r.dateNote && !r.date ? ` title="${esc(r.dateNote)}"` : ''}>${esc(r.dateText || t('date not stated'))}</td>`) + `</tr>`).join('');
+      (muni ? '' : `<td class="c-date"${r.dateNote && !r.date ? ` title="${esc(t(r.dateNote))}"` : ''}>${esc(r.dateText || t('date not stated'))}</td>`) + `</tr>`).join('');
   };
-  // the unlisted remainder (municipality level only): a fixed footer row, outside the sort
-  const foot = muni && rest / tot >= 0.0005
+  // the unlisted remainder (municipality level only): a fixed footer row, outside the sort. Shown only
+  // with the whole list: under a collapsed list it would read as "the rows below", which are listed.
+  const foot = muni && showAll && rest / tot >= 0.0005
     ? `<tfoot><tr class="rest"><td class="c-rank num"></td><td class="c-name">${esc(t('Places not listed'))}</td><td class="c-props num"></td>` +
       `<td class="c-total num"><span class="fig">${esc(R(rest))}</span>${shareBar(rest / tot, { width: 96, lang: L() })}</td><td class="c-med num"></td></tr></tfoot>` : '';
   const more = rows.length > FIRST
@@ -159,7 +191,10 @@ function renderValue(ctx) {
   const notes = muni
     ? [tf('The {n} towns and suburbs with the most properties, as the roll names them. Each share is of the whole {place} roll.', { n: rows.length, place: tn(ctx.name) }),
       rest / tot >= 0.0005 ? tf('The places listed hold {pct} of the roll value; {rest} is in places not listed.', { pct: P(listed / tot), rest: R(rest) }) : null]
-    : [t('A comparison, not a trend: each roll values property at its own date. Median home value is for freehold residential property.')];
+    : [t('A comparison, not a trend: each roll values property at its own date.') + ' ' + (resFallback
+        ? t('Median residential value covers every residential category, sectional-title units included.')
+        : t('Median home value is for freehold residential property.')),
+      ex ? t('Shares leave out Cape Town’s per-use allocation rows, which repeat their parent rows; the value totals include them.') : null];
   const townsHow = muni ? `<p>${esc(t('Town figures come from the site export (export_site.py, the towns block), not from a query on this page: properties valued above zero are grouped by the roll’s suburb name, suburbs with fewer than 3 properties are dropped, and the 40 with the most properties are kept. Shares divide by the municipality’s total from the query below.'))}</p>` : '';
   const el = shell('secValue', { h2: t('Where the value sits'), lede, body: `<table class="ledger">${head}<tbody>${body()}</tbody>${foot}</table>${more}`,
     notes, howExtra: townsHow, sql: X ? sqlFor(X, muni ? ['totals'] : ['totals', 'pct_res_fh', 'rolls'], ctx.level) : '' });
@@ -182,12 +217,22 @@ function renderValue(ctx) {
 }
 
 /* ---------- How values are spread ---------- */
+// Concentration shares. For the province, the findings' exclusion-consistent pair (f_concentration,
+// Cape Town allocation rows left out) replaces conc.nodes.province, which counts those rows twice, so the
+// spread callouts and the findings show the same figures. Other nodes use conc.nodes as exported.
+export function spreadConc(X, ctx) {
+  const c = concRow(X, ctx.node);
+  if (ctx.level !== 'province') return c;
+  const t10 = findingById(X, 'top10_share'), b50 = findingById(X, 'bottom50_share');
+  if (!t10 || !b50) return c;
+  return { ...(c || {}), top10: t10.value, bottom50: b50.value, excl: true };
+}
 function renderSpread(ctx) {
   const X = ctx.explore, counts = histCounts(X, ctx);
   if (!counts) return hide('secSpread');
   const p = pctRow(X, 'all', ctx.node) || {}, s = ctx.stat || {};
   const q = { p10: p.p10 ?? s.p10, p50: p.p50 ?? s.median, p90: p.p90 ?? s.p90, q1: p.p25 ?? s.q1, q3: p.p75 ?? s.q3 };
-  const c = concRow(X, ctx.node);
+  const c = spreadConc(X, ctx);
   const callouts = c ? `<dl class="callouts"><div><dt>${esc(t('Most valuable 10% of properties'))}</dt><dd>${esc(tf('hold {pct} of the value', { pct: P(c.top10) }))}</dd></div>` +
     `<div><dt>${esc(t('Least valuable half'))}</dt><dd>${esc(tf('hold {pct} of the value', { pct: P(c.bottom50) }))}</dd></div></dl>` : '';
   shell('secSpread', {
@@ -195,8 +240,9 @@ function renderSpread(ctx) {
     lede: tf('Half of all properties are valued below {median}; the middle half lie between {q1} and {q3}.', { median: R(q.p50, { short: true }), q1: R(q.q1, { short: true }), q3: R(q.q3, { short: true }) }),
     body: logHistogram(histBins(X, counts), { ...q, width: 640, height: 150, lang: L() }) + callouts,
     notes: [t('Log scale: each step to the right is a larger band of value. The shaded band is the middle half of properties.'),
-      t('Concentration here is of assessed property values, not of household wealth.')],
-    sql: sqlFor(X, ['loghist', 'pct_all', 'conc'], ctx.level),
+      t('Concentration here is of assessed property values, not of household wealth.'),
+      c && c.excl ? t('The concentration shares leave out Cape Town’s per-use allocation rows, which repeat their parent rows.') : null],
+    sql: sqlFor(X, ['loghist', 'pct_all', c && c.excl ? 'f_concentration' : 'conc'], ctx.level),
   });
 }
 
@@ -210,7 +256,7 @@ function renderMix(ctx) {
   const vac = groups.find(g => g.key === 'vacant');
   const caveat = (X.meta && X.meta.caveats || []).find(c => /vacant-land category/.test(c));
   const notes = [ctx.level === 'municipality' && vac && !vac.n
-    ? t('This roll has no vacant-land category, so vacant land is counted under other groups.') : (caveat ? t(caveat) : null)];
+    ? t('No property on this roll is in a vacant-land category; any vacant land is counted under other groups.') : (caveat ? t(caveat) : null)];
   shell('secMix', {
     h2: t('What the roll contains'),
     lede: tf(big.key === 'residential' ? 'Share of properties by rating category; residential properties make up {pct}.'
@@ -249,6 +295,14 @@ function findingValue(f) {
   if (f.unit === 'count') return N(f.value);
   return '';
 }
+// A province finding's sentence: the exported one (af, or the catalogue), except the top place, which
+// is re-worded here to name the size threshold a place must pass (explore.json places.min_n).
+function findingText(X, f) {
+  if (f.id === 'top_place' && f.label && X.places && X.places.min_n != null)
+    return tf('Of the places with at least {n} freehold homes, {label} ({muni}) has the highest median freehold home value: {v}.',
+      { n: N(X.places.min_n), label: f.label, muni: tn(f.muni), v: R(f.value) });
+  return (L() === 'af' && f.af) || t(f.en);
+}
 function scopedFindings(ctx) {
   const X = ctx.explore, place = tn(ctx.name), out = [];
   const c = concRow(X, ctx.node);
@@ -258,13 +312,16 @@ function scopedFindings(ctx) {
   const land = ctx.level === 'municipality' && X.land && X.land['m:' + ctx.slug];
   if (land && land.ppm) out.push({ value: tf('{v}/m²', { v: R(land.ppm[1]) }), text: tf('Full-title residential property in {place} has a median value of {v} per m² of land (whole-property value divided by land area).', { place, v: R(land.ppm[1]) }), q: ['land_ppm', 'reliable_roll'] });
   const inScope = new Set(ctx.muniSlugs), top = X.places && (X.places.top || []).find(p => inScope.has(p.muni_slug));
-  if (top) out.push({ value: R(top.median, { short: true }), text: tf('{label} has the highest median freehold home value in {place}, {v}.', { label: top.label, place, v: R(top.median) }), q: ['places'] });
+  if (top) out.push({ value: R(top.median, { short: true }), q: ['places'], text: X.places.min_n != null
+    ? tf('Of the places with at least {n} freehold homes, {label} has the highest median freehold home value in {place}: {v}.',
+      { n: N(X.places.min_n), label: top.label, place, v: R(top.median) })
+    : tf('{label} has the highest median freehold home value in {place}, {v}.', { label: top.label, place, v: R(top.median) }) });
   return out;
 }
 function renderFindings(ctx) {
   const X = ctx.explore; if (!X) return hide('secFindings');
   const items = ctx.level === 'province'
-    ? (X.findings || []).map(f => ({ value: findingValue(f), text: (L() === 'af' && f.af) || t(f.en), q: [f.query_id] }))
+    ? (X.findings || []).map(f => ({ value: findingValue(f), text: findingText(X, f), q: [f.query_id] }))
     : scopedFindings(ctx);
   if (!items.length) return hide('secFindings');
   const body = `<ol class="findings">` + items.map(f => `<li><p class="f-num">${esc(f.value)}</p><p class="f-text">${esc(f.text)}</p>` +

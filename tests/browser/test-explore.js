@@ -94,13 +94,18 @@ async (page) => {
       expected: top && mt ? (top.total / mt * 100).toFixed(1) + '%' : null,
       wrongListedShare: top ? (top.total / listed * 100).toFixed(1) + '%' : null,
       aria: bar && bar.getAttribute('aria-label'),
-      restRow: !!document.querySelector('#secValue table tfoot tr.rest svg.c-share'),
+      // collapsed list: no remainder row (it would read as "the rows below"); expanded: the row is there
+      restRowCollapsed: !!document.querySelector('#secValue table tfoot tr.rest'),
+      restRow: await (async () => { const b = document.querySelector('#secValue button.more'); if (!b) return false;
+        b.click(); await new Promise(r => requestAnimationFrame(r));
+        const ok = !!document.querySelector('#secValue table tfoot tr.rest svg.c-share');
+        const b2 = document.querySelector('#secValue button.more'); if (b2) b2.click(); return ok; })(),
       restNote: [...document.querySelectorAll('#secValue p.note')].some(n => /not listed/.test(n.textContent)),
       more: (document.querySelector('#secValue button.more') || {}).textContent || null,
     };
   });
   out.cappedOk = !!out.capped.expected && out.capped.aria === out.capped.expected && out.capped.aria !== out.capped.wrongListedShare &&
-    out.capped.rowName === out.capped.topName && out.capped.restRow && out.capped.restNote && !/Show all/.test(out.capped.more || '');
+    out.capped.rowName === out.capped.topName && !out.capped.restRowCollapsed && out.capped.restRow && out.capped.restNote && !/Show all/.test(out.capped.more || '');
 
   // fonts
   out.plex = await p.evaluate(async () => { await document.fonts.ready; return document.fonts.check('16px "IBM Plex Sans"'); });

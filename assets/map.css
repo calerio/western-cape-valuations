@@ -90,6 +90,10 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
   #topbar{top:calc(env(safe-area-inset-top,0px) + 60px);left:var(--s-2);right:auto;padding:2px}
   #topbar .viewseg a,#topbar .viewseg button,#topbar .langseg button{display:inline-flex;align-items:center;min-height:40px}
   #chips{top:calc(env(safe-area-inset-top,0px) + 116px);left:var(--s-2);max-width:calc(100vw - 2 * var(--s-2))}
+  .maplibregl-ctrl-top-right{top:calc(env(safe-area-inset-top,0px) + 164px)}   /* narrow desktop window: under the chips */
+}
+/* touch screens pinch to zoom: the zoom buttons go only there, not in a narrow mouse-driven window */
+@media (max-width:640px) and (pointer:coarse){
   .maplibregl-ctrl-top-right{display:none}
 }
 
@@ -166,6 +170,7 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
 .pNote a{color:var(--accent)}
 .pLink{font-size:var(--t-13);font-weight:600;color:var(--accent);cursor:pointer;margin-bottom:10px}
 .pLink:focus-visible,.pPick:focus-visible,#pclose:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+#pclose[data-quiet-focus]:focus-visible{outline:none}   /* focus moved by a tap-opened panel (panel.js) */
 /* result status: glyph + text on its own tint (never colour alone) */
 .pBadge{margin:0 28px var(--s-2) 0}
 .badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--r-pill);
