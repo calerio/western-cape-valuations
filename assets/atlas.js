@@ -71,6 +71,12 @@ const N = v => v == null ? "—" : (+v).toLocaleString("en-ZA").replace(/,/g, " 
 const norm = s => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const clAddr = s => (s || "").replace(/\s+/g, " ").trim();                 // collapse OCR padding
+// PRIVACY HOTFIX (2026-09-23, DATA_CONTRACT §7): the Matzikama roll's parsed address column can hold the
+// registered owner's name (column-shifted rows). Until the corrected immutable build ships, NO Matzikama
+// address is displayed — every row shows a neutral "Address unavailable". No heuristic name detection.
+const ADDRESS_HIDDEN_MUNIS = new Set(["Matzikama"]);
+const addrHidden = muni => ADDRESS_HIDDEN_MUNIS.has(String(muni || "").trim());
+const dispAddr = r => addrHidden(r && r.muni) ? t("Address unavailable") : (clAddr(r && r.address) || t("Unnamed erf"));
 const clSub = s => clAddr(s).replace(/(\s+\d{3,})+$/, "");                 // strip trailing data codes
 
 /* ============================ state ============================ */
@@ -666,7 +672,7 @@ function renderDash(p) {
 
 function fillProp(id, pr) {
   if (!pr) { $(id + "Addr").textContent = "—"; $(id + "Sub").textContent = ""; $(id + "Val").textContent = ""; $(id + "Meta").textContent = ""; return; }
-  $(id + "Addr").textContent = pr.address || t("Unnamed erf");
+  $(id + "Addr").textContent = dispAddr(pr);
   $(id + "Sub").textContent = [pr.suburb, tn(pr.muni)].filter(Boolean).join(" · ");
   $(id + "Val").textContent = R(pr.value);
   const ppm = pr.extent ? " · R" + N(Math.round(pr.value / pr.extent)) + "/m²" : "";
@@ -977,7 +983,7 @@ async function loadTop() {
   if (!rows.length) { body.innerHTML = `<div style="padding:34px 0;color:var(--label2);font-size:14px">${t("No properties found for this area.")}</div>`; return; }
   const muniScope = statePath.length >= 3;
   body.innerHTML = rows.map((r, i) => {
-    const addr = esc(clAddr(r.address) || t("Unnamed erf"));
+    const addr = esc(dispAddr(r));
     const sub = esc((muniScope ? [clSub(r.suburb)] : [clSub(r.suburb), tn(r.muni)]).filter(Boolean).join(" · "));
     const cat = r.category ? `<span class="tlCat">${esc(r.category)}</span>` : "";
     const meta = (r.extent ? N(Math.round(r.extent)) + " m²" : t("extent n/a")) + (r.extent ? " · R" + N(Math.round(r.value / r.extent)) + "/m²" : "");
@@ -1075,7 +1081,7 @@ async function runSearch(q, inId = "search", resId = "results") {
     if (!areas.length) searchNote(box, t("Address search is still loading — try again in a moment."));
     return;
   }
-  rows.forEach(r => searchRow(box, inId, clAddr(r.address) || t("Unnamed erf"),
+  rows.forEach(r => searchRow(box, inId, dispAddr(r),
     [clSub(r.suburb), tn(r.muni)].filter(Boolean).join(" · "), () => openProp(r), R(r.value)));
   if (!box.children.length) searchNote(box, t("No matches"));
 }
@@ -1100,7 +1106,7 @@ function ratesBlock(r) {
 }
 function openProp(r) {
   $("pdKicker").textContent = [clSub(r.suburb), tn(r.muni)].filter(Boolean).join(" · ");
-  $("pdAddr").textContent = clAddr(r.address) || t("Unnamed erf");
+  $("pdAddr").textContent = dispAddr(r);
   const ppm = r.extent ? "R" + N(Math.round(r.value / r.extent)) + " / m²" : "—";
   const stats = [
     [t("Erf / unit"), r.erf || "—"],

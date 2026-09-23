@@ -387,6 +387,12 @@ const R = v => {
 };
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clWs = s => (s || '').replace(/\s+/g, ' ').trim();
+// PRIVACY HOTFIX (2026-09-23, DATA_CONTRACT §7): the Matzikama roll's parsed address column can hold the
+// registered owner's name (column-shifted rows). Until the corrected immutable build ships, NO Matzikama
+// address is displayed — every row shows a neutral "Address unavailable". No heuristic name detection.
+const ADDRESS_HIDDEN_MUNIS = new Set(['Matzikama']);
+const addrHidden = muni => ADDRESS_HIDDEN_MUNIS.has(String(muni || '').trim());
+const dispAddr = (r, fallback) => addrHidden(r && r.muni) ? t('Address unavailable') : (clWs(r && r.address) || fallback);
 const RZA = v => 'R' + N(Math.round(v));
 
 // Verified municipal rates (rates.js + data/rates.json). Shown only when the
@@ -760,7 +766,7 @@ function renderSchemeList(g, props) {
     `<div class="pAddr">${esc(clWs(g.scheme))}</div>` + head +
     `<div class="pNote">${t('Scheme identified from the City’s sectional-scheme layer at the click point; units matched by scheme reference or name.')}</div>` +
     g.rows.slice(0, 40).map((r, i) =>
-      `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(clWs(r.address) || '—')}</span>` +
+      `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(dispAddr(r, '—'))}</span>` +
       `<span class="v">${R(r.value)}</span></div>`).join('') +
     (g.rows.length > 40 ? `<div class="pNote">${tf('Showing the 40 highest of {n}.', { n: g.rows.length })}</div>` : '');
   const sub = t('sectional-title units of this scheme');
@@ -849,7 +855,7 @@ function renderDetail(r, props, backList, backSub) {
   $('pbody').innerHTML =
     (backList ? `<div id="pback" class="pLink">${tf('← All {n} valuations on this erf', { n: backList.length })}</div>` : '') +
     `<div class="pKick">${esc([clWs(r.suburb), tn(r.muni)].filter(Boolean).join(' · '))}</div>` +
-    `<div class="pAddr">${esc(clWs(r.address) || t('Unnamed erf'))}</div>` +
+    `<div class="pAddr">${esc(dispAddr(r, t('Unnamed erf')))}</div>` +
     `<div class="pVal">${R(r.value)}</div>` +
     `<div class="pSub">${t('municipal market value')}</div>` +
     statRow(t('Erf / unit'), r.erf || '—') +
@@ -873,7 +879,7 @@ function renderList(rows, props, subText) {
     `<div class="pAddr">${tf('Erf {erf} — {n} valuations', { erf: esc(props.TAG_VALUE || '?'), n: rows.length })}</div>` +
     `<div class="pSub">${esc(subText || t('portions or sectional-title units share this parcel'))}</div>` +
     rows.slice(0, 40).map((r, i) =>
-      `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(clWs(r.address) || r.erf || 'Unnamed')}</span>` +
+      `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(dispAddr(r, r.erf || 'Unnamed'))}</span>` +
       `<span class="v">${R(r.value)}</span></div>`).join('') +
     (rows.length > 40 ? `<div class="pNote">${tf('Showing the 40 highest of {n}.', { n: rows.length })}</div>` : '');
   const sub = subText;
