@@ -1,7 +1,7 @@
 async (page) => {
   // Task 8: the EN/AF switch works IN PLACE on the map page — no reload, the open panel re-renders in
   // the new language (never passing through the "looking up" placeholder), the camera stays put.
-  const BASE = 'http://127.0.0.1:8766/', DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
+  const BASE = 'http://127.0.0.1:8766/', DB = 'https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json';
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 }, locale: 'en-US' });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(String(e).slice(0, 120)));

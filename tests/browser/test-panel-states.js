@@ -9,7 +9,7 @@ async (page) => {
   // singular "1 valuation", and the selection's `verified` feature-state for the accepted decisions.
   const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
   const BASE = 'http://127.0.0.1:8766/';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
+  const DB = 'https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json';
   const FIX = [
     { decision: 'accepted_high', muni: 'Beaufort West', prcl_key: 'W053C009000100000688000000', x: 22.58741, y: -32.364945, erf: '688' },
     { decision: 'review', muni: 'Beaufort West', prcl_key: 'W053C009000400000206000000', x: 23.00786, y: -32.092625, erf: '206' },

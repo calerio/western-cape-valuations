@@ -10,7 +10,7 @@ async (page) => {
   // Serve the worktree on :8766 (python3 -m http.server 8766).
   const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
   const BASE = 'http://127.0.0.1:8766/';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
+  const DB = 'https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json';
   const FIX = { muni: 'Drakenstein', erf: '97', x: 18.996231, y: -33.673691 };
   const VW = 390, VH = 844;
   const ctx = await page.context().browser().newContext({

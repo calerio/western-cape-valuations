@@ -7,7 +7,7 @@ async (page) => {
   //       (a MutationObserver on #pbody timestamps it; measured on (b)'s click).
   const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
   const BASE = 'http://127.0.0.1:8766/';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
+  const DB = 'https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json';
   const B = { x: 18.996231, y: -33.673691, erf: '97' };   // Drakenstein, accepted_high (test-race.js)
   const out = {};
   const open = async (tag, routeFn) => {

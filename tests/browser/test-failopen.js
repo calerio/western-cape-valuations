@@ -2,7 +2,7 @@ async (page) => {
   // Regression: fail-open link-table gate. While the DB config is unreachable a click must render an explicit
   // unavailable state (never the legacy heuristic); once reachable again, the next click must use the link table.
   const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
+  const DB = 'https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json';
   const B = { x: 18.996231, y: -33.673691, erf: '97' };
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
