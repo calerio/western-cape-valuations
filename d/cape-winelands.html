@@ -39,51 +39,46 @@
 <script type="application/ld+json">
 {"@context": "https://schema.org", "@graph": [{"@type": "WebPage", "name": "Cape Winelands property valuations", "description": "Municipal property valuations across the Cape Winelands district, Western Cape — Breede Valley, Drakenstein, Langeberg, Stellenbosch, and more. Median R695k, 157 248 properties. Free public data.", "url": "https://calerio.github.io/western-cape-valuations/d/cape-winelands.html", "isPartOf": {"@type": "WebSite", "name": "Western Cape Property Valuation Atlas", "url": "https://calerio.github.io/western-cape-valuations/"}, "about": {"@type": "AdministrativeArea", "name": "Cape Winelands", "containedInPlace": {"@type": "AdministrativeArea", "name": "Western Cape", "containedInPlace": {"@type": "Country", "name": "South Africa"}}}}, {"@type": "Dataset", "name": "Cape Winelands property valuations", "description": "Municipal property valuations across the Cape Winelands district, Western Cape — Breede Valley, Drakenstein, Langeberg, Stellenbosch, and more. Median R695k, 157 248 properties. Free public data.", "url": "https://calerio.github.io/western-cape-valuations/d/cape-winelands.html", "creator": {"@type": "Person", "name": "Valerio Costa"}, "isBasedOn": "Official municipal general valuation rolls (Municipal Property Rates Act, Act 6 of 2004)", "license": "Public data; parcels attributed to the Surveyor-General / Western Cape Government (as-is)", "distribution": {"@type": "DataDownload", "contentUrl": "https://github.com/calerio/western-cape-valuations"}}, {"@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "Home", "item": "https://calerio.github.io/western-cape-valuations/"}, {"@type": "ListItem", "position": 2, "name": "Cape Winelands", "item": "https://calerio.github.io/western-cape-valuations/d/cape-winelands.html"}]}]}
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="../assets/tokens.css" />
+<link rel="stylesheet" href="../assets/tokens.css?v=6" />
+<link rel="stylesheet" href="../assets/viewseg.css?v=1" />
 <style>
-  /* Static-page layout in the Atlas idiom (tokens.css supplies every color). */
+  /* Static-page layout in the Atlas idiom: tokens.css supplies every colour and the self-hosted
+     IBM Plex Sans / Source Serif 4 (no Google Fonts); viewseg.css the segmented switch shared with
+     the Explore bar. Sentence case throughout, no tracked capitals. */
   *{box-sizing:border-box;margin:0;padding:0}
   body{background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:16px;line-height:1.6;
     -webkit-font-smoothing:antialiased}
   a{color:inherit}
   .wrap{max-width:860px;margin:0 auto;padding:0 20px 64px}
 
-  /* top bar: wordmark + the same segmented switcher the Atlas and Satellite pages share */
+  /* top bar: wordmark + the Explore bar's segmented switch (assets/viewseg.css) */
   .top{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 0 14px;
     border-bottom:1px solid var(--hairline);margin-bottom:26px}
-  .wordmark{font-size:13px;font-weight:800;letter-spacing:-.01em;text-decoration:none;color:var(--ink)}
+  .wordmark{font-size:13px;font-weight:600;letter-spacing:-.01em;text-decoration:none;color:var(--ink)}
   .wordmark span{color:var(--ink2);font-weight:600}
-  .viewseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
-  .viewseg a{text-decoration:none;font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
-    padding:11px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
-  .viewseg a:hover{color:var(--ink)}
-  .viewseg a[aria-current="page"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
 
   .crumbs{font-size:12px;color:var(--label2);margin-bottom:18px}
   .crumbs a{color:inherit;text-decoration:none}
   .crumbs a:hover{color:var(--ink)}
-  .kick{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px}
-  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1.15;text-wrap:balance;margin-bottom:10px}
+  .kick{font-size:var(--t-13);font-weight:600;color:var(--accent);margin-bottom:10px}
+  h1{font-family:var(--font-display);font-size:30px;font-weight:600;letter-spacing:-.02em;line-height:1.15;text-wrap:balance;margin-bottom:10px}
   .intro{color:var(--ink2);max-width:64ch}
   .note{font-size:11.5px;line-height:1.6;color:var(--label2)}
   .caveat{font-size:11.5px;line-height:1.6;color:var(--label2);margin-top:14px;max-width:64ch}
 
-  h2{font-size:17px;font-weight:800;letter-spacing:-.01em;margin:38px 0 14px}
+  h2{font-size:17px;font-weight:600;letter-spacing:-.01em;margin:38px 0 14px}
   .sub{font-size:12px;color:var(--label2);margin:-8px 0 14px}
 
   /* stat tiles — mirrors the Atlas panel's .statgrid/.stile */
   .statgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
   .stile{background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-ctl);padding:13px 14px}
-  .stl{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);margin-bottom:6px}
-  .stv{font-size:20px;font-weight:800;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+  .stl{font-size:var(--t-12);color:var(--label2);margin-bottom:6px}
+  .stv{font-size:20px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
   .stn{font-size:11px;color:var(--label2);margin-top:4px}
 
   /* hairline tables — mirrors the Atlas panel's hairRow */
   table{width:100%;border-collapse:collapse;font-size:14px}
-  th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);font-weight:600;
+  th{font-size:var(--t-12);color:var(--label2);font-weight:600;
     text-align:left;padding:0 10px 8px 0}
   th.num,td.num{text-align:right;font-variant-numeric:tabular-nums;padding-right:0}
   td{padding:11px 10px 11px 0;border-top:1px solid var(--sep)}
@@ -95,10 +90,10 @@
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
   .propcard{background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);
     box-shadow:var(--shadow-card);padding:18px 20px}
-  .propcard .pk{font-size:11px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+  .propcard .pk{font-size:var(--t-12);font-weight:600;margin-bottom:10px}
   .propcard .pa{font-weight:600;letter-spacing:-.01em;font-size:17px;line-height:1.15;margin-bottom:3px}
   .propcard .ps{font-size:12px;color:var(--label2);margin-bottom:10px}
-  .propcard .pv{font-weight:800;letter-spacing:-.01em;font-size:22px;font-variant-numeric:tabular-nums}
+  .propcard .pv{font-weight:600;letter-spacing:-.01em;font-size:22px;font-variant-numeric:tabular-nums}
   .propcard .pm{font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px}
 
   .linkrow{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
@@ -139,7 +134,7 @@
      NB: no literal dollar signs outside real placeholders. -->
   <nav class="crumbs" aria-label="Breadcrumb"><a href="../index.html">Home</a> › Western Cape › Cape Winelands</nav>
   <header>
-    <div class="kick">District municipality · Western Cape</div>
+    <div class="kick">District municipality in the Western Cape</div>
     <h1>Cape Winelands property valuations</h1>
     <p class="intro">The Cape Winelands district spans 5 municipalities — Breede Valley, Drakenstein, Langeberg, Stellenbosch, Witzenberg — with 157 248 properties on their current valuation rolls, median value R695k.</p>
     <div class="linkrow">
@@ -148,13 +143,13 @@
     </div>
     <p class="caveat">Values are municipal valuations as at each roll’s valuation date — set for rates, not today’s sale prices. Municipalities value on different cycles; each page states its own.</p>
   </header>
-<h2>Key figures</h2><div class="statgrid"><div class="stile"><div class="stl">Median value</div><div class="stv">R695k</div><div class="stn">all property types</div></div><div class="stile"><div class="stl">Median home</div><div class="stv">R692k</div><div class="stn">residential only</div></div><div class="stile"><div class="stl">Average value</div><div class="stv">R2.19m</div></div><div class="stile"><div class="stl">Total roll value</div><div class="stv">R338bn</div></div><div class="stile"><div class="stl">Properties on the roll</div><div class="stv">157 248</div></div><div class="stile"><div class="stl">Median home · per m²</div><div class="stv">R2 272/m²</div></div><div class="stile"><div class="stl">Median home erf</div><div class="stv">275 m²</div><div class="stn">typical plot size</div></div><div class="stile"><div class="stl">Middle 50% of values</div><div class="stv">R212k – R2.07m</div><div class="stn">the central half, ignoring extremes</div></div></div>
+<h2>Key figures</h2><div class="statgrid"><div class="stile"><div class="stl">Median value</div><div class="stv">R695k</div><div class="stn">all property types</div></div><div class="stile"><div class="stl">Median home</div><div class="stv">R694k</div><div class="stn">residential only</div></div><div class="stile"><div class="stl">Average value</div><div class="stv">R2.19m</div></div><div class="stile"><div class="stl">Total roll value</div><div class="stv">R338bn</div></div><div class="stile"><div class="stl">Properties on the roll</div><div class="stv">157 248</div></div><div class="stile"><div class="stl">Median home value per m²</div><div class="stv">R1 986/m²</div></div><div class="stile"><div class="stl">Median home erf</div><div class="stv">301 m²</div><div class="stn">typical plot size</div></div><div class="stile"><div class="stl">Middle 50% of values</div><div class="stv">R212k – R2.07m</div><div class="stn">the central half, ignoring extremes</div></div></div>
 <h2>Municipalities, ranked by median value</h2><div class="tablewrap"><table><tr><th>Municipality</th><th class="num">Roll cycle</th><th class="num">Median value</th><th class="num">Properties</th></tr><tr><td><a href="../m/stellenbosch.html">Stellenbosch</a></td><td class="num">2025-2029</td><td class="num">R1.43m</td><td class="num">36 680</td></tr><tr><td><a href="../m/drakenstein.html">Drakenstein</a></td><td class="num">2025-2029</td><td class="num">R890k</td><td class="num">52 896</td></tr><tr><td><a href="../m/breede-valley.html">Breede Valley</a></td><td class="num">2026-2031</td><td class="num">R490k</td><td class="num">29 053</td></tr><tr><td><a href="../m/langeberg.html">Langeberg</a></td><td class="num">2026-2031</td><td class="num">R270k</td><td class="num">22 226</td></tr><tr><td><a href="../m/witzenberg.html">Witzenberg</a></td><td class="num">2023-2027</td><td class="num">R154k</td><td class="num">16 393</td></tr></table></div>
 <h2>Property mix</h2><div class="tablewrap"><table><tr><th>Category</th><th class="num">Parcels</th><th class="num">Share</th><th class="num">Median</th><th class="num">Share of value</th></tr><tr><td>Residential</td><td class="num">121 573</td><td class="num">77%</td><td class="num">R698k</td><td class="num">56%</td></tr><tr><td>Business</td><td class="num">6 818</td><td class="num">4%</td><td class="num">R1.75m</td><td class="num">11%</td></tr><tr><td>Agricultural</td><td class="num">7 524</td><td class="num">5%</td><td class="num">R4.85m</td><td class="num">17%</td></tr><tr><td>State / municipal</td><td class="num">7 023</td><td class="num">4%</td><td class="num">R21k</td><td class="num">3%</td></tr><tr><td>Vacant</td><td class="num">1 732</td><td class="num">1%</td><td class="num">R633k</td><td class="num">1%</td></tr><tr><td>Other</td><td class="num">12 578</td><td class="num">8%</td><td class="num">R282k</td><td class="num">12%</td></tr></table></div>
-<h2>Extremes</h2><div class="cards"><div class="propcard"><div class="pk" style="color:var(--accent)">Most valuable property</div><div class="pa">Victoria</div><div class="ps">SB Stellenbosch · Stellenbosch</div><div class="pv">R946.61m</div><div class="pm">98 532 m² · R9 607/m²</div></div><div class="propcard"><div class="pk" style="color:var(--ok)">Most affordable home</div><div class="pa">15 Gladiolus</div><div class="ps">KY Kylemore · Stellenbosch</div><div class="pv">R100k</div><div class="pm">196 m² · R510/m²</div></div></div>
-<h2>Data quality</h2><p class="sub">Gaps in the published roll itself — counted, not estimated. Affected parcels are excluded from the relevant stats.</p><div class="statgrid"><div class="stile"><div class="stl">No value recorded</div><div class="stv">3 077</div><div class="stn">2.0% of parcels</div></div><div class="stile"><div class="stl">Nominal values · ≤ R1 000</div><div class="stv">3 579</div><div class="stn">placeholder entries in the roll</div></div><div class="stile"><div class="stl">No recorded size</div><div class="stv">814</div><div class="stn">0.5% of parcels</div></div><div class="stile"><div class="stl">No category</div><div class="stv">10 500</div><div class="stn">6.7% of parcels</div></div></div>
+<h2>Extremes</h2><div class="cards"><div class="propcard"><div class="pk" style="color:var(--accent)">Most valuable property</div><div class="pa">Victoria</div><div class="ps">SB Stellenbosch, Stellenbosch</div><div class="pv">R946.61m</div><div class="pm">98 532 m², R9 607 per m²</div></div><div class="propcard"><div class="pk" style="color:var(--ok)">Most affordable home</div><div class="pa">15 Gladiolus</div><div class="ps">KY Kylemore, Stellenbosch</div><div class="pv">R100k</div><div class="pm">196 m², R510 per m²</div></div></div>
+<h2>Data quality</h2><p class="sub">Gaps in the published roll itself — counted, not estimated. Affected parcels are excluded from the relevant stats.</p><div class="statgrid"><div class="stile"><div class="stl">No value recorded</div><div class="stv">3 077</div><div class="stn">2.0% of parcels</div></div><div class="stile"><div class="stl">Nominal values (R1 000 or less)</div><div class="stv">3 579</div><div class="stn">placeholder entries in the roll</div></div><div class="stile"><div class="stl">No recorded size</div><div class="stv">814</div><div class="stn">0.5% of parcels</div></div><div class="stile"><div class="stl">No category</div><div class="stv">10 500</div><div class="stn">6.7% of parcels</div></div></div>
 <h2>How these valuations work</h2><p class="sub" style="max-width:64ch">Municipal valuations estimate each property’s open-market value on a set past date (mass appraisal under the Municipal Property Rates Act) — calculated to charge rates, <strong>not</strong> a floor or a live sale price. <a href="../guide/how-valuations-work.html">How valuations work →</a></p>
-<h2>Who governs these values</h2><p class="note" style="margin-top:14px;max-width:64ch">Other role-players: <a href="https://www.westerncape.gov.za" rel="noopener">Western Cape Valuation Appeal Board ↗</a> · <a href="https://www.westerncape.gov.za" rel="noopener">Western Cape Department of Local Government ↗</a> · <a href="https://www.cogta.gov.za" rel="noopener">CoGTA (Cooperative Governance &amp; Traditional Affairs) ↗</a>. Appeals against the valuer’s decision go to the Valuation Appeal Board.</p>
+<h2>Who governs these values</h2><p class="note" style="margin-top:14px;max-width:64ch">Other role-players: <a href="https://www.westerncape.gov.za" rel="noopener">Western Cape Valuation Appeal Board ↗</a>, <a href="https://www.westerncape.gov.za" rel="noopener">Western Cape Department of Local Government ↗</a>, <a href="https://www.cogta.gov.za" rel="noopener">CoGTA (Cooperative Governance &amp; Traditional Affairs) ↗</a>. Appeals against the valuer’s decision go to the Valuation Appeal Board.</p>
 
 <h2>Browse</h2><div class="linkrow"><a class="btn" href="../m/index.html">All municipalities</a></div>
 
