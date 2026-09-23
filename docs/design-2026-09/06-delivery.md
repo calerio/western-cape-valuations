@@ -78,23 +78,23 @@ and vary with ArcGIS latency.
 
 ### WebKit (automated, Playwright MCP)
 
-<!-- controller: fill the table from the MCP runs on the final HEAD (http://127.0.0.1:8766/) -->
+Run 2026-09-23 18:2x on branch HEAD 75ef902 against http://127.0.0.1:8766/ (Playwright MCP, WebKit 26.6, cold contexts). 13 scenarios, 13 passed, 0 page errors, 0 console errors. Scenario sources: `tests/browser/*.js`; the `probe-hint-focus` check (hint text after EN→AF + pan inside the fetched bbox; no `:focus-visible` on `#pclose` after a touch tap; zoom control present at 600 px desktop) also passed.
 
 | Scenario | Result | Notes |
 |---|---|---|
-| `test-explore.js` | <!-- controller --> | now expands the capped list before checking the remainder row |
-| `test-explore-degrade.js` | <!-- controller --> | |
-| `test-explore-mobile.js` | <!-- controller --> | |
-| `test-panel-states.js` | <!-- controller --> | focus still lands on `#pclose` |
-| `test-panel-errors.js` | <!-- controller --> | |
-| `test-mobile-map.js` | <!-- controller --> | |
-| `test-basemap-switch.js` | <!-- controller --> | |
-| `test-lang-switch.js` | <!-- controller --> | also check that the `#maphint` text follows the language |
-| `test-af-labels.js` | <!-- controller --> | |
-| `test-failopen.js` | <!-- controller --> | |
-| `test-race.js` | <!-- controller --> | |
-| `test-hotfix-matzikama.js` | <!-- controller --> | the suppression must still hold |
-| P0 tests | <!-- controller --> | |
+| `test-explore.js` | PASS | now expands the capped list before checking the remainder row |
+| `test-explore-degrade.js` | PASS | |
+| `test-explore-mobile.js` | PASS | |
+| `test-panel-states.js` | PASS (6/6 dispositions) | focus still lands on `#pclose` |
+| `test-panel-errors.js` | PASS (unavailable + integrity states; loading badge in 35 ms) | |
+| `test-mobile-map.js` | PASS | |
+| `test-basemap-switch.js` | PASS (0 imagery requests before Satellite; one MapLibre instance) | |
+| `test-lang-switch.js` | PASS (AF panel in 83 ms, no reload; hint follows the language — `probe-hint-focus`) | also check that the `#maphint` text follows the language |
+| `test-af-labels.js` | PASS | |
+| `test-failopen.js` | PASS (fails closed while blocked; link table after recovery) | |
+| `test-race.js` | PASS (later click kept) | |
+| `test-hotfix-matzikama.js` | PASS (Matzikama addresses suppressed; Drakenstein keeps its address) | the suppression must still hold |
+| P0 tests | PASS (`tests/selection.test.mjs` in the 49 node tests; `test-failopen`/`test-race` above) | |
 
 ### Chrome and Firefox (manual, by the owner)
 
@@ -128,19 +128,19 @@ cd ~/projects/western-cape-property-valuations
 python3 extract/match/smoke_matrix.py --site http://127.0.0.1:8766 --db <prod config> --out reports/smoke-design-2026-09 --private
 ```
 
-<!-- controller: paste the per-group counts (accepted_high, accepted_group, review, ambiguous, not_in_roll, abstain), build_verified, js_errors -->
+**Pending.** The matrix drives Safari through AppleScript and cannot render while the screen is locked (`document.hidden` is true). A launcher (`extract/match/design_smoke_when_ready_2026-09-23.sh`) runs it automatically once the P0 checkpoint run has finished and the screen is unlocked with Safari idle; its result lands in `extract/match/reports/design-smoke-2026-09-23.DONE` and `reports/smoke-design-2026-09/smoke.json`. <!-- controller: paste the per-group counts, build_verified, js_errors when the DONE marker exists -->
 
 ## 6. Screenshots
 
 Made by `tests/browser/shots-delivery.js` (MCP scenario) into `docs/design-2026-09/screenshots/`.
 
-<!-- controller: fill the table with the returned bytes/scale per file; embed or link each PNG -->
+All twelve were captured on HEAD 75ef902 (1440×900 desktop; 390×844 phone). Explore pages are lossless PNG within the 400 KB budget. Map and satellite pages contain imagery that does not compress losslessly (0.4–2.5 MB as PNG), so those are stored as JPEG (quality 82) or, for the two plain-map phone shots, PNG at 1× — a controller ruling recorded in the SDD ledger.
 
 | Page | EN desktop | EN phone | AF desktop | AF phone |
 |---|---|---|---|---|
-| Explore (`index.html`) | <!-- controller --> | | | |
-| Map (`plain.html`, Stellenbosch deep link) | | | | |
-| Satellite (`map.html`, same link, `&b=sat`) | | | | |
+| Explore (`index.html`) | [PNG 226 KB](screenshots/index-en-desktop.png) | [PNG 383 KB @3×](screenshots/index-en-phone.png) | [PNG 235 KB](screenshots/index-af-desktop.png) | [PNG 382 KB @3×](screenshots/index-af-phone.png) |
+| Map (`plain.html`, Stellenbosch deep link) | [JPEG 366 KB](screenshots/plain-en-desktop.jpg) | [PNG 180 KB @1×](screenshots/plain-en-phone.png) | [JPEG 370 KB](screenshots/plain-af-desktop.jpg) | [PNG 180 KB @1×](screenshots/plain-af-phone.png) |
+| Satellite (`map.html`, same link, `&b=sat`) | [JPEG 608 KB](screenshots/map-en-desktop.jpg) | [JPEG 132 KB](screenshots/map-en-phone.jpg) | [JPEG 611 KB](screenshots/map-af-desktop.jpg) | [JPEG 142 KB](screenshots/map-af-phone.jpg) |
 
 ## 7. Known limitations
 
