@@ -78,6 +78,30 @@ async (page) => {
   };
   out.drillOk = out.muni.nameHead === 'Town or suburb' && out.muni.rows >= 8 && out.muni.bins === 22 && out.muni.mix > 0 && out.muni.dots > 0 && out.muni.findings > 0;
 
+  // capped municipality: towns.json keeps at most 40 places, so a share must divide by the
+  // municipality's stats.json total, not by the sum of the listed towns; the unlisted remainder shows
+  await p.evaluate(() => { location.hash = '#m/swellendam'; });
+  await p.waitForFunction(() => document.getElementById('scopeLabel').textContent === 'Swellendam', null, { timeout: 5000 });
+  await p.waitForTimeout(300);
+  out.capped = await p.evaluate(async () => {
+    const [T, S] = await Promise.all([fetch('data/towns.json').then(r => r.json()), fetch('data/stats.json').then(r => r.json())]);
+    let mt = null; Object.values(S.districts).forEach(d => { if (d.municipalities.Swellendam) mt = d.municipalities.Swellendam.total; });
+    const towns = T.Swellendam || [], top = towns.slice().sort((a, b) => b.total - a.total)[0];
+    const listed = towns.reduce((a, t) => a + t.total, 0);
+    const bar = document.querySelector('#secValue table tbody tr svg.c-share');
+    return {
+      topName: top && top.name, rowName: (document.querySelector('#secValue table tbody tr td.c-name') || {}).textContent,
+      expected: top && mt ? (top.total / mt * 100).toFixed(1) + '%' : null,
+      wrongListedShare: top ? (top.total / listed * 100).toFixed(1) + '%' : null,
+      aria: bar && bar.getAttribute('aria-label'),
+      restRow: !!document.querySelector('#secValue table tfoot tr.rest svg.c-share'),
+      restNote: [...document.querySelectorAll('#secValue p.note')].some(n => /not listed/.test(n.textContent)),
+      more: (document.querySelector('#secValue button.more') || {}).textContent || null,
+    };
+  });
+  out.cappedOk = !!out.capped.expected && out.capped.aria === out.capped.expected && out.capped.aria !== out.capped.wrongListedShare &&
+    out.capped.rowName === out.capped.topName && out.capped.restRow && out.capped.restNote && !/Show all/.test(out.capped.more || '');
+
   // fonts
   out.plex = await p.evaluate(async () => { await document.fonts.ready; return document.fonts.check('16px "IBM Plex Sans"'); });
 
@@ -95,6 +119,6 @@ async (page) => {
   out.cycleOk = /2023.2027/.test(out.pdCycle || '') && !/2024 \/ 25/.test(out.pdText || '');
 
   out.verdict = (out.loadingOk && out.headlineOk && out.tableOk && out.chartsOk && out.howOpen && out.howSql && out.findings >= 3 &&
-    out.tipOk && out.drillOk && out.plex && out.cycleOk && !errs.length) ? 'PASS' : 'FAIL';
+    out.tipOk && out.drillOk && out.cappedOk && out.plex && out.cycleOk && !errs.length) ? 'PASS' : 'FAIL';
   await ctx.close(); return out;
 }

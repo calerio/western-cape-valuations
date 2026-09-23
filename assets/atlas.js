@@ -2,7 +2,7 @@ import { getRates, computeRates } from "./rates.js?v=1";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 import { fmtR, fmtN } from "./format.js?v=2";
 import { dur } from "./motion.js?v=1";
-import { renderSections, renderCoverage } from "./explore-sections.js?v=1";
+import { renderSections, renderCoverage } from "./explore-sections.js?v=2";
 
 // d3 comes from the UMD bundle loaded in <head> — importing the jsdelivr +esm build
 // as well would fetch the whole ~30-module d3 graph a second time (and trigger a wall
@@ -565,11 +565,17 @@ function renderChrome(p) {
   renderDash(p);
 }
 
-// The municipalities' dates of valuation (explore.json dates, else the roll provenance).
+// The municipalities' dates of valuation. One source per page: once explore.json has loaded its
+// `dates` are the only source (a null there means the roll does not state its date, as #secDates
+// says); the stats.json provenance text is used only in degraded mode, when explore.json is absent
+// or lists no roll for the municipality.
 function datesFor(munis) {
-  const iso = s => { const d = EXPLORE && (EXPLORE.dates || []).find(x => x.slug === s); return d ? d.valued_as_at : null; };
-  return munis.map(m => { const i = iso(slugOf(m)), pv = (muniStat(m) || {}).provenance;
-    return { iso: i, year: i ? +i.slice(0, 4) : (pv && /\d{4}/.test(pv.valued_as_at || "") ? +/\d{4}/.exec(pv.valued_as_at)[0] : null), text: pv && pv.valued_as_at }; });
+  // same lookup as #secDates (explore-sections.js renderDates): dates entry, else the rolls entry
+  const entry = s => EXPLORE && ((EXPLORE.dates || []).find(x => x.slug === s) || (EXPLORE.rolls || []).find(x => x.slug === s));
+  return munis.map(m => { const d = entry(slugOf(m));
+    if (d) return { iso: d.valued_as_at || null, year: d.valued_as_at ? +d.valued_as_at.slice(0, 4) : null, text: null };
+    const pv = (muniStat(m) || {}).provenance;
+    return { iso: null, year: pv && /\d{4}/.test(pv.valued_as_at || "") ? +/\d{4}/.exec(pv.valued_as_at)[0] : null, text: pv && pv.valued_as_at }; });
 }
 const fmtIso = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); if (!m) return "";
   const MON = isAF() ? ["Januarie", "Februarie", "Maart", "April", "Mei", "Junie", "Julie", "Augustus", "September", "Oktober", "November", "Desember"]

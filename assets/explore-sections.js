@@ -107,7 +107,12 @@ function renderValue(ctx) {
   if (!rows.length) return hide('secValue');
   const kind = muni ? 'towns' : 'munis';
   if (tableState.kind !== kind) Object.assign(tableState, { key: 'total', dir: -1, expanded: false, kind });
-  const tot = rows.reduce((a, r) => a + (r.total || 0), 0);
+  // Shares: at municipality level towns.json lists at most 40 places (those with the most
+  // properties), so the denominator is the municipality's roll total from stats.json, never the
+  // sum of the listed rows; the unlisted remainder is shown as its own row.
+  const listed = rows.reduce((a, r) => a + (r.total || 0), 0);
+  const tot = muni && ctx.stat && ctx.stat.total > 0 ? ctx.stat.total : listed;
+  const rest = muni ? Math.max(0, tot - listed) : 0;
   const meds = rows.map(r => r.median).filter(v => v > 0);
   const mMin = meds.length ? Math.min(...meds) : 1, mMax = meds.length ? Math.max(...meds) : 1;
   const top = rows.slice().sort((a, b) => b.total - a.total)[0];
@@ -133,12 +138,20 @@ function renderValue(ctx) {
       `<td class="c-med num"><span class="fig">${esc(r.median > 0 ? R(r.median, { short: true }) : '—')}</span>${markerScale(r.median, { min: mMin, max: mMax, width: 110, lang: L() })}</td>` +
       (muni ? '' : `<td class="c-date"${r.dateNote && !r.date ? ` title="${esc(r.dateNote)}"` : ''}>${esc(r.dateText || t('date not stated'))}</td>`) + `</tr>`).join('');
   };
+  // the unlisted remainder (municipality level only): a fixed footer row, outside the sort
+  const foot = muni && rest / tot >= 0.0005
+    ? `<tfoot><tr class="rest"><td class="c-rank num"></td><td class="c-name">${esc(t('Places not listed'))}</td><td class="c-props num"></td>` +
+      `<td class="c-total num"><span class="fig">${esc(R(rest))}</span>${shareBar(rest / tot, { width: 96, lang: L() })}</td><td class="c-med num"></td></tr></tfoot>` : '';
   const more = rows.length > FIRST
-    ? `<button type="button" class="more" aria-expanded="${tableState.expanded}">${esc(tableState.expanded ? t('Show fewer') : tf('Show all {n}', { n: rows.length }))}</button>` : '';
-  const notes = [muni ? t('Towns and suburbs as the roll names them; each is a share of this municipality’s roll value.')
-    : t('A comparison, not a trend: each roll values property at its own date. Median home value is for freehold residential property.')];
-  const el = shell('secValue', { h2: t('Where the value sits'), lede, body: `<table class="ledger">${head}<tbody>${body()}</tbody></table>${more}`,
-    notes, sql: X ? sqlFor(X, muni ? ['totals'] : ['totals', 'pct_res_fh', 'rolls'], ctx.level) : '' });
+    ? `<button type="button" class="more" aria-expanded="${tableState.expanded}">${esc(tableState.expanded ? t('Show fewer')
+      : muni ? tf('Show {n} more', { n: rows.length - FIRST }) : tf('Show all {n}', { n: rows.length }))}</button>` : '';
+  const notes = muni
+    ? [tf('The {n} towns and suburbs with the most properties, as the roll names them. Each share is of the whole {place} roll.', { n: rows.length, place: tn(ctx.name) }),
+      rest / tot >= 0.0005 ? tf('The places listed hold {pct} of the roll value; {rest} is in places not listed.', { pct: P(listed / tot), rest: R(rest) }) : null]
+    : [t('A comparison, not a trend: each roll values property at its own date. Median home value is for freehold residential property.')];
+  const townsHow = muni ? `<p>${esc(t('Town figures come from the site export (export_site.py, the towns block), not from a query on this page: properties valued above zero are grouped by the roll’s suburb name, suburbs with fewer than 3 properties are dropped, and the 40 with the most properties are kept. Shares divide by the municipality’s total from the query below.'))}</p>` : '';
+  const el = shell('secValue', { h2: t('Where the value sits'), lede, body: `<table class="ledger">${head}<tbody>${body()}</tbody>${foot}</table>${more}`,
+    notes, howExtra: townsHow, sql: X ? sqlFor(X, muni ? ['totals'] : ['totals', 'pct_res_fh', 'rolls'], ctx.level) : '' });
   if (!el) return;
   const table = el.querySelector('table.ledger');
   table.querySelector('thead').addEventListener('click', e => {
@@ -232,7 +245,7 @@ function scopedFindings(ctx) {
   const fh = pctRow(X, 'res_fh', ctx.node);
   if (fh && fh.p50) out.push({ value: R(fh.p50, { short: true }), text: tf('The median freehold home in {place} is valued at {v}.', { place, v: R(fh.p50) }), q: ['pct_res_fh'] });
   const land = ctx.level === 'municipality' && X.land && X.land['m:' + ctx.slug];
-  if (land && land.ppm) out.push({ value: 'R' + N(land.ppm[1]) + '/m²', text: tf('Full-title property in {place} has a median value of R{v} per m² of land (whole-property value divided by land area).', { place, v: N(land.ppm[1]) }), q: ['land_ppm', 'reliable_roll'] });
+  if (land && land.ppm) out.push({ value: tf('{v}/m²', { v: R(land.ppm[1]) }), text: tf('Full-title residential property in {place} has a median value of {v} per m² of land (whole-property value divided by land area).', { place, v: R(land.ppm[1]) }), q: ['land_ppm', 'reliable_roll'] });
   const inScope = new Set(ctx.muniSlugs), top = X.places && (X.places.top || []).find(p => inScope.has(p.muni_slug));
   if (top) out.push({ value: R(top.median, { short: true }), text: tf('{label} has the highest median freehold home value in {place}, {v}.', { label: top.label, place, v: R(top.median) }), q: ['places'] });
   return out;
