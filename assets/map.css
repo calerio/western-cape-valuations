@@ -134,6 +134,16 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
 #attrib .maplibregl-ctrl-attrib-button{display:none}
 #attrib .maplibregl-ctrl-attrib-inner{display:block}
 #attrib a{color:var(--label2)}
+/* wider screens: no ⓘ — the credits sit inline as one small line in the bottom-right corner
+   (map.js keeps #attrib shown there), on a platter so they read on both basemaps */
+@media (min-width:641px){
+  #attribBtn{display:none}
+  #attrib{bottom:0;right:0;max-width:min(720px, calc(100vw - 260px));padding:2px var(--s-2);
+    background:var(--platter-bg);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+    border:0;border-radius:var(--r-ctl) 0 0 0;box-shadow:none;color:var(--ink2)}
+  #attrib a{color:inherit}
+  #maphint{bottom:56px}                                   /* clear a two-line credits block */
+}
 
 /* parcel valuation panel — opaque; right rail on desktop, bottom sheet on phones */
 #ppanel{top:calc(env(safe-area-inset-top,0px) + 78px);right:var(--s-4);width:380px;max-width:calc(100vw - 2 * var(--s-4));

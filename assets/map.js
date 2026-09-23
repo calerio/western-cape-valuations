@@ -116,16 +116,21 @@ function initMap(style, cam) {
 }
 
 // Attribution: MapLibre's own control (so credits follow the sources actually in use — Esri
-// appears only while imagery is shown) mounted inside the #attrib popover behind the ⓘ button.
+// appears only while imagery is shown) mounted inside #attrib. Wider than 640 px the credits line is
+// always shown inline, bottom-right (map.css hides the ⓘ); on phones it is a popover behind the ⓘ.
 function initAttribution(map) {
   const btn = $('attribBtn'), box = $('attrib');
   if (!btn || !box) { map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right'); return; }
   const ctrl = new maplibregl.AttributionControl({ compact: false });
   box.appendChild(ctrl.onAdd(map));
+  const wide = matchMedia('(min-width: 641px)');
   const set = open => { box.hidden = !open; btn.setAttribute('aria-expanded', String(open)); };
+  const layout = () => set(wide.matches);            // inline on wide screens, closed popover on phones
+  layout();
+  wide.addEventListener('change', layout);
   btn.addEventListener('click', e => { e.stopPropagation(); set(box.hidden); });
-  document.addEventListener('click', e => { if (!box.hidden && !box.contains(e.target)) set(false); });
-  addEventListener('keydown', e => { if (e.key === 'Escape' && !box.hidden) set(false); });
+  document.addEventListener('click', e => { if (!wide.matches && !box.hidden && !box.contains(e.target)) set(false); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !wide.matches && !box.hidden) set(false); });
 }
 
 // Municipality polygons: drawn as outlines below, and used by muniAt() to scope every erf
