@@ -244,7 +244,7 @@ conflicts, the merge commits by itself — skip those lines and go on with the c
 ```sh
 git -C "$MAIN" status --short                      # must be empty
 git -C "$MAIN" merge --no-ff design-2026-09
-# ONLY if the merge stopped: the three script-tag conflicts, in favour of the branch (atlas.js?v=42, map.js?v=42):
+# ONLY if the merge stopped: the three script-tag conflicts, in favour of the branch (keep the branch's current `?v=` numbers):
 git -C "$MAIN" checkout --theirs index.html map.html plain.html
 grep -n 'atlas.js?v=\|map.js?v=' "$MAIN"/index.html "$MAIN"/map.html "$MAIN"/plain.html
 grep -c 'b-93c01c0b6202' "$MAIN"/assets/atlas.js "$MAIN"/assets/map.js    # 1 each: the live DB namespace survived

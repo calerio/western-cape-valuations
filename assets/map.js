@@ -947,6 +947,14 @@ function trackChipsHeight() {
   if (typeof ResizeObserver === 'function') new ResizeObserver(sync).observe(c);
   sync();
 }
+// The inline credits (wider screens) wrap to two or three lines in a narrow window; map.css lifts the
+// zoom hint above them via --credits-h, kept current here.
+function trackCreditsHeight() {
+  const a = $('attrib'); if (!a) return;
+  const sync = () => document.documentElement.style.setProperty('--credits-h', Math.ceil(a.getBoundingClientRect().height) + 'px');
+  if (typeof ResizeObserver === 'function') new ResizeObserver(sync).observe(a);
+  sync();
+}
 function wireLangToggle() {
   document.querySelectorAll('[data-lang]').forEach(a => {
     a.addEventListener('click', e => { e.preventDefault();
@@ -1177,6 +1185,7 @@ function showMapFail() { document.getElementById('mapfail')?.removeAttribute('hi
 async function boot() {
   wireLangToggle();
   trackChipsHeight();
+  trackCreditsHeight();
   initI18n();
   wireBasemapButtons();
   maplibregl = window.maplibregl || null;

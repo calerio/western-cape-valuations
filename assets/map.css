@@ -142,8 +142,11 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
     background:var(--platter-bg);-webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
     border:0;border-radius:var(--r-ctl) 0 0 0;box-shadow:none;color:var(--ink2)}
   #attrib a{color:inherit}
-  #maphint{bottom:56px}                                   /* clear a two-line credits block */
+  /* sit above the credits, whose rendered height (one to three lines) map.js keeps in --credits-h */
+  #maphint{bottom:calc(max(var(--sheet-h,0px), env(safe-area-inset-bottom,0px)) + var(--credits-h, 0px) + var(--s-2))}
 }
+/* over satellite imagery the inline credits are opaque, like the platters */
+body[data-basemap="sat"] #attrib{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none}
 
 /* parcel valuation panel — opaque; right rail on desktop, bottom sheet on phones */
 #ppanel{top:calc(env(safe-area-inset-top,0px) + 78px);right:var(--s-4);width:380px;max-width:calc(100vw - 2 * var(--s-4));
