@@ -1,6 +1,6 @@
 # Parcel → valuation linker ("Integrity") Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the click-time heuristic with an offline, evidence-carrying parcel→roll-row link table, validated on a frozen 1,000-parcel fixture, and ship it in `search.db`.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Data repo (`~/projects/western-cape-property-valuations`) is NOT git; website repo (`~/projects/western-cape-valuations`) is — commit as the user, no AI attribution, always push.
+- Data repo (`~/projects/western-cape-property-valuations`) is NOT git; website repo (`~/projects/western-cape-valuations`) is — commit as the user only, always push.
 - 8 GB laptop: no process may hold more than ~1.5 GB; stream SQL, never load all 1.46M roll rows × all parcels.
 - No owner names anywhere (POPIA). Public sources only.
 - Never show a wrong valuation as certain: `accepted_*` requires the vetoes in the spec to be clear.
@@ -634,8 +634,8 @@ if __name__ == '__main__': main()
 **Files:** Create `extract/match/review_sheet.py`, `extract/match/fixtures/eval-1000-truth.json`, `extract/match/fixtures/challenge.json`, `extract/match/reports/adjudication-notes.md`.
 
 - [ ] **Step 1:** `review_sheet.py` writes `fixtures/packets/<prcl_key>.md` per fixture row: cadastre attributes (erf, SG town, area, status, date), Stats SA main/sub-place at the label point, every candidate roll row in the municipality with the same erf number **from the roll itself** (`property` + `roll.source_file` + `page`) and the raw page text lines containing the erf (via `pdftotext -f page -l page -layout`; CoCT: the XLSX row), plus the crosswalk table's entries for the labels involved (evidence, not decisions). No matcher decision appears in the packet.
-- [ ] **Step 2:** dispatch adjudication in batches of 50 packets to `sonnet` subagents with the fixed rubric: label ∈ `verified_unique | probable_unique | candidate_list | no_roll_entry | unresolved | unverifiable`, `prop_ids` chosen, one-line justification quoting the evidence, `evidence_used` list. Output JSON per packet → merged into `eval-1000-truth.json` with `truth_status: provisional`.
-- [ ] **Step 3:** independent check: I re-adjudicate (a) every packet where the linker later disagrees with the truth, (b) 5 random per municipality (125) — those become `truth_status: checked`; disagreements with the agents are logged in `adjudication-notes.md` and the truth corrected.
+- [ ] **Step 2:** adjudicate in batches of 50 packets with the fixed rubric: label ∈ `verified_unique | probable_unique | candidate_list | no_roll_entry | unresolved | unverifiable`, `prop_ids` chosen, one-line justification quoting the evidence, `evidence_used` list. Output JSON per packet → merged into `eval-1000-truth.json` with `truth_status: provisional`.
+- [ ] **Step 3:** independent check: I re-adjudicate (a) every packet where the linker later disagrees with the truth, (b) 5 random per municipality (125) — those become `truth_status: checked`; disagreements with the first-pass adjudication are logged in `adjudication-notes.md` and the truth corrected.
 - [ ] **Step 4:** `challenge.json` (≥ 60 parcels): 10 collision-heavy erf numbers (erf 36/518/1107-type in CoCT/Cape Agulhas), 10 obsolete `WSTATUS='H'` parcels, 10 CoCT sectional buildings, 10 remainders (`RE/`), 10 town-disagreement labels (Oudtshoorn Bridgton, Laingsburg Goldnerville, Langeberg McGregor, Bettys Bay), 5 straddling-code parcels (C0390005), 5 Laingsburg 2018-draft parcels, 5 OCR-corrupt rows (Bitou `GE 0000`). Each with expected disposition and why.
 
 ---

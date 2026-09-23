@@ -49,7 +49,7 @@ on the selected erf, with its status drawn in line-work rather than colour alone
 | i18n | `assets/i18n.js`, `data/i18n-af.json`, `tests/check-i18n.mjs` | One shared module; in-place EN/AF switch; completeness check (all literal keys + explore.json strings) |
 | Data | `data/explore.json`, `data/geo/*.geojson` | Pre-computed Explore statistics with their SQL; simplified boundaries (outline 28 KB, municipalities 89 KB) plus the full-resolution municipalities for the Integrity rule |
 | Static pages | `templates/shell.html`, regenerated `m/`, `d/`, `guide/`, `af/`, `sitemap.xml` | Self-hosted fonts via tokens.css, shared `viewseg.css`, sentence case, copy without middle-dot strings. The figures now match `stats.json` (they had not been regenerated since 2026-07-19). |
-| Tests | `tests/*.test.mjs` (49 passing), `tests/browser/*.js` | Unit tests for tokens, fonts, format, hash, hatch, style, selection, bbox, evidence, charts, i18n, explore sections, check-i18n; WebKit scenarios for every page and state |
+| Tests | `tests/*.test.mjs` (58 passing), `tests/browser/*.js` | Unit tests for tokens (incl. WCAG contrast of the five status pairs), fonts, format, hash, hatch, style, selection, bbox, slug, evidence, panel disclosure, charts, i18n, explore sections, check-i18n; WebKit scenarios for every page and state |
 
 Data repo (`~/projects/western-cape-property-valuations`, no remote): `extract/export_explore.py`,
 `extract/catrules.py`, `extract/geo/simplify_geo.py` (drift gate and `--dry-run`),
@@ -78,7 +78,7 @@ and vary with ArcGIS latency.
 
 ### WebKit (automated, Playwright MCP)
 
-Run 2026-09-23 18:2x on branch HEAD 75ef902 against http://127.0.0.1:8766/ (Playwright MCP, WebKit 26.6, cold contexts). 13 scenarios, 13 passed, 0 page errors, 0 console errors. Scenario sources: `tests/browser/*.js`; the `probe-hint-focus` check (hint text after EN→AF + pan inside the fetched bbox; no `:focus-visible` on `#pclose` after a touch tap; zoom control present at 600 px desktop) also passed.
+Run 2026-09-23 18:2x on 75ef902, then re-run after the final fix wave on the HEAD of this branch, against http://127.0.0.1:8766/ (Playwright MCP, WebKit 26.6, cold contexts). 13 scenarios, 13 passed, 0 page errors, 0 console errors. Scenario sources: `tests/browser/*.js`; the `probe-hint-focus` check (hint text after EN→AF + pan inside the fetched bbox; no `:focus-visible` on `#pclose` after a touch tap; zoom control present at 600 px desktop) also passed.
 
 | Scenario | Result | Notes |
 |---|---|---|
@@ -94,7 +94,8 @@ Run 2026-09-23 18:2x on branch HEAD 75ef902 against http://127.0.0.1:8766/ (Play
 | `test-failopen.js` | PASS (fails closed while blocked; link table after recovery) | |
 | `test-race.js` | PASS (later click kept) | |
 | `test-hotfix-matzikama.js` | PASS (Matzikama addresses suppressed; Drakenstein keeps its address) | the suppression must still hold |
-| P0 tests | PASS (`tests/selection.test.mjs` in the 49 node tests; `test-failopen`/`test-race` above) | |
+| `test-crossview.js` | <!-- controller: result --> | `plain.html#m/stellenbosch` frames Stellenbosch; the map's Explore link carries `#m/<slug>`; Explore's "Open the map" carries its municipality |
+| P0 tests | PASS (`tests/selection.test.mjs` in the 58 node tests; `test-failopen`/`test-race` above) | |
 
 ### Chrome and Firefox (manual, by the owner)
 
@@ -114,8 +115,10 @@ Click through in each browser:
    language: the hint at the bottom follows it.
 3. **Keyboard.** Tab through the map page. The close button shows a focus ring when reached by
    keyboard. When the panel was opened by a click, Chrome and Firefox show no ring on it.
-4. **Static pages.** Open `http://127.0.0.1:8766/af/m/mossel-bay.html`: the fonts are Plex and Source
-   Serif, and DevTools Network shows no request to fonts.googleapis.com.
+4. **Static pages.** Open `http://127.0.0.1:8766/m/mossel-bay.html` and choose **AF** with the EN | AF
+   toggle first: `assets/lang.js` sends a first-time visitor whose browser language is not Afrikaans
+   from an `af/` page to its English twin. Then open `http://127.0.0.1:8766/af/m/mossel-bay.html`: the
+   fonts are Plex and Source Serif, and DevTools Network shows no request to fonts.googleapis.com.
 
 <!-- controller: record the owner's Chrome / Firefox findings here -->
 
@@ -186,6 +189,11 @@ All twelve were captured on HEAD 75ef902 (1440×900 desktop; 390×844 phone). Ex
   checkout (the comment in the file says so).
 - Static-page footer links are still separated by middle dots. They are navigation separators, not joined
   meta strings.
+- The map's Explore link carries the municipality under the map centre (`#m/<slug>`) at every zoom, so
+  from the untouched province view it opens Explore on whichever municipality the centre falls in
+  (spec §3 as written; a minimum zoom for the context would be a follow-up).
+- The screenshots in §6 predate the final fix wave: desktop map shots still show the ⓘ credits button
+  rather than the inline credits line.
 
 ## 8. Deployment (after the owner approves)
 
@@ -225,19 +233,22 @@ MAIN=~/projects/western-cape-valuations
 ```
 
 `main` has three commits the branch does not have: the search-DB switch to `b-93c01c0b6202`, the
-Matzikama repair export, and DATA_CONTRACT §7c. The merge conflicts only on the `?v=` of the
-`atlas.js`/`map.js` script tags in `index.html`, `map.html` and `plain.html`. Keep the branch side, which
-has the higher numbers. The Supabase `configUrl` change lives in the JS and auto-merges.
+Matzikama repair export, and DATA_CONTRACT §7c. Today `git merge --no-ff` **stops** on three conflicts,
+all on the `?v=` of the `atlas.js`/`map.js` script tags in `index.html`, `map.html` and `plain.html`
+(checked on 2026-09-23 with `git merge-tree --write-tree main design-2026-09`). Keep the branch side,
+which has the higher numbers. The Supabase `configUrl` change lives in the JS and auto-merges. The
+resolve-and-commit lines below apply **only when the merge stops**; if a later `main` no longer
+conflicts, the merge commits by itself — skip those lines and go on with the checks and the push.
 
 ```sh
 git -C "$MAIN" status --short                      # must be empty
 git -C "$MAIN" merge --no-ff design-2026-09
-# the three script-tag conflicts, in favour of the branch (atlas.js?v=41, map.js?v=39):
+# ONLY if the merge stopped: the three script-tag conflicts, in favour of the branch (atlas.js?v=42, map.js?v=42):
 git -C "$MAIN" checkout --theirs index.html map.html plain.html
 grep -n 'atlas.js?v=\|map.js?v=' "$MAIN"/index.html "$MAIN"/map.html "$MAIN"/plain.html
 grep -c 'b-93c01c0b6202' "$MAIN"/assets/atlas.js "$MAIN"/assets/map.js    # 1 each: the live DB namespace survived
 (cd "$MAIN" && node --test 'tests/*.test.mjs' && node tests/check-i18n.mjs)
-git -C "$MAIN" add index.html map.html plain.html && git -C "$MAIN" commit --no-edit
+git -C "$MAIN" add index.html map.html plain.html && git -C "$MAIN" commit --no-edit   # ONLY if the merge stopped
 git -C "$MAIN" push origin main
 git -C "$MAIN" log -1 --format=%H                 # the merge SHA, for a rollback
 ```

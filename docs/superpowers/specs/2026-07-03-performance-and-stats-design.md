@@ -1,7 +1,7 @@
 # Task 4 + 5 — Performance fixes & richer statistics (design + plan)
 
-**Date:** 2026-07-03 · **Executor:** Opus 4.8 (decided with the user — this is debugging +
-data-pipeline + statistics work, not the visual polish Task 3 was). **Repo:**
+**Date:** 2026-07-03 · **Scope:** debugging + data-pipeline + statistics work, not the visual
+polish Task 3 was. **Repo:**
 `~/projects/western-cape-valuations` (deploys to GitHub Pages). Export/build tooling lives in the
 **sibling** `~/projects/western-cape-property-valuations` (NOT git-tracked, does not deploy).
 
@@ -49,12 +49,11 @@ This plan resumes after Task 3 (Apple/Flighty UI, live). It covers **Task 4 (per
 
 ## Decisions (from the user)
 
-- **Executor:** Opus, this session.
 - **Historical stats:** build every stat possible now **and** add roll-archival so growth/CAGR work
   on the next roll — don't hunt for old rolls yet.
 - **Affordability proxy:** include it, clearly labelled as an estimate. For the interest rate: try a
   reliable **live** SARB/prime-rate source; if none is CORS-safe for a static site, store it as a
-  **sourced, dated constant** (the `rates.json` pattern — §10 of the contract) and note in `CLAUDE.md`
+  **sourced, dated constant** (the `rates.json` pattern — §10 of the contract) and note in the project notes
   to re-verify after each SARB MPC meeting. Never an unlabelled guess.
 
 ---
@@ -62,8 +61,8 @@ This plan resumes after Task 3 (Apple/Flighty UI, live). It covers **Task 4 (per
 ## Milestones — commit AND push after each (user: "push before continuing to the next step")
 
 Each milestone is independently shippable and reversible via git. Verify in Playwright
-(desktop + mobile, light + dark where relevant) before every push. **Commit as the user only — no
-Claude/AI authorship** (repo rule). Bump `?v=` on any edited JS.
+(desktop + mobile, light + dark where relevant) before every push. **Commit as the user only** (repo
+rule). Bump `?v=` on any edited JS.
 
 ### M1 — Fix the overlap bug (the #1 gripe), client-side only
 `assets/map.js`, `onParcelClick`:
@@ -143,7 +142,7 @@ rows, soft-shadow tiles, one accent). Add grouped, guarded sections to the exist
 ---
 
 ## Hard constraints (carry-over — do not violate)
-- **Commit as the user; no Claude/AI authorship** anywhere.
+- **Commit as the user only**, everywhere.
 - **Never hardcode figures**; every number recomputed by `export_site.py`. `rates.json` + the new
   prime-rate fact are the only hand-maintained data, and each needs `year`/`source`/`quote`.
 - **Data is append-only / never deleted** — history snapshots are immutable (the whole point of M3).

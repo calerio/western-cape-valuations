@@ -196,7 +196,7 @@ See `audit-code.md` §12: no hard-coded figures; graceful auto-hiding sections a
 string; the Supabase `configUrl` literal in both JS files (rollback regex); `verifyBuild` fail-closed;
 link-table-first, "missing key ⇒ Not in this data build"; `?db=` and `?nolink=1`; the disposition wording rules;
 the smoke-test ids/strings; `WSTATUS='C'`; attribution strings; the six `--map-*` tokens on `[data-theme]`
-pins; `?v=` bump pattern; SEO files; no Claude authorship in commits.
+pins; `?v=` bump pattern; SEO files; commits carry the owner's authorship only.
 
 ## 8. Data audit — summary (full report: `01-data-audit.md`)
 

@@ -59,7 +59,7 @@ appears with a 120 ms opacity ramp; everything answers an action. `prefers-reduc
 including MapLibre easing.
 
 ## Self-review against generic defaults
-- Cream paper + serif display + warm accent (the common AI default) → **changed**: the surface is near-white
+- Cream paper + serif display + warm accent (the common template default) → **changed**: the surface is near-white
   with a cool-neutral cast, the serif is confined to the editorial voice, and the accent is a cadastral blue
   tied to the existing ramp, not terracotta.
 - Broadsheet hairlines everywhere → **kept only** in the ledger table and chart axes, where rules encode rows;

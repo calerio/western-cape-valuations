@@ -11,7 +11,7 @@ immutable build `b-2b502178f94f`; nothing in this plan touches the linker, the b
 - Fast: measurably lighter first load on all three pages; no new framework; no second map instance.
 - Trustworthy: status is always text + glyph; required wording verbatim; raw evidence behind a disclosure.
 - Civic, not corporate: editorial hierarchy, dense but calm; no gradients, glass, decorative cards or motion for
-  its own sake (Anthropic frontend-aesthetics guidance applied as: one distinctive type pairing, one committed
+  its own sake (frontend aesthetics guidance applied as: one distinctive type pairing, one committed
   palette, one orchestrated reveal, restrained backgrounds).
 - Bilingual by construction: every new string is an i18n key with an AF entry; map labels localised where the
   tiles have Afrikaans, with graceful fallback; no invented translations.

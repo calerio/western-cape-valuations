@@ -1,6 +1,6 @@
 # Design & performance refresh 2026-09 — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship the approved refresh of the Western Cape valuations site — an editorial Explore page fed by `explore.json`, one canonical map page with an in-place Map/Satellite switch and Afrikaans basemap labels, a result panel with text+glyph trust states, self-hosted civic typography, and a measurably lighter first load — without touching the linker, the DB builds or any disposition semantics.
 
@@ -12,8 +12,7 @@
 
 ## Global Constraints
 - Work only in the worktree `~/projects/western-cape-valuations-design` (branch `design-2026-09`, served at `http://127.0.0.1:8766/`). Never edit `~/projects/western-cape-valuations` (production checkout) or push.
-- Commits as the user, **no Claude/AI authorship lines** (repo CLAUDE.md). One commit per task.
-- Subagents run on **Opus** (`model: "opus"`).
+- Commits as the user only (repo rule). One commit per task.
 - Browser automation only through the Playwright MCP (WebKit). Scenario files must live under `~/projects/western-cape-property-valuations/.playwright-mcp/scen/` to be runnable; keep the readable source in `tests/browser/`.
 - Every new user-facing English string is an i18n key and gets an `af` entry in `data/i18n-af.json` `strings`. Slugs, hashes, SQL stay English.
 - Preserve: `window._map`, `window._integrity` (`hasLinkTable`, `lookupLink`, `verifyBuild`, `linkDisabled`, `stats`), source id `parcels`, layer id `parcels-fill`, `#pbody`, `#maphint`, `plain.html?db=…`, `?nolink=1`, the EN substrings asserted by `extract/match/smoke_matrix.py` (`municipal market value`, `sectional-title units`, `possible match`, `Could not link`, `several entries fit`, `No valuation found`, `Verified link`, `unverified`, `Not in this data build`, `Looking up`), the Supabase `configUrl` literal in `map.js` and `atlas.js` (rollback regex), the `(map|atlas).js?v=N` script-tag pattern in `index.html`, `map.html`, `plain.html`, hash forms `#m/<slug>`, `#d/<slug>`, `#p/…`, `WSTATUS='C'`, attribution strings, six `--map-*` tokens on `[data-theme]` pins, `google4a9f7e6a1f57c0ea.html`, generated files never hand-edited.
@@ -45,7 +44,7 @@ Website repo (design worktree):
 - `assets/map/hatch.js` — create: `hatchImageData(size, gap, rgba)` → `{width,height,data}` for `map.addImage`.
 - `assets/map/panel.js` — create: `renderState(el, state)`, `STATE_BADGES`, `renderDisclosure(...)`, list/detail renderers moved from map.js.
 - `assets/evidence.js` — create: `explain(codes, lang)` from `data/evidence-codes.json`.
-- `data/evidence-codes.json` — create: copy of the agent's dictionary (26 codes, 7 decisions).
+- `data/evidence-codes.json` — create: copy of the linker's evidence dictionary (26 codes, 7 decisions).
 - `assets/map.css` — create: all map-page CSS (from the inline blocks of map.html/plain.html, re-tokenised).
 - `assets/map.js` — modify: entry module; imports the map/* modules; basemap switch; in-place language; hash with `b/c/s`; parcel styling; keeps `_map`, `_integrity`, `DB_CONFIG_URL`.
 - `map.html`, `plain.html` — rewrite as thin identical shells (only `data-basemap` default, title/meta/canonical/ld+json differ), keep `assets/map.js?v=N`.
@@ -57,11 +56,11 @@ Website repo (design worktree):
 - `tests/format.test.mjs`, `tests/i18n.test.mjs`, `tests/motion.test.mjs`, `tests/hash.test.mjs`, `tests/style.test.mjs`, `tests/hatch.test.mjs`, `tests/evidence.test.mjs`, `tests/charts.test.mjs`, `tests/fonts.test.mjs`, `tests/fixtures/liberty.json` (vendored copy of the style for tests only), `tests/check-i18n.mjs`.
 - `tests/browser/test-basemap-switch.js`, `test-af-labels.js`, `test-lang-switch.js`, `test-panel-states.js`, `test-panel-errors.js`, `test-mobile-map.js`, `test-explore.js`, `test-explore-degrade.js`, `test-explore-mobile.js`, `perf-*.js` (same scenarios as the baseline).
 - `templates/shell.html` — modify: fonts + tokens + sentence-case nav for the generated static pages.
-- `DATA_CONTRACT.md` — modify: §14/§15 updated, new §16 "One map page", `explore.json` section (agent adds), §11 pre-warm timing note.
+- `DATA_CONTRACT.md` — modify: §14/§15 updated, new §16 "One map page", `explore.json` section (added with the export), §11 pre-warm timing note.
 
 Data repo (`~/projects/western-cape-property-valuations`):
 - `extract/geo/simplify_geo.py` — create: writes `data/geo/za-outline.geojson` (≤ 12 KB), simplified `wc-districts.geojson`, `wc-municipalities.geojson`, `wc-wards.geojson` (Douglas–Peucker via shapely, tolerance chosen by a size budget, topology preserved by simplifying shared boundaries with `shapely.simplify(preserve_topology=True)` per feature and a visual check).
-- `extract/export_explore.py` — created by the export agent (Task 0 dependency).
+- `extract/export_explore.py` — created by the export step (Task 0 dependency).
 - `extract/export_pages.py` — modify only if `templates/shell.html` needs new placeholders; regenerate `m/`, `d/`, `af/`, `sitemap.xml` at the end.
 
 ---
@@ -70,8 +69,8 @@ Data repo (`~/projects/western-cape-property-valuations`):
 
 **Files:** none created here.
 
-- [ ] **Step 1:** Confirm `data/explore.json` exists in the worktree (from the export agent) and validate: `python3 -c "import json;d=json.load(open('data/explore.json'));print(d['version'],len(d['rolls']),list(d.keys()))"` → 25 rolls and the blocks `meta,rolls,pct,loghist,groups,land,conc,places,findings,dates,queries`.
-- [ ] **Step 2:** Confirm `/private/tmp/claude-501/…/scratchpad/evidence-codes.json` has 26 codes and 7 decisions; copy it to `data/evidence-codes.json`.
+- [ ] **Step 1:** Confirm `data/explore.json` exists in the worktree (from the export step) and validate: `python3 -c "import json;d=json.load(open('data/explore.json'));print(d['version'],len(d['rolls']),list(d.keys()))"` → 25 rolls and the blocks `meta,rolls,pct,loghist,groups,land,conc,places,findings,dates,queries`.
+- [ ] **Step 2:** Confirm the linker's `evidence-codes.json` has 26 codes and 7 decisions; copy it to `data/evidence-codes.json`.
 - [ ] **Step 3:** Vendor the style for tests: `curl -s https://tiles.openfreemap.org/styles/liberty -o tests/fixtures/liberty.json` (43 KB; used ONLY by unit tests; the site still fetches the live style).
 - [ ] **Step 4:** Commit: `git add data/evidence-codes.json tests/fixtures/liberty.json && git commit -m "Design refresh: test fixtures (Liberty style snapshot) and evidence dictionary"`.
 

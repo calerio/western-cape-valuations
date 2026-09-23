@@ -267,7 +267,7 @@ Limits:
 - JS reads tokens **once at boot** via `cssVar()` (`atlas.js:11-14`, `:277`; `map.js:25`; `places.js:19`). An OS theme flip while index.html is open leaves stale SVG colours. The MapLibre layers bake in colours at `addLayer`.
 - `prefers-reduced-motion`: a blanket `transition/animation-duration:.01ms` block in index (`:298-300`), map and plain (`:63-65`) and shell (`:113-115`). It does **not** cover JS motion: the Atlas zoom sets `gNode.style.transition` inline, which is still clamped by `!important`; but MapLibre `fitBounds({duration:900})` (`places.js:185-186`) and map easing are **not** gated.
 - Inline `<style>` blocks: index ~250 lines, map/plain ~117 lines each, shell ~70 lines. There are also many inline `style=""` attributes and JS-built style strings (atlas.js renders almost all panel content with inline styles, e.g. `:625-628`, `:1042-1043`).
-- **map.html vs plain.html duplication.** The files are byte-identical apart from 10 hunks: theme pin, title/meta/og/ld (6-8, 15, 18-20, 25-26, 30-32), the comment on line 150, the icon `filter:invert` rule (line 155, map only), `body data-basemap`, and `aria-current`. CLAUDE.md says this near-copy is **hand-maintained**.
+- **map.html vs plain.html duplication.** The files are byte-identical apart from 10 hunks: theme pin, title/meta/og/ld (6-8, 15, 18-20, 25-26, 30-32), the comment on line 150, the icon `filter:invert` rule (line 155, map only), `body data-basemap`, and `aria-current`. The project notes say this near-copy is **hand-maintained**.
 - The `.viewseg` rules appear 4×, `.platter` 2×, and the reduced-motion block 4×.
 
 ---
@@ -356,7 +356,7 @@ Limits:
   - island clipping;
   - the CSS-transform zoom formula;
   - "nothing hardcoded" data rule.
-  The Voronoi town layer was deliberately removed ("no fabricated geography", CLAUDE.md).
+  The Voronoi town layer was deliberately removed ("no fabricated geography", project notes).
 - `docs/apple-design-audit-2026-07-19.md`: contrast fixes (`--label2` .75), keyboard reachability, 44 px targets, the 11 px type floor, focus ring, copy sweep. **Deferred items are still open:** rem-based sizing, off-grid spacing, one-off radii, the untokenised chip shadow `0 1px 4px rgba(0,0,0,.18)` ×5, heavy dark shadows, and accent-tinted non-interactive kickers.
 - `docs/superpowers/specs/` (all shipped):
   - map-view (06-22)
@@ -403,4 +403,4 @@ Limits:
 10. **Cache-busting:** bump `atlas.js?v=` / `map.js?v=` (and the import `?v=` on places.js/rates.js, `rates.json?v=`) on change. `rollback_db.sh` expects the `(map|atlas).js?v=N` pattern in `index.html`, `map.html` and `plain.html`.
 11. **SEO and crawl:** `#siteFooter` static link to `m/index.html` in index.html. Canonical, og and hreflang structure. `plain.html` and `map.html` are listed in the sitemap. The generated pages sit exactly one directory below their language root (the `${root}` prefix). `google4a9f7e6a1f57c0ea.html` must never be deleted. `404.html` is hand-written.
 12. **Honesty copy:** "roll value ≠ today's sale price" caveats (panel, `#dashNote`, provenance, detail note). The affordability block stays labelled as an estimate. Rates appear only when a verified tariff exists: no default, and no rates figure when the municipality is absent.
-13. **Git:** website-repo commits carry no Claude/AI authorship (CLAUDE.md).
+13. **Git:** website-repo commits carry the owner's authorship only (project notes).

@@ -141,8 +141,8 @@ high-confidence link listed.
 
 **Ground truth** — `review_sheet.py` writes one evidence packet per fixture parcel: cadastre
 attributes; Stats SA main/sub-place at the label point; the roll page's raw text (`pdftotext` of
-the recorded source page) for each candidate; all candidate rows. Adjudicators (subagents on a
-cheap model + spot checks) label each packet `verified_unique | probable_unique | candidate_list |
+the recorded source page) for each candidate; all candidate rows. Adjudicators (a first pass +
+spot checks) label each packet `verified_unique | probable_unique | candidate_list |
 no_roll_entry | unresolved | unverifiable` with a one-line justification and the evidence used;
 the matcher's own decision is not shown to them.
 
