@@ -9,3 +9,7 @@
 .viewseg a:hover, .viewseg button:hover { color: var(--ink); }
 .viewseg a[aria-current="page"], .viewseg button[aria-pressed="true"] { background: var(--seg-on); color: var(--ink);
   box-shadow: 0 0 0 1px var(--rule); }
+/* phones: 40 px targets, the same as the map pages' top bar (desktop look unchanged) */
+@media (max-width: 640px) {
+  .viewseg a, .viewseg button { min-height: 40px; }
+}

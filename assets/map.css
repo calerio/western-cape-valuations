@@ -27,16 +27,19 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
 /* top bar: view switcher (Explore link + Map/Satellite basemap buttons) and language */
 #topbar{top:calc(env(safe-area-inset-top,0px) + var(--s-4));right:var(--s-4);
   display:flex;gap:var(--s-2);padding:var(--s-1);border-radius:12px}
-.viewseg,.langseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
-.viewseg a,.viewseg button,.langseg button{appearance:none;border:0;background:none;margin:0;
+/* The segmented switch's base rules live in assets/viewseg.css (shared with Explore and the static
+   pages). Here: the language switch, and the over-imagery variant of the view switch in #topbar —
+   heavier weight, larger padding and a lifted pressed state so it reads over satellite tiles. */
+.langseg,#topbar .viewseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
+.langseg button,#topbar .viewseg a,#topbar .viewseg button{appearance:none;border:0;background:none;margin:0;
   font:inherit;font-size:var(--t-13);font-weight:600;color:var(--ink2);text-decoration:none;
   padding:var(--s-3) var(--s-4);border-radius:7px;cursor:pointer;line-height:1;
   transition:color .15s ease-out,background-color .15s ease-out}
-.viewseg a:hover,.viewseg button:hover,.langseg button:hover{color:var(--ink)}
-.viewseg button[aria-pressed="true"],.langseg button[aria-pressed="true"]{background:var(--seg-on);color:var(--ink);
+.langseg button:hover,#topbar .viewseg a:hover,#topbar .viewseg button:hover{color:var(--ink)}
+.langseg button[aria-pressed="true"],#topbar .viewseg button[aria-pressed="true"]{background:var(--seg-on);color:var(--ink);
   box-shadow:0 1px 4px rgba(0,0,0,.18)}
 @media (max-width:640px){
-  .viewseg a,.viewseg button,.langseg button{font-size:var(--t-12);padding:var(--s-3)}
+  .langseg button,#topbar .viewseg a,#topbar .viewseg button{font-size:var(--t-12);padding:var(--s-3)}
 }
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important;animation-iteration-count:1 !important}
@@ -90,7 +93,9 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
   #topbar{top:calc(env(safe-area-inset-top,0px) + 60px);left:var(--s-2);right:auto;padding:2px}
   #topbar .viewseg a,#topbar .viewseg button,#topbar .langseg button{display:inline-flex;align-items:center;min-height:40px}
   #chips{top:calc(env(safe-area-inset-top,0px) + 116px);left:var(--s-2);max-width:calc(100vw - 2 * var(--s-2))}
-  .maplibregl-ctrl-top-right{top:calc(env(safe-area-inset-top,0px) + 164px)}   /* narrow desktop window: under the chips */
+  /* narrow mouse-driven window: under the chips, whose rendered height map.js keeps in --chips-h
+     (they wrap to two or more rows on a narrow screen) */
+  .maplibregl-ctrl-top-right{top:calc(env(safe-area-inset-top,0px) + 116px + var(--chips-h, 40px) + var(--s-2))}
 }
 /* touch screens pinch to zoom: the zoom buttons go only there, not in a narrow mouse-driven window */
 @media (max-width:640px) and (pointer:coarse){

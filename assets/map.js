@@ -399,9 +399,11 @@ async function loadParcels(map) {
   const view = { bbox: { w: b.getWest(), s: b.getSouth(), e: b.getEast(), n: b.getNorth() }, zoom: map.getZoom() };
   if (!selKey && !shouldRefetch(lastFetch, view)) {
     // the loaded erven already cover this view; drop a fetch for an earlier view still in flight.
-    // Always re-set the hint: a place fly-to or a stale "Loading erven…" must not linger.
+    // Re-set the hint so a stale "Loading erven…" never lingers, but keep the place search's
+    // "Boundary unavailable" message: it describes the fly-to that caused this very moveend.
     if (parcelInFlight && parcelAbort) { parcelAbort.abort(); parcelInFlight = false; }
-    setHint('Tap or click an erf for its valuation');
+    const h = $('maphint');
+    if (!h || h.dataset.i18n !== 'Boundary unavailable — zoomed to the area') setHint('Tap or click an erf for its valuation');
     return;
   }
   if (parcelAbort) parcelAbort.abort();
@@ -931,6 +933,14 @@ function refreshLang(lang) {
   labelSheet();                               // the sheet handle's Expand/Collapse name
   rerenderPanel();
 }
+// The chips wrap to more rows on a narrow screen and change width with the language; map.css places
+// the zoom buttons under them (narrow mouse-driven windows) via --chips-h, kept current here.
+function trackChipsHeight() {
+  const c = $('chips'); if (!c) return;
+  const sync = () => document.documentElement.style.setProperty('--chips-h', Math.ceil(c.getBoundingClientRect().height) + 'px');
+  if (typeof ResizeObserver === 'function') new ResizeObserver(sync).observe(c);
+  sync();
+}
 function wireLangToggle() {
   document.querySelectorAll('[data-lang]').forEach(a => {
     a.addEventListener('click', e => { e.preventDefault();
@@ -1132,6 +1142,7 @@ function showMapFail() { document.getElementById('mapfail')?.removeAttribute('hi
 
 async function boot() {
   wireLangToggle();
+  trackChipsHeight();
   initI18n();
   wireBasemapButtons();
   maplibregl = window.maplibregl || null;
