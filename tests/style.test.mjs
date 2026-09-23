@@ -1,6 +1,6 @@
 // tests/style.test.mjs
 import { test } from 'node:test'; import assert from 'node:assert/strict'; import fs from 'node:fs';
-import { transformStyle, nameExpression, LABEL_LAYER_IDS, SAT_HIDDEN_LAYER_PREFIXES, applyBasemap, applyLanguage } from '../assets/map/style.js';
+import { transformStyle, nameExpression, LABEL_LAYER_IDS, SAT_HIDDEN_LAYER_PREFIXES, applyBasemap, applyLanguage, isPlaceLayer } from '../assets/map/style.js';
 const liberty = JSON.parse(fs.readFileSync(new URL('./fixtures/liberty.json', import.meta.url), 'utf8'));
 const GR = { id: 302117011, cls: 'town', current: ['Robert Sobukwe Town', 'Robert Sobukwe'], en: 'Graaff-Reinet', af: 'Graaff-Reinet' };
 test('every name-bearing symbol layer is rewritten; others untouched', () => {
@@ -86,4 +86,35 @@ test('applyLanguage: re-derives text-field from the stored original, never compo
   const af = m.calls.find(c => c[1] === 'label_town')[3];
   assert.equal(af[0], 'case'); assert.equal(af[2], 'Graaff-Reinet');
   assert.equal(JSON.stringify(af).split('["get","name:af"]').length - 1, 1);
+});
+
+// --- renamed-place overrides: place labels only, from overrides.json ---
+const OV = JSON.parse(fs.readFileSync(new URL('../data/geo/renamed-places/overrides.json', import.meta.url), 'utf8')).overrides;
+test('overrides reach place label layers only; a non-place symbol layer keeps its expression', () => {
+  const plain = transformStyle(liberty, { lang: 'en' });
+  const out = transformStyle(liberty, { lang: 'en', overrides: OV });
+  for (const l of out.layers) {
+    if (l.type !== 'symbol' || !l.metadata?.wcv_name_expr) continue;
+    const tf = JSON.stringify(l.layout['text-field']);
+    const before = JSON.stringify(plain.layers.find(x => x.id === l.id).layout['text-field']);
+    if (l['source-layer'] === 'place') { assert.ok(tf.includes('"Graaff-Reinet"'), l.id); assert.ok(isPlaceLayer(l)); }
+    else { assert.equal(tf, before, l.id); assert.ok(!isPlaceLayer(l)); }
+  }
+  for (const id of ['poi_transit', 'airport', 'highway-name-major', 'water_name_point_label']) {
+    const l = out.layers.find(x => x.id === id);
+    assert.ok(!JSON.stringify(l.layout['text-field']).includes('Graaff-Reinet'), id);
+  }
+});
+test('applyLanguage passes overrides to place layers only', () => {
+  const m = fakeMap(transformStyle(liberty, { lang: 'en' }));
+  applyLanguage(m, 'af', OV);
+  const set = m.calls.filter(c => c[0] === 'layout' && c[2] === 'text-field');
+  const town = JSON.stringify(set.find(c => c[1] === 'label_town')[3]);
+  assert.ok(town.includes('"Oos-Londen"') && town.includes('302117011'));
+  assert.ok(!JSON.stringify(set.find(c => c[1] === 'poi_r1')[3]).includes('Oos-Londen'));
+});
+test('an override without a tile id matches on class + exact name only', () => {
+  const e = nameExpression(['get', 'name'], 'en', [{ id: null, cls: 'village', current: ['X'], en: 'Y', af: 'Y' }]);
+  assert.deepEqual(e[1], ['all', ['==', ['get', 'class'], 'village'], ['in', ['get', 'name'], ['literal', ['X']]]]);
+  assert.equal(nameExpression(['get', 'name'], 'en', [{ id: 1, cls: null, current: ['X'], en: 'Y' }]).length, 2);
 });

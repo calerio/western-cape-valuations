@@ -1,7 +1,8 @@
 /* Map style transform for the OpenFreeMap "Liberty" basemap.
  *   - Labels: EN keeps the style's own name expression; AF prefers `name:af` and falls back to it.
- *   - Name overrides are keyed on tile feature id + class + the exact current name(s) — never a
- *     global text replace.
+ *   - Name overrides (data/geo/renamed-places/overrides.json) are keyed on tile feature id + class +
+ *     the exact current name(s), or on class + exact name(s) where the registry has no id — never a
+ *     global text replace — and apply to place labels only (source-layer `place`, see isPlaceLayer).
  *   - Satellite: Esri World Imagery raster right above `background`; fill/line/raster layers hidden
  *     by id (or source) prefix; every symbol layer kept, with a dark halo.
  *   - POI declutter: parking dropped from poi_r7/poi_r20, poi_r20 only from z18.
@@ -36,17 +37,21 @@ function langExpression(original, lang) {
   return ['coalesce', ['get', 'name:af'], original];
 }
 
+/* Place labels: the symbol layers drawn from the tiles' `place` source layer (label_city, label_town,
+ * label_village, label_other, …). Renamed-place overrides are applied to these only, never to
+ * stations, airports, roads or POIs. */
+export const PLACE_SOURCE_LAYER = 'place';
+export const isPlaceLayer = (l) => !!l && l.type === 'symbol' && l['source-layer'] === PLACE_SOURCE_LAYER;
+
 export function nameExpression(original, lang, overrides = []) {
   const base = langExpression(original, lang);
   if (!overrides || !overrides.length) return base;
   const branches = [];
   for (const o of overrides) {
     const label = (lang === 'af' ? o.af : o.en) ?? o.en;
-    if (label == null || !Array.isArray(o.current) || !o.current.length) continue;
-    branches.push(
-      ['all', ['==', ['id'], o.id], ['==', ['get', 'class'], o.cls], ['in', ['get', 'name'], ['literal', [...o.current]]]],
-      label,
-    );
+    if (label == null || !o.cls || !Array.isArray(o.current) || !o.current.length) continue;
+    const keyed = [['==', ['get', 'class'], o.cls], ['in', ['get', 'name'], ['literal', [...o.current]]]];
+    branches.push(o.id != null ? ['all', ['==', ['id'], o.id], ...keyed] : ['all', ...keyed], label);
   }
   if (!branches.length) return base;
   return isCase(base) ? ['case', ...branches, ...base.slice(1)] : ['case', ...branches, base];
@@ -76,7 +81,7 @@ export function transformStyle(style, { lang = 'en', basemap = 'map', overrides 
       const tf = l.layout?.['text-field'];
       if (m.wcv_name_expr || JSON.stringify(tf || '').includes('name')) {
         if (!m.wcv_name_expr) m.wcv_name_expr = tf;
-        l.layout['text-field'] = nameExpression(m.wcv_name_expr, lang, overrides);
+        l.layout['text-field'] = nameExpression(m.wcv_name_expr, lang, isPlaceLayer(l) ? overrides : []);
       }
       if (!m.wcv_paint) {
         m.wcv_paint = {};
@@ -129,6 +134,6 @@ export function applyLanguage(map, lang, overrides = []) {
   for (const l of map.getStyle().layers) {
     const orig = l.metadata?.wcv_name_expr;
     if (orig === undefined || !map.getLayer(l.id)) continue;
-    map.setLayoutProperty(l.id, 'text-field', nameExpression(orig, lang, overrides));
+    map.setLayoutProperty(l.id, 'text-field', nameExpression(orig, lang, isPlaceLayer(l) ? overrides : []));
   }
 }

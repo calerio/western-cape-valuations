@@ -35,7 +35,7 @@ import { hatchImageData } from "./map/hatch.js?v=1";
 import { shouldRefetch } from "./map/bbox.js?v=2";
 import { parseMapHash, buildMapHash } from "./map/hash.js?v=1";
 import { slugOf, featureBySlug, featureBounds } from "./slug.js?v=1";
-import { transformStyle, applyBasemap, applyLanguage } from "./map/style.js?v=2";
+import { transformStyle, applyBasemap, applyLanguage } from "./map/style.js?v=3";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 
 // The shell's default basemap (map.html: sat, plain.html: map) — omitted from the hash when current.
@@ -123,6 +123,14 @@ function initAttribution(map) {
   if (!btn || !box) { map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right'); return; }
   const ctrl = new maplibregl.AttributionControl({ compact: false });
   box.appendChild(ctrl.onAdd(map));
+  // One line on the renamed-places overrides, linking to the registry that lists every one of them.
+  // data-i18n keeps it in step with the EN/AF switch (applyDom).
+  const note = document.createElement('div'), link = document.createElement('a');
+  note.className = 'attribNote';
+  link.href = RENAMED_REGISTRY_URL; link.target = '_blank'; link.rel = 'noopener';
+  link.dataset.i18n = 'Some places are shown by their former names; official names stay searchable.';
+  link.textContent = t('Some places are shown by their former names; official names stay searchable.');
+  note.appendChild(link); box.appendChild(note);
   const wide = matchMedia('(min-width: 641px)');
   const set = open => { box.hidden = !open; btn.setAttribute('aria-expanded', String(open)); };
   const layout = () => set(wide.matches);            // inline on wide screens, closed popover on phones
@@ -145,6 +153,15 @@ let sgTowns = {}, munisGj = null;
 SG_TOWNS.then(d => { sgTowns = d || {}; });
 MUNIS.then(d => { munisGj = d; });
 const townOf = p => p.Town_name || sgTowns[p.Town_code] || '';
+// Renamed places (data/geo/renamed-places/overrides.json, built from the registry by
+// scripts/build-overrides.mjs): place-label overrides that show the former name, plus search entries
+// that find a place by its former or official name. Fetched once, in parallel with the basemap style;
+// on any failure the map simply has no overrides (quietly: the labels stay as the tiles have them).
+const RENAMED = fetch('data/geo/renamed-places/overrides.json?v=1')
+  .then(r => (r.ok ? r.json() : null)).catch(() => null)
+  .then(d => ({ overrides: Array.isArray(d?.overrides) ? d.overrides : [], search: Array.isArray(d?.search) ? d.search : [] }));
+let renamed = { overrides: [], search: [] };
+const RENAMED_REGISTRY_URL = 'https://github.com/calerio/western-cape-valuations/blob/main/data/geo/renamed-places/REGISTRY.md';
 
 // Municipality containing a point (ray casting over the MDB polygons; holes respected).
 function muniAt(ll) {
@@ -932,7 +949,7 @@ function refreshLang(lang) {
   applyPageI18n();
   const map = window._map;
   if (map && map.getStyle()) {
-    applyLanguage(map, lang, []);             // renamed-places overrides: not approved yet
+    applyLanguage(map, lang, renamed.overrides);   // place labels only (style.js isPlaceLayer)
     if (map.getLayer('ward-labels'))
       map.setLayoutProperty('ward-labels', 'text-field', ['concat', t('Ward') + ' ', ['get', 'ward']]);
   }
@@ -1195,7 +1212,9 @@ async function boot() {
   try {
     const res = await fetch(PLAIN_STYLE);
     if (!res.ok) throw new Error('HTTP ' + res.status);
-    style = transformStyle(await res.json(), { lang: currentLang(), basemap: MODE0, overrides: [] });
+    const raw = await res.json();
+    renamed = await RENAMED;
+    style = transformStyle(raw, { lang: currentLang(), basemap: MODE0, overrides: renamed.overrides });
   } catch (e) {
     console.warn('basemap style unavailable', e);
     showMapFail();
@@ -1221,7 +1240,7 @@ async function boot() {
     addParcels(map, beforeId);
     onParcelClick(map);
     initLabelChip(map);
-    initPlaceSearch(map, { t, setHint, beforeId, writeHash });
+    initPlaceSearch(map, { t, tf, setHint, beforeId, writeHash, renamed: renamed.search, bounds: WC_PAN });
     trackCamera(map);
   });
   map.on('error', (e) => console.warn('map error', e && e.error)); // tile gaps degrade quietly
