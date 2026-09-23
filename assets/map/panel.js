@@ -168,10 +168,18 @@ export function badgeHtml(state) {
 
 // "Why this result?": the decision summary + one plain sentence per known code, then the raw codes in
 // monospace (unknown codes appear only there). '' when there is nothing to explain.
-export function renderDisclosure(reasonsCsv, decision) {
+// `decision` is the state SHOWN. For 'review' (incl. an accepted decision downgraded because this build
+// cannot show exactly one row) the positive town sentences are left out, so the text never contradicts
+// the "town could not be confirmed" summary; the raw codes stay complete. `note` is the card's own note:
+// a summary that repeats it word for word (not_in_roll) is not said twice.
+const POSITIVE_TOWN = new Set(['TOWN_A', 'TOWN_B']);
+export function renderDisclosure(reasonsCsv, decision, { note = '' } = {}) {
   const codes = String(reasonsCsv || '').split(',').map(s => s.trim()).filter(Boolean);
   const lang = currentLang();
-  const plain = [decisionSummary(decision, lang), ...explain(reasonsCsv, lang).map(e => e.text)].filter(Boolean).join(' ');
+  let summary = decisionSummary(decision, lang);
+  if (summary && note && summary.trim() === String(note).trim()) summary = null;
+  const lines = explain(reasonsCsv, lang).filter(e => !(decision === 'review' && POSITIVE_TOWN.has(e.code))).map(e => e.text);
+  const plain = [summary, ...lines].filter(Boolean).join(' ');
   if (!codes.length && !plain) return '';
   return `<details class="why"><summary>${esc(t('Why this result?'))}</summary>` +
     (plain ? `<p>${esc(plain)}</p>` : '') +
@@ -464,7 +472,8 @@ function maybeInjectChooser() {
     body.insertBefore(bar, body.firstChild);
   }
   if (cur && cur.why != null) {
-    const why = renderDisclosure(cur.why, cur.state);
+    const noteEl = cur.state === 'not_in_roll' ? body.querySelector('.pNote') : null;
+    const why = renderDisclosure(cur.why, cur.state, { note: noteEl ? noteEl.textContent : '' });
     if (why) body.insertAdjacentHTML('beforeend', why);
   }
   labelTitle(body);

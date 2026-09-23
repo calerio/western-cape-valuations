@@ -27,15 +27,15 @@ let maplibregl = null;          // window.maplibregl — the deferred CDN script
 // design tokens (assets/tokens.css). The --map-* overlay inks live on the [data-theme] pins;
 // setBasemap() flips the pin (sat → dark, map → light) and re-reads them (applyOverlayTokens).
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=2";
+import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=3";
 import { dur } from "./motion.js?v=1";
-import { initPlaceSearch } from "./places.js?v=4";
+import { initPlaceSearch } from "./places.js?v=5";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
 import { hatchImageData } from "./map/hatch.js?v=1";
 import { shouldRefetch } from "./map/bbox.js?v=2";
 import { parseMapHash, buildMapHash } from "./map/hash.js?v=1";
 import { slugOf, featureBySlug, featureBounds } from "./slug.js?v=1";
-import { transformStyle, applyBasemap, applyLanguage } from "./map/style.js?v=1";
+import { transformStyle, applyBasemap, applyLanguage } from "./map/style.js?v=2";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 
 // The shell's default basemap (map.html: sat, plain.html: map) — omitted from the hash when current.
@@ -73,7 +73,7 @@ const WC_FIT = [[17.2, -34.95], [24.3, -30.55]];
 // This box only stops you wandering off across the country; load-fit does the framing.
 const WC_PAN = [[13.0, -41.5], [28.0, -24.5]];
 
-// Satellite imagery (Esri World Imagery: free, keyless, ~z19 detail) is added to the Liberty
+// Satellite imagery (Esri World Imagery: free, keyless; tiles to z18, overzoomed above) is added to the Liberty
 // style by transformStyle() (assets/map/style.js: ESRI_TILES / ESRI_ATTRIB) — swap it there.
 const MAX_ZOOM = 19;
 

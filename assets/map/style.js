@@ -62,7 +62,9 @@ const meta = (l) => (l.metadata && typeof l.metadata === 'object' ? l.metadata :
 export function transformStyle(style, { lang = 'en', basemap = 'map', overrides = [] } = {}) {
   const out = structuredClone(style);
   const sat = basemap === 'sat';
-  out.sources = { ...out.sources, esri: { type: 'raster', tiles: [ESRI_TILES], tileSize: 256, maxzoom: 19, attribution: ESRI_ATTRIB } };
+  // maxzoom 18: past z18 Esri serves 'Map data not yet available' placeholders across much of the
+  // province, so the z18 tiles are overzoomed instead (the map itself still zooms to 19).
+  out.sources = { ...out.sources, esri: { type: 'raster', tiles: [ESRI_TILES], tileSize: 256, maxzoom: 18, attribution: ESRI_ATTRIB } };
 
   const layers = [];
   for (const l of out.layers) {

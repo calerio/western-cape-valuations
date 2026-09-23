@@ -14,6 +14,7 @@
  * URL configured, so text would silently not render — the name lives in the input. */
 
 import { parseMapHash, buildMapHash } from "./map/hash.js?v=1";
+import { dur } from "./motion.js?v=1";
 
 const BOUNDARY_SVC = 'https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/StatsSA_CensusBoundaries/MapServer';
 const TOWN_LAYER = 3, SUBURB_LAYER = 1;
@@ -192,7 +193,7 @@ export function initPlaceSearch(map, { t, setHint, beforeId, writeHash }) {
     if (fit) {
       const [w, s, e, n] = entry.bbox;
       map.fitBounds([[w, s], [e, n]],
-        { padding: 70, maxZoom: entry.type === 'municipality' ? 11 : 16, duration: 900 });
+        { padding: 70, maxZoom: entry.type === 'municipality' ? 11 : 16, duration: dur(900) });
     }
     putHash({ place: placeKey(entry), muni: undefined });
     if (hlAbort) hlAbort.abort();
