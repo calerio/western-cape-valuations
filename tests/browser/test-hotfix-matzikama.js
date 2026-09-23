@@ -25,7 +25,7 @@ async (page) => {
   out.hiLo = await p.evaluate(() => ['hiAddr', 'loAddr'].map(i => (document.getElementById(i) || {}).textContent));
   out.hiLoOk = out.hiLo.length === 2 && out.hiLo.every(x => !!x && x.trim().length > 2 && x !== 'Address unavailable' && /[A-Za-z]{3,}/.test(x));
   await p.fill('#search', 'Vredendal'); await p.waitForTimeout(4000);
-  out.search = await p.evaluate(() => Array.from(document.querySelectorAll('#results .sName, #results [class*=Name]')).slice(0, 6).map(e => e.textContent.trim()));
+  out.search = await p.evaluate(() => Array.from(document.querySelectorAll('#results [role=option] > span:first-child')).slice(0, 6).map(e => e.textContent.trim()));
   out.searchOk = out.search.length > 0 && !out.search.every(x => x === 'Address unavailable');
   await p.screenshot({ path: '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/hotfix-explore.png' });
   out.verdict = (out.mapMatzikamaOk && out.mapDrakensteinOk && out.hiLoOk && out.searchOk) ? 'PASS' : 'FAIL';
