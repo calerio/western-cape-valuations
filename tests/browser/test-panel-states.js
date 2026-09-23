@@ -20,7 +20,7 @@ async (page) => {
   ];
   // badge textContent = glyph + ' ' + label (assets/map/panel.js STATE_BADGES)
   const BADGE = {
-    accepted_high: '✓ Verified', accepted_group: '✓ Verified property group · sectional scheme',
+    accepted_high: '✓ Verified', accepted_group: '✓ Verified property group (sectional scheme)',
     review: '? Possible match', ambiguous: '≡ Several entries fit', not_in_roll: '⊘ No valuation found',
     abstain: '⚠ Could not link',
   };
@@ -96,7 +96,7 @@ async (page) => {
       && r.statusText === BADGE[f.decision].slice(2);
     c.focusOk = !wasHidden || r.active === 'pclose';
     c.kickerOk = r.kickers.length === 1 && !r.kickers.some(k => k.includes('·'));
-    c.grammarOk = !/— 1 valuations/.test(r.text);
+    c.grammarOk = !/: 1 valuations/.test(r.text);
     c.verifiedOk = (f.decision === 'accepted_high' || f.decision === 'accepted_group') === !!(r.featureState && r.featureState.verified);
     c.selectedOk = r.selected == null || r.selected === f.prcl_key;
     if (f.decision === 'accepted_high') {

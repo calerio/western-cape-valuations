@@ -23,7 +23,7 @@ import { loadEvidence, explain, decisionSummary } from '../evidence.js?v=1';
 
 export const STATE_BADGES = {
   accepted_high: { glyph: '✓', label: 'Verified', tone: 'ok' },
-  accepted_group: { glyph: '✓', label: 'Verified property group · sectional scheme', tone: 'ok' },
+  accepted_group: { glyph: '✓', label: 'Verified property group (sectional scheme)', tone: 'ok' },
   review: { glyph: '?', label: 'Possible match', tone: 'warn' },
   ambiguous: { glyph: '≡', label: 'Several entries fit', tone: 'neutral' },
   not_in_roll: { glyph: '⊘', label: 'No valuation found', tone: 'none' },
@@ -433,7 +433,7 @@ function renderDetail(r, props, backList, backSub) {
 function renderList(rows, props, subText) {
   pb().innerHTML =
     `<div class="pKick">${esc(kicker([props.Town_name, wardPart(props._ward)]))}</div>` +
-    `<div class="pAddr">${tf(rows.length === 1 ? 'Erf {erf} — 1 valuation' : 'Erf {erf} — {n} valuations', { erf: esc(props.TAG_VALUE || '?'), n: rows.length })}</div>` +
+    `<div class="pAddr">${tf(rows.length === 1 ? 'Erf {erf}: 1 valuation' : 'Erf {erf}: {n} valuations', { erf: esc(props.TAG_VALUE || '?'), n: rows.length })}</div>` +
     `<div class="pSub">${esc(subText || t('portions or sectional-title units share this parcel'))}</div>` +
     rows.slice(0, 40).map((r, i) =>
       `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(dispAddr(r, r.erf || 'Unnamed'))}</span>` +

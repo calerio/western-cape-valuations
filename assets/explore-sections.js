@@ -198,7 +198,7 @@ function renderValue(ctx) {
         ? t('Median residential value covers every residential category, sectional-title units included.')
         : t('Median home value is for freehold residential property.')),
       ex ? t('Shares leave out Cape Town’s per-use allocation rows, which repeat their parent rows; the value totals include them.') : null];
-  const townsHow = muni ? `<p>${esc(t('Town figures come from the site export (export_site.py, the towns block), not from a query on this page: properties valued above zero are grouped by the roll’s suburb name, suburbs with fewer than 3 properties are dropped, and the 40 with the most properties are kept. Shares divide by the municipality’s total from the query below.'))}</p>` : '';
+  const townsHow = muni ? `<p>${esc(t('Town figures are computed when the site is built, not by a query on this page: properties valued above zero are grouped by the roll’s suburb name, suburbs with fewer than 3 properties are dropped, and the 40 with the most properties are kept. Shares divide by the municipality’s total from the query below.'))}</p>` : '';
   const el = shell('secValue', { h2: t('Where the value sits'), lede, body: `<table class="ledger">${head}<tbody>${body()}</tbody>${foot}</table>${more}`,
     notes, howExtra: townsHow, sql: X ? sqlFor(X, muni ? ['totals'] : ['totals', 'pct_res_fh', 'rolls'], ctx.level) : '' });
   if (!el) return;
@@ -339,7 +339,7 @@ export function renderCoverage(X) {
   if (!X || !X.meta) { el.hidden = true; el.innerHTML = ''; return; }
   const m = X.meta, ct = rollBySlug(X, 'city-of-cape-town'), drafts = (X.rolls || []).filter(r => r.kind === 'draft');
   const bits = [tf('Built from {n} municipal valuation rolls, with supplementary rolls for {sv} of them.', { n: m.rolls.municipalities, sv: (m.sv_municipalities || []).length })];
-  if (ct) bits.push(tf('Cape Town is its {cycle} general valuation.', { cycle: cycleLabel(ct.cycle) }));
+  if (ct) bits.push(tf('For Cape Town this is the {cycle} general valuation.', { cycle: cycleLabel(ct.cycle) }));
   drafts.forEach(d => bits.push(tf('{name} is a draft roll ({cycle}).', { name: tn(d.name), cycle: cycleLabel(d.cycle) })));
   bits.push(t('Sectional-title units count as properties.'));
   el.hidden = false;

@@ -168,7 +168,7 @@
     },
     "review": {
       "en": "Possible match only: the erf number fits, but the town could not be confirmed.",
-      "af": "Slegs 'n moontlike passing: die erfnommer pas, maar die dorp kon nie bevestig word nie."
+      "af": "Slegs 'n moontlike ooreenkoms: die erfnommer pas, maar die dorp kon nie bevestig word nie."
     },
     "ambiguous": {
       "en": "Several roll entries fit this erf number equally well; none could be confirmed.",
@@ -184,7 +184,7 @@
     },
     "missing": {
       "en": "This parcel is not in the current data build; no valuation is shown rather than a guess.",
-      "af": "Hierdie erf is nie in die huidige datastel nie; geen waardasie word gewys eerder as 'n raaiskoot nie."
+      "af": "Hierdie erf is nie in die huidige datastel nie; ons wys eerder niks as om te raai."
     }
   }
 }

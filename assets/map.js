@@ -27,7 +27,7 @@ let maplibregl = null;          // window.maplibregl — the deferred CDN script
 // design tokens (assets/tokens.css). The --map-* overlay inks live on the [data-theme] pins;
 // setBasemap() flips the pin (sat → dark, map → light) and re-reads them (applyOverlayTokens).
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=3";
+import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=4";
 import { dur } from "./motion.js?v=1";
 import { initPlaceSearch } from "./places.js?v=5";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";

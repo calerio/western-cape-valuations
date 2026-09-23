@@ -23,7 +23,7 @@ async (page) => {
   while (Date.now() - t0 < 1000) {
     const txt = await panel();
     if (/Slaan waardasie na|Looking up valuation/.test(txt)) out.sawLoading = true;
-    if (out.afMs == null && /moontlike passing/.test(txt)) out.afMs = Date.now() - t0;
+    if (out.afMs == null && /moontlike ooreenkoms/.test(txt)) out.afMs = Date.now() - t0;
     await p.waitForTimeout(50);
   }
   out.panelAf = (await panel()).slice(0, 100);
@@ -36,7 +36,7 @@ async (page) => {
   await p.click('button[data-lang="en"]');
   try { await p.waitForFunction(() => /possible match/.test(document.getElementById('pbody').innerText), null, { timeout: 3000 }); } catch (e) { }
   out.panelBack = (await panel()).slice(0, 100);
-  out.backEn = /possible match/.test(out.panelBack) && !/moontlike passing/.test(out.panelBack);
+  out.backEn = /possible match/.test(out.panelBack) && !/moontlike ooreenkoms/.test(out.panelBack);
   out.htmlLangBack = await p.evaluate(() => document.documentElement.lang);
   out.markerBack = await p.evaluate(() => window.__marker === 1);
   out.verdict = (!out.sawLoading && out.afMs != null && out.marker && out.navEntries === 1 && out.htmlLang === 'af' &&

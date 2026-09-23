@@ -2,7 +2,7 @@ import { getRates, computeRates } from "./rates.js?v=1";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 import { fmtR, fmtN } from "./format.js?v=2";
 import { dur } from "./motion.js?v=1";
-import { renderSections, renderCoverage } from "./explore-sections.js?v=5";
+import { renderSections, renderCoverage } from "./explore-sections.js?v=6";
 import { slugOf } from "./slug.js?v=1";   // slug rule shared with the static pages and the map (export_pages.slugify, DATA_CONTRACT §13)
 
 // d3 comes from the UMD bundle loaded in <head> — importing the jsdelivr +esm build
@@ -172,7 +172,7 @@ else boot();
  * Resolves null on any failure — the headline + table still render from stats.json. */
 async function loadExplore() {
   try {
-    const r = await fetch("data/explore.json?v=1");
+    const r = await fetch("data/explore.json?v=2");
     if (!r.ok) return null;
     const j = await r.json();
     return j && j.meta && j.nodes ? j : null;
@@ -749,7 +749,7 @@ function renderAfford(s) {
     `<div style="font-size:12px;color:var(--label2);margin-top:8px;line-height:1.5">${tf("estimated bond on the median home of {home}", { home: R(home) })}</div>` +
     tilesHTML([[t("Gross income needed"), "R" + N(Math.round(income)) + t("/mo"), t("at 30% of income on the bond")],
                [t("Key assumptions"), tf("prime {pct}%", { pct: prime.pct }), t("20-year bond, no deposit")]]) +
-    `<div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:12px">${t("A rough guide to the bond only — excludes transfer duty, bond registration and legal fees; your actual rate depends on credit, deposit and bank.")} ${tf("Prime {pct}% eff. {eff}.", { pct: esc(String(prime.pct)), eff: esc(prime.effective || prime.year || "") })}${src}</div>`;
+    `<div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:12px">${t("A rough guide to the bond only. It excludes transfer duty, bond registration and legal fees; your actual rate depends on credit, deposit and bank.")} ${tf("Prime {pct}% eff. {eff}.", { pct: esc(String(prime.pct)), eff: esc(prime.effective || prime.year || "") })}${src}</div>`;
 }
 
 // Data quality — how complete this roll's fields are (straight counts from the parsed roll,
