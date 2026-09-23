@@ -230,6 +230,24 @@ no heuristic detection of names. Remove the rule only when the new build (Matzik
 re-adjudicated, verified) is the one referenced by `configUrl`. Static pages and `stats.json` `hi`/`lo` for
 Matzikama carry only street/town strings today and are regenerated with the same rule at the next export.
 
+### 7c. Registered-owner data stays in the local data repository only (2026-09-23)
+The Matzikama repair (`extract/parsers/matzikama2025.py`, `extract/match/repair_matzikama_owner_shift.py`)
+was verified against the roll's owner column, so owner-name strings exist in the **local, remote-less** data
+repository (`~/projects/western-cape-property-valuations`: parser fixtures, adjudication reports, DB backups).
+They stay there, unchanged, and the history is not rewritten. The standing constraint:
+- Owner names — or any registered-owner field — never enter website exports (`export_site.py`,
+  `export_explore.py`, `export_pages.py` outputs), uploaded artifacts (Supabase `valuations/*` namespaces),
+  public reports, screenshots, or **any repository that has a remote** (this website repo included, every
+  worktree and branch).
+- Enforced by the parser (the owner column is discarded before rows are emitted; `column_map()` asserts the
+  layout) and by `extract/tests/test_matzikama_owner_guard.py`, which proves owner fields cannot reach an
+  exported address. Run it before every upload.
+- The data repository must keep **no git remote** while it holds owner strings (`git remote -v` prints nothing).
+  Anything copied out of it into a remote-backed repository must be an export listed in §4, never a fixture,
+  report or backup.
+Build `b-93c01c0b6202` (live since 2026-09-23) is the first built from the repaired parser; the §7b display
+suppression is still in place and is lifted only by an explicit owner decision.
+
 ## 8. Why the search DB is hosted on Supabase Storage (NOT GitHub Pages)
 
 `sql.js-httpvfs` reads `search.db` with HTTP **Range requests** (it fetches only the few KB of pages a
