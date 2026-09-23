@@ -45,6 +45,12 @@ const themeFor = b => (b === 'sat' ? 'dark' : 'light');
 // Theme pin + body flag BEFORE any cssVar() read, so the overlay inks match the basemap.
 document.documentElement.dataset.theme = themeFor(MODE0);
 document.body.dataset.basemap = MODE0;
+// Browser chrome follows the pinned theme (the shells' own values: map.html dark, plain.html light).
+function setThemeColor(b) {
+  document.querySelector('meta[name="theme-color"]')
+    ?.setAttribute('content', themeFor(b) === 'dark' ? '#0b0b0d' : '#f5f5f7');
+}
+setThemeColor(MODE0);
 
 // Merge a patch into the map hash (replaceState — no history entries, no hashchange).
 // undefined/null removes a key; the shell's default basemap is left implicit.
@@ -361,7 +367,12 @@ function addParcels(map, beforeId) {
 }
 
 async function loadParcels(map) {
+  // The deep-linked s= gets exactly one attempt: this first call claims it, whatever happens next.
+  const selKey = pendingSel;
+  pendingSel = null;
+  const dropSel = () => { if (selKey && selId === null) writeHash({ s: undefined }); };  // never the user's own pick
   if (map.getZoom() < CADASTRE.minzoom) {
+    dropSel();
     map.getSource('parcels').setData(EMPTY_FC);
     setHint(t('Zoom in to see erven'));
     return;
@@ -382,13 +393,14 @@ async function loadParcels(map) {
   try {
     const res = await fetch(`${CADASTRE.url}?${params}`, { signal: ctl.signal });
     const json = await res.json();
-    if (ctl.signal.aborted) return;
+    if (ctl.signal.aborted) { dropSel(); return; }
     if (json.error) throw new Error(json.error.message || 'cadastre error');
     map.getSource('parcels').setData(esriToGeoJSON(json));
     setHint(json.exceededTransferLimit ? t('Too many erven for one view — zoom in')
                                        : t('Tap or click an erf for its valuation'));
-    if (pendingSel) map.once('idle', () => selectPending(map));
+    if (selKey) map.once('idle', () => selectPending(map, selKey));
   } catch (e) {
+    dropSel();
     if (e.name === 'AbortError') return;
     console.warn('parcel fetch failed', e);
     setHint(t('Erf boundaries unavailable right now'));   // imagery keeps working — degrade quietly
@@ -399,13 +411,17 @@ async function loadParcels(map) {
 
 let selId = null;
 // s=<PRCL_KEY> from the hash on load: selected ONCE, after the first parcel load for that camera.
-let pendingSel = readHash().s || null;
+// Honoured only with a hash camera (c=) at parcel zoom; otherwise it is dropped from the hash now.
+let pendingSel = null;
+{
+  const h0 = readHash();
+  if (h0.s && h0.c && h0.c.z >= CADASTRE.minzoom) pendingSel = h0.s;
+  else if (h0.s) writeHash({ s: undefined });
+}
 
 // Deep-linked selection → the ordinary click path (pickParcel) for that one erf. One attempt only:
 // a parcel that is not in the first loaded view (e.g. no camera in the hash) is simply not selected.
-function selectPending(map) {
-  const key = pendingSel;
-  pendingSel = null;
+function selectPending(map, key) {
   if (!key || selId !== null) return;      // the user already picked something — theirs wins
   const f = map.querySourceFeatures('parcels').find(f => (f.id != null ? f.id : f.properties.PRCL_KEY) === key);
   if (!f) { writeHash({ s: undefined }); return; }
@@ -1187,6 +1203,7 @@ function setBasemap(b) {
   basemap = b;
   document.body.dataset.basemap = b;
   document.documentElement.dataset.theme = themeFor(b);
+  setThemeColor(b);
   document.querySelectorAll('button[data-basemap]').forEach(el =>
     el.setAttribute('aria-pressed', String(el.dataset.basemap === b)));
   const map = window._map;
@@ -1232,7 +1249,14 @@ async function boot() {
     showMapFail();
     return;
   }
-  const map = initMap(style, readHash().c);
+  let map;
+  try {
+    map = initMap(style, readHash().c);   // throws without WebGL
+  } catch (e) {
+    console.warn('map unavailable', e);
+    showMapFail();
+    return;
+  }
   window._map = map;                 // closePanel needs it to clear the selection
   map.on('load', () => {
     // our overlays slot in UNDER the style's first symbol layer so its road/place labels stay
