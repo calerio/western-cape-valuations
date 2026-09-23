@@ -397,6 +397,29 @@ Erf numbers restart in every SG township, so an erf-number match alone is provin
   (Bongolethu, Bridgton, Lawaaikamp, Prince Valley, Hillside, Goldnerville) while the SG allotment is
   the whole town — Laingsburg 10% verified, Beaufort West 20%, Oudtshoorn 40%, George 45%.
 
+### 9b. Fail-closed lookup gate and selection token (2026-09-23)
+
+Two front-end defects were fixed as P0 prerequisites of the design refresh (website branch
+`p0-integrity-guards`); the linker, the builds and the decision wording are unchanged.
+
+- **No fail-open path.** `assets/selection.js` provides three-state probe gates. The link-table probe
+  (`sqlite_master` has `link`) and the `prop.town` probe cache a result ONLY after a successful query
+  (`present` / `absent`). Any throw — network, worker, integrity or version error — is `error`, is never
+  cached, and is probed again on the next click. `lookupPath(gate, nolink)` is the single decision: the
+  legacy heuristic may run only for `?nolink=1` or a PROVEN older DB without the table; every other state
+  renders the explicit card "Valuation data unavailable" (i18n key) and never the heuristic.
+  `verifyBuild()` no longer remembers a rejected check. `window._integrity.hasLinkTable()` now THROWS
+  when the state cannot be determined (the smoke matrix records it as `ERR:`), returns `true` only for a
+  proven table, `false` only for a proven absence. `window._integrity.stats()` exposes `heuristicRuns`.
+- **Selection token.** `pickParcel` begins a monotonically increasing token; `showValuation` and
+  `renderLink` check it after every `await` before writing to `#pbody`. A late result for an earlier
+  parcel is dropped, so parcel A can never overwrite parcel B.
+- **Tests.** Unit: `node --test tests/selection.test.mjs` (includes the deterministic "A resolves after B"
+  case). Browser regressions (Playwright MCP, WebKit) `tests/browser/test-race.js` and
+  `tests/browser/test-failopen.js`: copy them into the data repo's `.playwright-mcp/scen/`, serve this repo
+  with `python3 -m http.server 8765 --bind 127.0.0.1`, and run each file with `browser_run_code_unsafe`.
+  Both reproduced the defects on `9d9302a` and pass after the fix. The smoke matrix runs unchanged.
+
 ## 10. Curated municipal rates (`data/rates.json`) — the ONE hand-maintained data file
 
 Everything else under `data/` is machine-generated (golden rule §1). `data/rates.json` is the

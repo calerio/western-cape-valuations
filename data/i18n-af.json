@@ -455,6 +455,8 @@
   "The evidence is insufficient or conflicting; any entries below are unverified.": "Die bewyse is onvoldoende of teenstrydig; enige inskrywings hieronder is ongeverifieer.",
   "Evidence": "Bewyse",
   "Not in this data build": "Nie in hierdie datastel nie",
+  "Valuation data unavailable": "Waardasiedata nie beskikbaar nie",
+  "The valuation database could not be reached, so no valuation is shown rather than a guess. Try the parcel again in a moment.": "Die waardasiedatabasis kon nie bereik word nie, dus word geen waardasie gewys eerder as ’n raaiskoot nie. Probeer die perseel netnou weer.",
   "This parcel is newer than, or missing from, the current link table — no valuation is shown rather than a guess.": "Hierdie erf is nuwer as, of ontbreek in, die huidige koppeltabel — geen waardasie word gewys eerder as ’n raaiskoot nie.",
   "Scheme identified from the City’s sectional-scheme layer at the click point; units matched by scheme reference or name.": "Skema geïdentifiseer uit die Stad se deeltitelskema-laag by die klikpunt; eenhede gepas volgens skemaverwysing of -naam.",
   "{n} sectional-title units matched — list may be incomplete; no parcel valuation is implied": "{n} deeltiteleenhede gepas — lys is dalk onvolledig; geen erfwaardasie word geïmpliseer nie",
