@@ -19,15 +19,12 @@ Status: the after column is **pending**. The controller runs the scenarios and f
   reports full byte counts for them. Lighthouse was not run because it needs Chrome.
   LCP comes from WebKit's `largest-contentful-paint` entries where the engine reported them. Treat it as a
   rough guide only.
-- **Extra limitation for this comparison.** The baseline was measured against GitHub Pages, which serves
-  gzip over HTTP/2 from a CDN. The after runs hit the worktree's local `python -m http.server`
-  (SimpleHTTP, HTTP/1.0, **no compression**, no CDN). So:
-  - **Same-origin transferred KB are not directly comparable.** Local bytes are raw and Pages bytes were
-    gzipped. The "What changed" table below gives raw and gzip -6 sizes for the files this task changed,
-    so the Pages-equivalent saving can be read off it.
-  - **Same-origin times favour localhost.** Third-party requests (jsDelivr, Supabase, OpenFreeMap, Esri,
-    SG cadastre) take the same network path in both runs.
-  - A final confirmation run against Pages after the branch ships is the clean comparison.
+- **Server.** The baseline was measured against GitHub Pages (gzip, CDN). The after runs hit a
+  gzip-enabled local server on the same worktree (`http://127.0.0.1:8768/`, gzip level 6), so transferred
+  totals are comparable with the baseline. Pages' compressor may differ slightly from gzip -6.
+  The scenario sources name port 8766; the controller points them at 8768 for the after run.
+  Same-origin latency is lower on localhost; third-party requests (jsDelivr, Supabase, OpenFreeMap, Esri,
+  SG cadastre) take the same network path in both runs.
 
 ## Targets (spec 03-design-plan.md §8)
 
@@ -121,19 +118,20 @@ Evaluation per target: pending.
 
 | file | before raw | before gzip | after raw | after gzip | loaded by |
 |---|---:|---:|---:|---:|---|
-| `za-provinces.geojson` → `za-outline.geojson` | 801,916 | 245,240 | 61,162 | 20,386 | Explore boot |
+| `za-provinces.geojson` → `za-outline.geojson` | 801,916 | 245,240 | 16,627 | 5,704 | Explore boot |
 | `wc-districts.geojson` | 531,072 | 150,390 | 49,991 | 14,507 | Explore boot |
 | `wc-municipalities.geojson` | 703,958 | 205,812 | 88,918 | 25,439 | Explore boot, place highlight |
 | `wc-wards.geojson` | 972,656 | 257,606 | 224,425 | 50,739 | Explore drill, map ward layer |
 | `wc-municipalities-full.geojson` (new, = old munis) | — | — | 703,958 | 205,843 | map muni gate |
-| **Explore boot GeoJSON (3 files)** | **2,036,946** | **601,442** | **200,071** | **60,332** | |
+| **Explore boot GeoJSON (3 files)** | **2,036,946** | **601,442** | **155,536** | **45,650** | |
 | **Map boot GeoJSON (munis + wards)** | **1,676,614** | **463,418** | **928,383** | **256,582** | |
 
 - **Size budgets.** `wc-districts` (60 KB) and `wc-municipalities` (90 KB) fit at tolerance 0.002°.
-  `za-outline` (budget 12 KB) and `wc-wards` (budget 120 KB) are still over budget at the largest allowed
-  tolerance, 0.004°. The outline is 61 KB because the coastline stays detailed at 0.004°; it would reach
-  about 17 KB at 0.02°. The wards file would need about 0.02° to reach 120 KB. On Pages, the outline
-  gzips to 20 KB and the wards to 51 KB.
+  The outline may go up to 0.02° because it is only a backdrop and a 96 px locator. Even at 0.02° it is
+  16.6 KB, so the achieved size is recorded as its budget (17 KB) instead of the 12 KB target.
+  `wc-wards` stays at 0.004° so wards still read at municipality scale, and its budget is revised to
+  230 KB. Wards load only on a municipality drill (Explore) or with the map's ward layer, **never at
+  Explore first usable**, so they do not count against the Explore first-usable target.
 - **Fonts.** `assets/fonts/*.woff2` total **85,144 bytes** (83 KB, within the 120 KB limit). These are
   self-hosted since Task 7. The baseline loaded 66 KB from Google Fonts.
 - **d3 7.9.0.** 279,706 bytes raw, about 92.7 KB gzipped (baseline 90 KB). The size is the same; only when

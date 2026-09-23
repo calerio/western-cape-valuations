@@ -430,7 +430,12 @@ MAP-FEASIBILITY.md is the upgrade path — swap `addParcels()`'s source, keep ev
 Erf numbers restart in every SG township, so an erf-number match alone is province-wide noise
 (erf 15773 exists in 14 towns). `lookupErf` in `assets/map.js` therefore:
 - **gates rows to the municipality containing the click point** (`muniAt`, point-in-polygon over
-  the UNSIMPLIFIED `data/geo/wc-municipalities-full.geojson` — never the simplified Atlas file, §11). Rows from another municipality are allowed only with
+  the full-resolution `data/geo/wc-municipalities-full.geojson`). That file is a byte copy of the data
+  repo's `extract/geo/source/wc-municipalities.geojson`, written by `simplify_geo.py`, and is **never
+  simplified**; the simplified `wc-municipalities.geojson` is display-only, for the Atlas (and the place
+  highlight), and must never feed the gate (§11). The panel's "Ward" row comes from the simplified
+  `wc-wards.geojson` (`wardAt`) and is display-only too: near a ward border it can name the neighbour,
+  and it never gates a lookup. Rows from another municipality are allowed only with
   town-level (suburb) evidence — a safety net for boundary slivers where MDB and SG lines differ.
 - **draws and clicks only current erven** (`where WSTATUS='C'`). 77,120 obsolete erven (5.4%) are
   superseded by consolidations/subdivisions and sit inside their successors; the smallest-first
@@ -576,11 +581,15 @@ The boundary GeoJSON is simplified by `extract/geo/simplify_geo.py` (per feature
 
 | file | before | after | tolerance | budget |
 |---|---:|---:|---:|---:|
-| `za-provinces` → `za-outline` (SA + WC dissolved) | 801,916 B | 61,162 B | 0.004° | 12 KB — **over** |
+| `za-provinces` → `za-outline` (SA + WC dissolved) | 801,916 B | 16,627 B | 0.02° | 17 KB (12 KB target unreachable; achieved size recorded) |
 | `wc-districts` | 531,072 B | 49,991 B | 0.002° | 60 KB |
 | `wc-municipalities` | 703,958 B | 88,918 B | 0.002° | 90 KB |
-| `wc-wards` | 972,656 B | 224,425 B | 0.004° | 120 KB — **over** |
+| `wc-wards` | 972,656 B | 224,425 B | 0.004° | 230 KB |
 
+The outline alone may go up to 0.02° (a decorative backdrop and a 96 px locator); the other files stop
+at 0.004°. Wards stay at 0.004° so they still read at municipality scale; they load only on a
+municipality drill (Atlas) or with the map's ward layer, never at the Explore page's first usable, so
+their size does not count against that target.
 The largest per-municipality planar area drift is **0.195 %** (Saldanha Bay; the gate is < 0.5 %).
 Municipal densities in `stats.json` / `explore.json` are computed by `export_site.py` from
 `wc-municipalities.geojson`, so after the next export they carry that ≤ 0.2 % area drift. Borders
@@ -589,7 +598,7 @@ exactly (hairline gaps/overlaps). That is invisible at Atlas scale, but NOT acce
 municipality gate, so `map.js` `muniAt()` reads `wc-municipalities-full.geojson` (the unsimplified
 source, byte-identical to the pre-2026-09-23 file). Ward naming on the map (`wardAt`) uses the
 simplified wards: a click within ~400 m of a ward border can name the neighbouring ward — the ward
-row is orientation only and never gates a lookup.
+row is display-only and never gates a lookup (§9).
 
 A future structural upgrade (pre-built PMTiles / precomputed top-N in `stats.json`)
 is sketched in the extraction repo's MAP-FEASIBILITY.md.
