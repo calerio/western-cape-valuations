@@ -25,6 +25,7 @@ const maplibregl = window.maplibregl;
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 import { getRates, computeRates } from "./rates.js?v=1";
 import { initPlaceSearch } from "./places.js?v=2";
+import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
 
 // Which basemap this page wants (plain.html sets <body data-basemap="plain">).
 const MODE = document.body.dataset.basemap === 'plain' ? 'plain' : 'satellite';
@@ -364,12 +365,14 @@ function onParcelClick(map) {
 // Select one parcel (highlight it) and show its valuation. Also invoked when the user switches
 // parcels from the overlap chooser.
 async function pickParcel(f) {
+  const token = selection.begin();        // this selection now owns the panel; earlier lookups are stale
   const map = window._map;
   if (selId !== null) map.setFeatureState({ source: 'parcels', id: selId }, { sel: false });
   selId = f.id;
   map.setFeatureState({ source: 'parcels', id: selId }, { sel: true });
   await Promise.all([SG_TOWNS, MUNIS]);   // town names + muni polygons: tiny, normally long loaded
-  await showValuation({ ...f.properties, Town_name: townOf(f.properties), _ward: parcelWard, _muni: muniAt(lastClickLL) });
+  if (!selection.isCurrent(token)) return;
+  await showValuation({ ...f.properties, Town_name: townOf(f.properties), _ward: parcelWard, _muni: muniAt(lastClickLL) }, token);
 }
 
 // ---- tiny formatting helpers (mirrors atlas.js conventions) ----
@@ -454,13 +457,16 @@ function rankRows(rows, town) {
 // municipality are allowed only with town-level (suburb) evidence — a boundary-sliver safety net.
 // search.db ≥ v10 carries prop.town (the roll's own town column, DATA_CONTRACT §4.2); older
 // hosted DBs don't — detect once so the same JS works against either.
-let townColPromise = null;
-function hasTownCol() {
-  if (!townColPromise) townColPromise = (async () => {
-    try { const db = await ensureDB(); return (await db.db.query('PRAGMA table_info(prop)')).some(c => c.name === 'town'); }
-    catch (e) { return false; }
-  })();
-  return townColPromise;
+// Probe gates (assets/selection.js): 'present'/'absent' are cached only after a SUCCESSFUL probe; a
+// throwing probe is 'error' and is probed again on the next click. No error is ever cached as "absent".
+const townColGate = createProbeGate(async () => {
+  const db = await ensureDB();
+  return (await db.db.query('PRAGMA table_info(prop)')).some(c => c.name === 'town');
+});
+async function hasTownCol() {
+  const s = await townColGate.state();
+  if (s === 'error') throw new Error('valuation database unavailable');
+  return s === 'present';
 }
 
 async function lookupErf(tag, town, muni) {
@@ -542,27 +548,39 @@ function verifyBuild() {
     const ok = ids.every(Boolean) && ids.every(x => x === ids[0]) && (!man || !cfg || man.size_bytes === cfg.databaseLengthBytes);
     if (!ok) console.warn('build verification failed', { config: ids[0], manifest: ids[1], db: ids[2] });
     return ok;
-  })();
+  })().catch(e => { buildCheckPromise = null; throw e; });   // a transient failure is retried, never remembered
   return buildCheckPromise;
 }
-let linkTablePromise = null;
-function hasLinkTable() {
-  if (!linkTablePromise) linkTablePromise = (async () => {
-    try {
-      const db = await ensureDB();
-      return (await db.db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='link'")).length > 0;
-    } catch (e) { return false; }
-  })();
-  return linkTablePromise;
+const linkGate = createProbeGate(async () => {
+  const db = await ensureDB();
+  return (await db.db.query("SELECT name FROM sqlite_master WHERE type='table' AND name='link'")).length > 0;
+});
+// true = link table PROVEN present · false = PROVEN absent (older hosted DB) · throws = not determinable
+// right now (the click then renders the explicit "unavailable" state; the heuristic is never enabled).
+async function hasLinkTable() {
+  const s = await linkGate.state();
+  if (s === 'error') throw new Error('link table state unavailable');
+  return s === 'present';
 }
+const selection = createSelectionGuard();   // monotonically increasing parcel-selection token (stale-click guard)
+let heuristicRuns = 0;                      // read-only diagnostics for the smoke matrix
 const LINK_DISABLED = new URLSearchParams(location.search).get('nolink') === '1';
 // test hook for the smoke matrix (extract/match/smoke_matrix.py): module scope is not reachable from
 // the automation, so the link-path functions are exposed read-only here. Not used by the UI.
-window._integrity = Object.freeze({ hasLinkTable: () => hasLinkTable(), lookupLink: k => lookupLink(k), verifyBuild: () => verifyBuild(), linkDisabled: LINK_DISABLED });
+window._integrity = Object.freeze({ hasLinkTable: () => hasLinkTable(), lookupLink: k => lookupLink(k), verifyBuild: () => verifyBuild(), linkDisabled: LINK_DISABLED,
+  stats: () => ({ heuristicRuns, selection: selection.current() }) });
+const unavailable = cause => Object.assign(new Error('valuation data unavailable'), { code: 'DB_UNAVAILABLE', cause });
 async function lookupLink(prclKey) {
-  if (LINK_DISABLED || !(await hasLinkTable())) return null;   // whole table unavailable → heuristic
+  // Which lookup may run (selection.js lookupPath): 'link' when the table is PROVEN present; 'heuristic'
+  // only for ?nolink=1 or a PROVEN older DB without the table; 'unavailable' for anything else (network,
+  // worker, integrity or version error) — fail closed, never the heuristic (DATA_CONTRACT §9b).
+  const gate = LINK_DISABLED ? 'absent' : await linkGate.state();
+  const path = lookupPath(gate, LINK_DISABLED);
+  if (path === 'heuristic') return null;
+  if (path !== 'link') throw unavailable(gate);
+  let db;
+  try { db = await ensureDB(); } catch (e) { throw unavailable(e); }
   if (!(await verifyBuild())) throw new Error('build mismatch');   // fail closed (integrity card)
-  const db = await ensureDB();
   // SELECT * so a build without the newer columns (complete, parent_ids) still reads; a missing
   // column is simply undefined and the feature it gates stays off
   const l = prclKey
@@ -602,7 +620,7 @@ async function renderUnverified(props, title, note, rows, link) {
   $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${note}${rej ? ' ' + esc(rej) : ''}</div>`);
   maybeInjectChooser();
 }
-async function renderLink(link, props) {
+async function renderLink(link, props, live = () => true) {
   const d = link.decision, rows = link.rows || [];
   // Sectional buildings: the roll's units carry no erf (CoCT), so the offline linker can only say
   // not_in_roll/abstain. The City's scheme-polygon layer is an independent evidence route (not
@@ -610,13 +628,16 @@ async function renderLink(link, props) {
   if (d === 'not_in_roll' || d === 'abstain') {
     try {
       const cands = await schemesAtClick();
+      if (!live()) return;
       if (cands.length) {
         const groups = await lookupSchemes(cands);
+        if (!live()) return;
         if (groups.length === 1) { renderSchemeList(groups[0], props); return; }
         if (groups.length > 1) { renderSchemeChooser(groups, props); return; }
       }
     } catch (e) { console.warn('scheme fallback failed', e); }
   }
+  if (!live()) return;
   const why = `${t('Evidence')}: ${esc(String(link.reasons || '').replace(/,/g, ' · '))}`;
   if (d === 'accepted_high' && rows.length === 1) {
     renderDetail(rows[0], props, null);
@@ -888,7 +909,8 @@ function renderParcelChooser() {
   openPanel();
 }
 
-async function showValuation(props) {
+async function showValuation(props, token = selection.begin()) {
+  const live = () => selection.isCurrent(token);   // only the CURRENT selection may write to the panel
   $('pbody').innerHTML =
     `<div class="pKick">${esc(props.Town_name || '')}</div>` +
     `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
@@ -903,6 +925,20 @@ async function showValuation(props) {
   let link = null;
   try { link = await lookupLink(props.PRCL_KEY); }
   catch (e) {
+    if (!live()) return;
+    if (e && e.code === 'DB_UNAVAILABLE') {
+      // transient: network, worker or build-check failure — an explicit state, probed again on the next
+      // click; NEVER the heuristic (that path exists only for ?nolink=1 or a proven older DB)
+      console.warn('valuation data unavailable', e);
+      $('pbody').innerHTML =
+        `<div class="pKick">${esc(props.Town_name || '')}</div>` +
+        `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
+        `<div class="pVal" style="font-size:22px">${t('Valuation data unavailable')}</div>` +
+        `<div class="pNote">${t('The valuation database could not be reached, so no valuation is shown rather than a guess. Try the parcel again in a moment.')}</div>`;
+      maybeInjectChooser();
+      resetDB();
+      return;
+    }
     // the table exists but cannot be read (schema mismatch between this JS and the hosted DB): an
     // integrity error card — never a hang, never the heuristic
     console.warn('link table unreadable', e);
@@ -914,10 +950,13 @@ async function showValuation(props) {
     maybeInjectChooser();
     return;
   }
-  if (link) { await renderLink(link, props); return; }
+  if (!live()) return;
+  if (link) { await renderLink(link, props, live); return; }
+  heuristicRuns++;                          // legitimately reached only via ?nolink=1 or a proven older DB
   let res;
   try { res = await lookupErf(props.TAG_VALUE, props.Town_name, props._muni); }
   catch (e) {
+    if (!live()) return;
     console.warn('valuation lookup failed', e);
     $('pbody').innerHTML += `<div class="pNote">${t('The valuation database is still loading — try the parcel again in a moment.')}</div>`;
     resetDB();
@@ -929,13 +968,16 @@ async function showValuation(props) {
   if (!res.rows.length || res.best < 4) {
     try {
       const cands = await schemesAtClick();
+      if (!live()) return;
       if (cands.length) {
         const groups = await lookupSchemes(cands);
+        if (!live()) return;
         if (groups.length === 1) { renderSchemeList(groups[0], props); return; }
         if (groups.length > 1) { renderSchemeChooser(groups, props); return; }
       }
     } catch (e) { console.warn('scheme fallback failed', e); }
   }
+  if (!live()) return;
   if (!res.rows.length) {
     $('pbody').innerHTML =
       `<div class="pKick">${esc(props.Town_name || '')}</div>` +
@@ -945,6 +987,7 @@ async function showValuation(props) {
     maybeInjectChooser();
     return;
   }
+  if (!live()) return;
   const sure = res.best >= 4;    // suburb-level match = genuinely this parcel's rows
   const note =
     res.best === 0 ? `<div class="pNote">${t('No town match — the same erf number exists in several municipalities; verify the address.')}</div>` :
