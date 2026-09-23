@@ -106,7 +106,12 @@ async (page) => {
   await p.evaluate(() => { location.hash = '#m/stellenbosch'; });
   await p.waitForFunction(() => document.getElementById('scopeLabel').textContent === 'Stellenbosch', null, { timeout: 8000 });
   await p.waitForTimeout(400);
+  // every element's right edge stays inside the viewport (svg internals skipped)
+  const wideEls = () => p.evaluate(() => [...document.querySelectorAll('body *')].filter(el => !el.closest('svg') || el.tagName.toLowerCase() === 'svg')
+    .map(el => ({ el, r: el.getBoundingClientRect() })).filter(({ r }) => r.width > 0 && r.right > innerWidth + 0.5)
+    .map(({ el, r }) => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''} r=${Math.round(r.right)} "${(el.textContent || '').trim().slice(0, 40)}"`));
   out.overflowMuni = await overflow();
+  out.wideMuni = await wideEls();
   out.muniCards = await p.evaluate(() => document.querySelectorAll('#column > section.sec:not([hidden]) > details.card').length);
   await p.screenshot({ path: OUT + 'explore-mobile-muni.png' });
 
@@ -119,8 +124,10 @@ async (page) => {
     return { text: b.innerText.trim(), sw: b.scrollWidth, cw: b.clientWidth, menuLabel: document.querySelector('#menu > summary').getAttribute('aria-label') }; });
   out.afOk = out.af.text === 'Wes-Kaapse waardasies' && out.af.sw <= out.af.cw && out.af.menuLabel === 'Kieslys';
   out.overflowAf = await overflow();
+  out.wideAf = await wideEls();
 
-  out.overflowOk = [out.overflow0, out.overflowMenu, out.overflowCard, out.overflowMuni, out.overflowAf].every(noOverflow);
+  out.overflowOk = [out.overflow0, out.overflowMenu, out.overflowCard, out.overflowMuni, out.overflowAf].every(noOverflow)
+    && !out.wideMuni.length && !out.wideAf.length;
   out.verdict = (out.overflowOk && out.brandOk && out.totalOk && out.cardsOk && out.menuOk && out.stickyOk && out.cardOpenOk &&
     out.muniCards >= 2 && out.afOk && !errs.length) ? 'PASS' : 'FAIL';
   await ctx.close();

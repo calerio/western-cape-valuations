@@ -205,6 +205,10 @@ ol.findings details.how { grid-column: 2; margin-top: var(--s-1); }
 
 /* the municipality's own blocks (atlas.js tiles + rows), flattened to the ledger style */
 .dsec h2 { font-size: var(--t-20); }
+/* authorities / contact rows: long unbreakable emails and URLs wrap instead of widening the page */
+.dsec { min-width: 0; }
+#secAuthoritiesBody > div, #secAuthoritiesBody > div > span { min-width: 0; }
+#secAuthoritiesBody a { overflow-wrap: anywhere; word-break: break-word; }
 .statgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--s-4); }
 .stile { border-top: 1px solid var(--rule); padding: var(--s-3) 0; }
 .stl { font-size: var(--t-12); color: var(--label2); margin-bottom: 4px; }
