@@ -50,7 +50,7 @@ cd ~/projects/western-cape-valuations
 # configUrl in atlas.js. (If only stats/figures changed and the DB didn't, you can skip this.)
 
 # if you changed assets/atlas.js, bump the ?v=N on its <script> tag in index.html (CDN cache-bust)
-git add -A && git commit -m "…"    # commit as the user ONLY — no Claude attribution (see CLAUDE.md)
+git add -A && git commit -m "…"    # commit as the user only, with no co-author trailers
 git push
 ```
 
@@ -159,7 +159,7 @@ field is optional and is consumed defensively (see §5). New municipalities just
    municipalities to `wc-municipalities-full.geojson` (see §11 for sizes and why the map keeps the
    full file). `simplify_geo.py` computes the municipal area drift (source → simplified) before
    writing and refuses to write at 0.5 % or more; `--dry-run` reports sizes, tolerances and drift
-   without writing anything. It has no `shapely` in the system Python — run it as
+   without writing anything. The system Python has no `shapely`; run it as
    `uv run --no-project --with shapely python extract/geo/simplify_geo.py --check`.
 4. **`data/i18n-af.json`** — the Afrikaans catalogue (§13.9). **Before committing any change that
    adds or edits a user-facing English string, run `node tests/check-i18n.mjs`** (there is no
@@ -191,7 +191,7 @@ municipalities `m:<slug>`; slug = `name.strip().lower().replace(' ','-')`) · `r
 (8 groups × {n, value, median}) · `land` (per municipality; `null` with a reason in `land_reasons`
 when the rule fails) · `conc` (Gini, top 10/1/0.1% and bottom 50% shares, residential Gini) ·
 `places` (top 30 and bottom 10 place labels by median freehold-residential value, n ≥ 200) ·
-`findings` (id, `en`, `af` = null until the front-end translator fills it, value, unit, query_id) ·
+`findings` (id, `en`, `af` = null; the front end takes the Afrikaans from `data/i18n-af.json`, value, unit, query_id) ·
 `dates` (per-municipality date of valuation for the date chart).
 
 **Regenerate** (about 3 minutes, read-only on the roll DB, ~200 MB RAM):
@@ -512,9 +512,9 @@ Two front-end defects were fixed as P0 prerequisites of the design refresh (webs
   `renderLink` check it after every `await` before writing to `#pbody`. A late result for an earlier
   parcel is dropped, so parcel A can never overwrite parcel B.
 - **Tests.** Unit: `node --test tests/selection.test.mjs` (includes the deterministic "A resolves after B"
-  case). Browser regressions (Playwright MCP, WebKit) `tests/browser/test-race.js` and
+  case). Browser regressions (Playwright, WebKit) `tests/browser/test-race.js` and
   `tests/browser/test-failopen.js`: copy them into the data repo's `.playwright-mcp/scen/`, serve this repo
-  with `python3 -m http.server 8765 --bind 127.0.0.1`, and run each file with `browser_run_code_unsafe`.
+  with `python3 -m http.server 8765 --bind 127.0.0.1`, and run each file in a WebKit Playwright session.
   Both reproduced the defects on `9d9302a` and pass after the fix. The smoke matrix runs unchanged.
 
 ## 10. Curated municipal rates (`data/rates.json`) — the ONE hand-maintained data file
@@ -577,7 +577,7 @@ or search — the pre-warm used to be only `SELECT 1`, so the first real query p
 descent. **If you re-measure and any of these regresses the click past ~2 s, check that all four are
 still in place.**
 
-**Load order and boundary weight (design refresh 2026-09, Task 12).** The pre-warm is deferred so it
+**Load order and boundary weight (design refresh 2026-09).** The pre-warm is deferred so it
 never competes with first paint: the Atlas starts `ensureDB()` from
 `requestIdleCallback(…, { timeout: 4000 })` (Safari has no `requestIdleCallback`: a 1.5 s `setTimeout`
 fallback) or on the first `#search` focus, whichever comes first; the map page starts it the same way

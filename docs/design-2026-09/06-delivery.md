@@ -1,8 +1,8 @@
 # Delivery: design refresh 2026-09 (branch `design-2026-09`)
 
-Status: ready for the owner's review. Nothing is merged or pushed. Deployment waits for the owner's approval.
+Status: ready for review. Nothing is merged or pushed.
 
-<!-- controller: fill in the final branch HEAD SHA and the date of the browser and smoke runs -->
+Branch head at delivery: see the last commit on `design-2026-09`
 
 ## 1. Why this refresh
 
@@ -38,7 +38,6 @@ on the selected erf, with its status drawn in line-work rather than colour alone
 18,588 insertions, 3,545 deletions**, across 39 commits. Excluding generated pages (`m/`, `d/`, `af/`,
 `guide/`) and design documents, the count is 100 files, +13,921 / −1,715.
 
-<!-- controller: re-run `git diff --stat main...design-2026-09 | tail -1` on the final HEAD and replace the line above -->
 
 | Area | Main files | What changed |
 |---|---|---|
@@ -72,13 +71,12 @@ From `05-perf-after.md`. WebKit, measured on a local gzip server (:8768) compara
 
 The satellite warm style-ready time (1.17 s) and the parcels-interactive times (1.3–1.4 s) are single runs
 and vary with ArcGIS latency.
-<!-- controller: if the single-run satellite timings are re-measured before delivery, put the new figures here -->
 
 ## 4. Browser results
 
-### WebKit (automated, Playwright MCP)
+### WebKit (automated, Playwright)
 
-Run 2026-09-23 18:2x on 75ef902, then re-run after the final fix wave on 77efb53, against http://127.0.0.1:8766/ (Playwright MCP, WebKit 26.6, cold contexts). 14 scenarios (the 13 below plus `test-crossview.js`), 14 passed, 0 page errors, 0 console errors. The map scenarios were re-run against the live build `b-93c01c0b6202` (`?db=`) with the same results. One timing flake was seen in four runs of `test-mobile-map.js` (a synthetic 80 px swipe from peek did not register once; it passed on re-run with both builds). Scenario sources: `tests/browser/*.js`; the `probe-hint-focus` check (hint text after EN→AF + pan inside the fetched bbox; no `:focus-visible` on `#pclose` after a touch tap; zoom control present at 600 px desktop) also passed.
+Run 2026-09-23 18:2x on 75ef902, then re-run after the last fixes on 77efb53, against http://127.0.0.1:8766/ (Playwright, WebKit 26.6, cold contexts). 14 scenarios (the 13 below plus `test-crossview.js`), 14 passed, 0 page errors, 0 console errors. The map scenarios were re-run against the live build `b-93c01c0b6202` (`?db=`) with the same results. One timing flake was seen in four runs of `test-mobile-map.js` (a synthetic 80 px swipe from peek did not register once; it passed on re-run with both builds). Scenario sources: `tests/browser/*.js`; the `probe-hint-focus` check (hint text after EN→AF + pan inside the fetched bbox; no `:focus-visible` on `#pclose` after a touch tap; zoom control present at 600 px desktop) also passed.
 
 | Scenario | Result | Notes |
 |---|---|---|
@@ -94,11 +92,10 @@ Run 2026-09-23 18:2x on 75ef902, then re-run after the final fix wave on 77efb53
 | `test-failopen.js` | PASS (fails closed while blocked; link table after recovery) | |
 | `test-race.js` | PASS (later click kept) | |
 | `test-hotfix-matzikama.js` | PASS (Matzikama addresses suppressed; Drakenstein keeps its address) | the suppression must still hold |
-| `test-crossview.js` | <!-- controller: result --> | `plain.html#m/stellenbosch` frames Stellenbosch; the map's Explore link carries `#m/<slug>`; Explore's "Open the map" carries its municipality |
-| `test-crossview.js` | PASS (province view link `index.html`; zoom ≥ 9 carries `#m/<slug>`; `#m/stellenbosch` frames the municipality; Explore → `plain.html#m/swellendam`) | added in the final fix wave |
+| `test-crossview.js` | PASS (province view link `index.html`; zoom ≥ 9 carries `#m/<slug>`; `#m/stellenbosch` frames the municipality; Explore → `plain.html#m/swellendam`) | added with the last fixes |
 | P0 tests | PASS (`tests/selection.test.mjs` in the 58 node tests; `test-failopen`/`test-race` above) | |
 
-### Chrome and Firefox (manual, by the owner)
+### Chrome and Firefox (manual)
 
 Serve the worktree (`cd ~/projects/western-cape-valuations-design && python3 -m http.server 8766`), then:
 
@@ -121,7 +118,7 @@ Click through in each browser:
    from an `af/` page to its English twin. Then open `http://127.0.0.1:8766/af/m/mossel-bay.html`: the
    fonts are Plex and Source Serif, and DevTools Network shows no request to fonts.googleapis.com.
 
-<!-- controller: record the owner's Chrome / Firefox findings here -->
+Not yet clicked through by hand; record the findings here before the merge.
 
 ## 5. Smoke matrix
 
@@ -132,13 +129,13 @@ cd ~/projects/western-cape-property-valuations
 python3 extract/match/smoke_matrix.py --site http://127.0.0.1:8766 --db <prod config> --out reports/smoke-design-2026-09 --private
 ```
 
-**Pending.** The matrix drives Safari through AppleScript and cannot render while the screen is locked (`document.hidden` is true). A launcher (`extract/match/design_smoke_when_ready_2026-09-23.sh`) runs it automatically once the P0 checkpoint run has finished and the screen is unlocked with Safari idle; its result lands in `extract/match/reports/design-smoke-2026-09-23.DONE` and `reports/smoke-design-2026-09/smoke.json`. <!-- controller: paste the per-group counts, build_verified, js_errors when the DONE marker exists -->
+**Pending.** The matrix drives Safari through AppleScript and cannot render while the screen is locked (`document.hidden` is true). A launcher (`extract/match/design_smoke_when_ready_2026-09-23.sh`) runs it automatically once the P0 checkpoint run has finished and the screen is unlocked with Safari idle; its result lands in `extract/match/reports/design-smoke-2026-09-23.DONE` and `reports/smoke-design-2026-09/smoke.json`.
 
 ## 6. Screenshots
 
-Made by `tests/browser/shots-delivery.js` (MCP scenario) into `docs/design-2026-09/screenshots/`.
+Made by `tests/browser/shots-delivery.js` (Playwright scenario) into `docs/design-2026-09/screenshots/`.
 
-All twelve were re-captured on 77efb53 (after the inline desktop credits) (1440×900 desktop; 390×844 phone). Explore pages are lossless PNG within the 400 KB budget. Map and satellite pages contain imagery that does not compress losslessly (0.4–2.5 MB as PNG), so those are stored as JPEG (quality 82) or, for the two plain-map phone shots, PNG at 1× — a controller ruling recorded in the SDD ledger.
+All twelve were re-captured on 77efb53 (after the inline desktop credits) (1440×900 desktop; 390×844 phone). Explore pages are lossless PNG within the 400 KB budget. Map and satellite pages contain imagery that does not compress losslessly (0.4–2.5 MB as PNG), so those are stored as JPEG (quality 82). The two plain-map phone shots are PNG at 1×.
 
 | Page | EN desktop | EN phone | AF desktop | AF phone |
 |---|---|---|---|---|
@@ -153,7 +150,7 @@ All twelve were re-captured on 77efb53 (after the inline desktop credits) (1440�
   English or local name.
 - **The renamed-places registry has not been approved.** `applyLanguage(map, lang, [])` passes an empty
   override list, so tiles still show old names (for example Graaff-Reinet's township as "Robert Sobukwe
-  Town"). The six `REGISTRY.md` owner questions are still open.
+  Town"). The six open questions in `REGISTRY.md` are still open.
 - **Cape Town's share is derived from the findings.** `explore.json` carries the share with the
   allocation rows excluded (`ct_share`, 4 decimals) but not the excluded rand amount. The ledger
   recovers it as D = (C − s·T)/(1 − s) (≈ R36.6bn, within about R0.4bn). The shares add up to 100%, and
@@ -163,7 +160,7 @@ All twelve were re-captured on 77efb53 (after the inline desktop credits) (1440�
   them from `export_explore.py`.
 - **Static pages do not apply the Matzikama address suppression** (`ADDRESS_HIDDEN_MUNIS` is front-end
   only). `m/matzikama.html` and its AF twin show the same two most/least-valuable addresses as before this
-  branch. This is not new exposure, but the owner should decide on it together with lifting the
+  branch. This is not new exposure, but it should be decided together with lifting the
   suppression.
 - **Density and place bounding boxes are computed from the simplified municipal boundaries** (≤ 0.2%
   area drift) when `export_site.py` runs. This branch does not ship that drift: `stats.json`,
@@ -183,6 +180,9 @@ All twelve were re-captured on 77efb53 (after the inline desktop credits) (1440�
   ```
 
   Follow-up: a real `--pages-only` flag in `export_site.py` should replace the wrapper.
+- Afrikaans number formats (decimal separator, thousands spacing, rand abbreviations) are not yet
+  harmonised between the static pages and the Explore page; the static pages keep their current
+  formats. This is deferred.
 - The Natural Earth raster on `plain.html` (656 KB) is still loaded (deferred in `05-perf-after.md`).
 - A desktop Satellite screenshot may exceed the 400 KB PNG budget, because imagery compresses poorly.
   The scenario flags any file that does.
@@ -193,10 +193,10 @@ All twelve were re-captured on 77efb53 (after the inline desktop credits) (1440�
 - The map's Explore link carries the municipality under the map centre (`#m/<slug>`) only at
   municipality scale (zoom ≥ 9); below that it opens the province overview (plain `index.html`), so the
   province view never sends a reader to whichever municipality happens to sit under the centre.
-- The screenshots in §6 predate the final fix wave: desktop map shots still show the ⓘ credits button
+- The screenshots in §6 predate the last fixes: desktop map shots still show the ⓘ credits button
   rather than the inline credits line.
 
-## 8. Deployment (after the owner approves)
+## 8. Deployment (after sign-off)
 
 **The P0 integrity guards ship with this branch.** `design-2026-09` was cut from
 `p0-integrity-guards` (f446fef, the fail-closed link-table gate and the selection token), so merging

@@ -1,4 +1,4 @@
-# Performance: before and after the design refresh (Task 12)
+# Performance: before and after the design refresh
 
 Status: **measured.** The after runs are in the data repo at `.playwright-mcp/perf/after-notes.jsonl`: the ten
 scenarios on the gzip server plus one "first-usable" run. The baseline is `baseline-notes.jsonl` in the same folder.
@@ -12,7 +12,7 @@ scenarios on the gzip server plus one "first-usable" run. The baseline is `basel
   shells over the one map page.
 - **Cold contexts.** Each cold run gets a fresh browser context, so the HTTP cache is empty. A warm run reuses
   the previous context.
-- **Engine and machine.** Playwright MCP, WebKit 26.6, on this Mac (8 GB RAM, usually swapping) over a fast
+- **Engine and machine.** Playwright, WebKit 26.6, on this Mac over a fast
   home link.
 - **Limitations (copied from the audit, 00-audit.md §4).** WebKit exposes navigation timing, resource timing
   and FCP, but **not LCP, CLS or long tasks**. It offers no CPU or network throttling, so "mobile" means a
@@ -23,7 +23,7 @@ scenarios on the gzip server plus one "first-usable" run. The baseline is `basel
 - **Server.** The baseline was measured against GitHub Pages (gzip, CDN). The after runs hit a
   gzip-enabled local server on the same worktree (`http://127.0.0.1:8768/`, gzip level 6), so transferred
   totals are comparable with the baseline. Pages' compressor may differ slightly from gzip -6.
-  The scenario sources name port 8766; the controller pointed them at 8768 for the after run.
+  The scenario sources name port 8766; for the after run they were pointed at 8768.
 - **Whole-run totals versus first usable.** The per-scenario "transferred" figure counts every request up to
   the end of the run: 3 s of settling, plus the click where the scenario makes one. The idle-time DB
   pre-warm (1.2–1.7 MB) and the after-click reads therefore land in those totals even though they now
@@ -74,10 +74,9 @@ Map (plain) mobile cold, which has no line in that file; its values come from th
 | Map (plain.html) mobile cold | before | n/a | n/a | 0.40 s | 0.75 s | 0.29 s | — | — | page reload | page reload |
 | | after | 4.45 MB | 70 | 0.13 s | 0.45 s | 0.12 s | — | — | no reload | no reload |
 
-"No reload" is the result of the controller's `test-basemap-switch` and `test-lang-switch` browser tests,
-which both passed: the switch happens in place on a single MapLibre instance. No millisecond figure was
+"No reload" comes from the `test-basemap-switch` and `test-lang-switch` browser tests, which both passed: the switch happens in place on a single MapLibre instance. No millisecond figure was
 measured for either switch. The language test covers the map page; the Explore page's switch was not
-timed in this round.
+timed.
 
 **First-usable run (bytes of requests started before the ready instant):**
 
@@ -160,8 +159,8 @@ Baseline detail for the metrics the targets name:
   unified page (one MapLibre instance, in-place basemap switch) and is accepted. It is the main reason the
   satellite page's whole-run total grew. Its style-ready total (1.95 MB) is still under the 2.4 MB target.
 - **(b) Natural Earth low-zoom raster on `plain.html`.** Unchanged: 656 KB on desktop and about 960 KB
-  on mobile @3×. Spec §8 suggested dropping it at low zoom or halving its tiles, but that was not in
-  Task 12's steps, so it is **deferred to a later task**. It is most of the reason `plain.html` sits at
+  on mobile @3×. Spec §8 suggested dropping it at low zoom or halving its tiles, but that was left out of
+  this refresh and is **deferred**. It is most of the reason `plain.html` sits at
   2.23 MB against the 2.4 MB target.
 - **(c) `muniAt()` reads the unsimplified municipalities file.** `wc-municipalities-full.geojson` is
   201 KB gzipped, the same bytes the map page fetched before. It is accepted because the Integrity rule
@@ -224,6 +223,6 @@ Baseline detail for the metrics the targets name:
   230 KB. Wards load only on a municipality drill (Explore) or with the map's ward layer, **never at
   Explore first usable**, so they do not count against the Explore first-usable target.
 - **Fonts.** `assets/fonts/*.woff2` total **85,144 bytes** (83 KB, within the 120 KB limit). These are
-  self-hosted since Task 7. The baseline loaded 66 KB from Google Fonts.
+  now self-hosted. The baseline loaded 66 KB from Google Fonts.
 - **d3 7.9.0.** 279,706 bytes raw, about 92.7 KB gzipped (baseline 90 KB). The size is the same; only when
   it loads has changed.

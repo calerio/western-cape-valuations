@@ -371,7 +371,7 @@ Limits:
 
   One point in the parcel-link spec is superseded: it says "no row → today's heuristic". DC §9 and the code instead say a missing key means "Not in this data build".
 - `docs/superpowers/plans/`: the implementation plans for the above.
-- `.superpowers/sdd/`: task reports for the municipal-politics rollout. **Paused 2026-07-07 at Task 5, 1/25** (stats.json now shows politics for 2/25 munis). `#secPolitics` auto-hides elsewhere.
+- `.superpowers/sdd/`: working notes for the municipal-politics rollout, paused 2026-07-07 after 1 of 25 municipalities (stats.json now shows politics for 2/25 munis). `#secPolitics` auto-hides elsewhere.
 - `handoff.md` (2026-09-22) is Supabase/quota-oriented. It says the site reads `v9/`, which is **stale**: the code reads `b-2b502178f94f`.
 
 ---

@@ -1,6 +1,6 @@
 # South African settlement renamings — registry v1.0.0
 
-Generated 2026-09-23 · tile snapshot `20260913_164504_pt` · for owner approval before use on the map.
+Generated 2026-09-23 from tile snapshot `20260913_164504_pt`. Not yet applied to the map.
 
 **How to read this.** *Current* is the official name. *Former (en / af)* is the English and Afrikaans name in use just before the change. **Map shows** is what OpenFreeMap Liberty currently draws: it uses `coalesce(name_en, name)`, and `name_en` is not the same field as `name:en`. **Override?** is *yes* when the map does not already show the former name.
 
@@ -207,11 +207,11 @@ Sources checked in every province: the DSAC SAGNC Names Complete Database (to 20
 - **Tesselaarsdal** (Western Cape): Effectively a spelling restoration; override not recommended.
 - **Bo-Kaap** (Western Cape): Date missing in DB.
 
-## Questions for the owner
+## Open questions
 
 - **Contested 2026 names.** Robert Sobukwe (Graaff-Reinet), KuGompo City (East London), Xamdeboo, Bishop Limba and Ekhephini were gazetted on 2026-02-06. Tens of thousands of objections followed, and an AfriForum court review is pending. Should the override apply now, or wait for a ruling? A ruling that sets a name aside would make the override unnecessary.
 - **Nieu-Bethesda.** The tiles already label the village 'Kwa Noheleni', but that name was **not** gazetted, so Nieu-Bethesda is still the official name. Should the map show Nieu-Bethesda? That would be a correction of OSM, not a renaming override.
-- **Near-spellings.** Do you want overrides for renamings that are close to respellings: Tabankulu→Ntabankulu, Messina→Musina, Mafikeng→Mahikeng and Teslaarsdal→Tesselaarsdal? The notices call these 'change of name', but they read like corrections.
+- **Near-spellings.** Should near-respellings get overrides (Tabankulu→Ntabankulu, Messina→Musina, Mafikeng→Mahikeng and Teslaarsdal→Tesselaarsdal)? The notices call these 'change of name', but they read like corrections.
 - **Apartheid-era former names.** Sophiatown's former name is Triomf and District Six's is Zonnebloem. Both were imposed during apartheid and later reversed. Should these suburbs be excluded from display overrides?
 - **KZN spelling corrections.** Tongaat, Umhlanga Rocks, Amanzimtoti, Umkomaas and others were officially 'corrections of spelling'. They are excluded here. Should any of them still display the established English form? The tiles mostly already show the old form.
 - **Settlements and farm-named villages.** Many Mpumalanga settlements carry former Afrikaans farm names (e.g. Buffelspruit, Langeloop, Hartebeeskop). Should v1 include them, or stick to towns and cities?

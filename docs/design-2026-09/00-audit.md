@@ -8,7 +8,7 @@ namespaces nor any disposition semantics are touched by this project.
 Work is isolated on the website-repo branch `design-2026-09`. GitHub Pages deploys `main` only.
 
 Sources: read-only code audit (`audit-code.md`, 12 sections with file:line references), data audit
-(`audit-data.md`), OpenFreeMap style + decoded vector tiles, and live measurements through the Playwright MCP
+(`audit-data.md`), OpenFreeMap style + decoded vector tiles, and live measurements through the Playwright
 (WebKit 26.6, the only browser used).
 
 ---
@@ -133,7 +133,7 @@ contract. They are listed as decisions for the owner.
 - `plain.html` duplicates `map.html`; the view-switcher CSS is copied four times; tokens have no spacing or
   type-scale, no `rem`, and the dark block is duplicated.
 
-### Baseline timings (Playwright MCP, WebKit 26.6, fast home link, this Mac)
+### Baseline timings (Playwright, WebKit 26.6, fast home link, this Mac)
 Limitations: WebKit exposes navigation/resource timing and FCP but **not LCP, CLS or long tasks**, and offers no
 CPU/network throttling; "mobile" is a 390×844 @3× iPhone context on the same link. Warm runs reuse the
 context's HTTP cache (WebKit still reports full byte counts). Lighthouse was not run (it needs Chrome).
