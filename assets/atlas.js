@@ -2,7 +2,8 @@ import { getRates, computeRates } from "./rates.js?v=1";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 import { fmtR, fmtN } from "./format.js?v=2";
 import { dur } from "./motion.js?v=1";
-import { renderSections, renderCoverage } from "./explore-sections.js?v=4";
+import { renderSections, renderCoverage } from "./explore-sections.js?v=5";
+import { slugOf } from "./slug.js?v=1";   // slug rule shared with the static pages and the map (export_pages.slugify, DATA_CONTRACT §13)
 
 // d3 comes from the UMD bundle loaded in <head> — importing the jsdelivr +esm build
 // as well would fetch the whole ~30-module d3 graph a second time (and trigger a wall
@@ -100,8 +101,6 @@ let DISTRICTS = {};            // name -> {feature, munis:[name]}
 let muniByName = {};           // name -> feature
 let muniSlugs = {}, distSlugs = {};   // url-slug -> name (deep-link lookup, built in buildHierarchy)
 let curK = 1, statePath = [];
-// slug rule shared with the static pages — keep in sync with export_pages.slugify (DATA_CONTRACT §13)
-const slugOf = n => n.trim().toLowerCase().replace(/ /g, "-");
 // Party colours for seat bars — keep in sync with extract/politics.py PARTY_COLOURS.
 const PARTY_COLOURS = {DA:"#0071e3",ANC:"#00853f",EFF:"#e7261f","FF+":"#f39200",
   "VF Plus":"#f39200",ACDP:"#c8102e",PA:"#6a1b9a",GOOD:"#00a3a3",ASA:"#1565c0",

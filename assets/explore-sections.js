@@ -12,7 +12,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const L = () => currentLang();
 const R = (v, o) => fmtR(v, L(), o), N = v => fmtN(v, L()), P = v => fmtPct(v, L());
-export const slugOf = n => String(n || '').trim().toLowerCase().replace(/ /g, '-');   // = export_pages.slugify
+export { slugOf } from './slug.js?v=1';   // = export_pages.slugify (shared with atlas.js and map.js)
 const cycleLabel = c => String(c || '').replace('-draft', ' ' + t('draft')).replace(/(\d{4})-(\d{4})/, '$1–$2');
 
 /* ---------- SQL disclosure ---------- */

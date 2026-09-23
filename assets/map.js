@@ -34,6 +34,7 @@ import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.j
 import { hatchImageData } from "./map/hatch.js?v=1";
 import { shouldRefetch } from "./map/bbox.js?v=2";
 import { parseMapHash, buildMapHash } from "./map/hash.js?v=1";
+import { slugOf, featureBySlug, featureBounds } from "./slug.js?v=1";
 import { transformStyle, applyBasemap, applyLanguage } from "./map/style.js?v=1";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 
@@ -1138,6 +1139,32 @@ function trackCamera(map) {
   });
 }
 
+// Explore → map context (#m/<slug>, e.g. from Explore's "Open the map" links): with no camera in the
+// hash (c= wins), fit the municipality's full-resolution outline. An unknown slug leaves the
+// province framing in place, silently.
+async function fitMuniFromHash(map) {
+  const h = readHash();
+  if (!h.muni || h.c) return;
+  const b = featureBounds(featureBySlug(await MUNIS, h.muni));
+  if (!b || readHash().c) return;          // unknown slug, or the camera moved and was written meanwhile
+  map.fitBounds(b, { padding: 24, duration: dur(600) });
+}
+
+// Map → Explore context: the switcher's Explore link (and the map-failure fallback) carries the
+// municipality under the map centre (#m/<slug>), plain index.html when the centre is outside every
+// municipality. Debounced on moveend, like the camera hash.
+let exploreTimer = null;
+function updateExploreLinks(map) {
+  const m = map ? muniAt(map.getCenter()) : null;
+  const href = 'index.html' + (m ? '#m/' + slugOf(m) : '');
+  document.querySelectorAll('#viewsegWrap a[href^="index.html"], #mapfail a[href^="index.html"]')
+    .forEach(a => a.setAttribute('href', href));
+}
+function trackExploreLink(map) {
+  map.on('moveend', () => { clearTimeout(exploreTimer); exploreTimer = setTimeout(() => updateExploreLinks(map), 300); });
+  MUNIS.then(() => updateExploreLinks(map));
+}
+
 function showMapFail() { document.getElementById('mapfail')?.removeAttribute('hidden'); }
 
 async function boot() {
@@ -1167,6 +1194,8 @@ async function boot() {
     return;
   }
   window._map = map;                 // closePanel needs it to clear the selection
+  fitMuniFromHash(map);              // #m/<slug> without c=: frame the municipality
+  trackExploreLink(map);
   map.on('load', () => {
     // our overlays slot in UNDER the style's first symbol layer so its road/place labels stay
     // legible above our translucent fills (and above the imagery in satellite)
