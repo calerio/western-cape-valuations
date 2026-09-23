@@ -1,4 +1,5 @@
 import { getRates, computeRates } from "./rates.js?v=1";
+import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 
 // d3 comes from the UMD bundle loaded in <head> — importing the jsdelivr +esm build
 // as well would fetch the whole ~30-module d3 graph a second time (and trigger a wall
@@ -22,46 +23,44 @@ function wireAct(el, fn, role = "button") {
 }
 
 /* ============================ i18n ============================ */
-// Language: sticky toggle (localStorage) → device language → English. The Afrikaans
-// catalog (data/i18n-af.json) is the SAME file export_pages.py renders the static
-// pages from — one source of truth. t() maps English source strings; tn() maps place
-// display names (slugs, hashes and SQL filters stay English); tf() interpolates.
-const LANG = (() => { try { const v = localStorage.getItem("wcv-lang"); if (v === "af" || v === "en") return v; } catch (_) {}
-  return (navigator.language || "").toLowerCase().startsWith("af") ? "af" : "en"; })();
-let I18N = null;                       // af catalog {names,strings}; stays null for en
-const t = str => (I18N && I18N.strings[str]) || str;
-const tn = n => (I18N && I18N.names[n]) || n;
-const tf = (str, kw) => t(str).replace(/\{(\w+)\}/g, (_, k) => kw[k]);
-const GUIDE = () => LANG === "af" ? "af/gids/hoe-waardasies-werk.html" : "guide/how-valuations-work.html";
+// Language: sticky toggle (localStorage) → device language → English, resolved by the shared
+// module assets/i18n.js. The Afrikaans catalog (data/i18n-af.json) is the SAME file
+// export_pages.py renders the static pages from — one source of truth. t() maps English source
+// strings; tn() maps place display names (slugs, hashes and SQL filters stay English); tf()
+// interpolates. The EN/AF buttons switch IN PLACE (setLang → applyDom + navigate) — no reload.
+const isAF = () => currentLang() === "af";
+const GUIDE = () => isAF() ? "af/gids/hoe-waardasies-werk.html" : "guide/how-valuations-work.html";
 
 function applyStaticI18n() {
-  document.documentElement.lang = LANG;
+  document.documentElement.lang = currentLang();
   document.title = t("Western Cape Property Valuation Atlas — search municipal property values");
   const md = document.querySelector('meta[name="description"]');
   if (md) md.content = t("Free interactive atlas of official municipal property valuations across the Western Cape. Search any address or erf, explore districts and municipalities, see price distributions.");
-  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
-  document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  applyDom();
   const sf = $("siteFooter");
   if (sf) sf.innerHTML = `${t("Browse every")} <a href="m/index.html">${t("municipality & district")}</a> ·
       ${t("Public data under the Municipal Property Rates Act")} ·
       <a href="map.html">${t("Satellite map")}</a>`;
+  document.querySelectorAll("button[data-lang]").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.lang === currentLang())));
 }
 function wireLangToggle() {
   document.querySelectorAll("[data-lang]").forEach(a => {
-    if (a.dataset.lang === LANG) a.setAttribute("aria-current", "page");
     a.addEventListener("click", e => { e.preventDefault();
-      try { localStorage.setItem("wcv-lang", a.dataset.lang); } catch (_) {}
-      if (a.dataset.lang !== LANG) location.reload();
+      if (a.dataset.lang !== currentLang()) setLang(a.dataset.lang);
     });
+  });
+  onLangChange(() => {
+    applyStaticI18n();
+    if (STATS) navigate(statePath, false);             // re-render panel, labels, crumbs in place
   });
 }
 
 /* Language-aware compact Rand: Afrikaans large-number words differ from English
  * (10⁹ = miljard, 10¹² = biljoen — NOT "billion"), so af uses mn./mjd./bilj.
  * suffixes and the Afrikaans decimal comma. Mirrored in map.js + export_pages.py. */
-const AF_R = LANG === "af";
-const dsep = s => AF_R ? s.replace(".", ",") : s;
-const R = v => { v = +v; if (!isFinite(v)) return "—";
+const dsep = s => isAF() ? s.replace(".", ",") : s;
+const R = v => { v = +v; if (!isFinite(v)) return "—"; const AF_R = isAF();
   if (v >= 1e12) return "R" + dsep((v / 1e12).toFixed(2)) + (AF_R ? " bilj." : "tn");
   if (v >= 1e9) return "R" + dsep((v / 1e9).toFixed(v >= 1e10 ? 0 : 1)) + (AF_R ? " mjd." : "bn");
   if (v >= 1e6) return "R" + dsep((v / 1e6).toFixed(2)) + (AF_R ? " mn." : "m");
@@ -98,10 +97,8 @@ let dbw = null, dbwPromise = null, areaIndex = null;
 /* ============================ boot ============================ */
 (async function () {
   wireLangToggle();
-  if (LANG === "af") {
-    try { I18N = await (await fetch("data/i18n-af.json")).json(); } catch (_) {}
-    applyStaticI18n();
-  }
+  await loadCatalog(currentLang());                    // EN: no fetch (the key is the text)
+  applyStaticI18n();
   try {
     [STATS, TOWNS, PROV, DISTF, MUNIF] = await Promise.all([
       fetch("data/stats.json").then(r => r.json()),
@@ -608,7 +605,7 @@ function renderDash(p) {
       wireProv(sub.querySelector(".rollprov"), scope.provenance);
     } else sub.textContent = t("Valuation roll · ") + cyc;
   } else { const nk = children.filter(c => c.s).length;
-    const kw = nk === 1 ? (I18N ? t(kindP === "Districts" ? "district (singular)" : "municipality (singular)")
+    const kw = nk === 1 ? (isAF() ? t(kindP === "Districts" ? "district (singular)" : "municipality (singular)")
                                 : (kindP === "Districts" ? "district" : "municipality"))
                         : t(kindP).toLowerCase();
     sub.textContent = nk + " " + kw + " · " + t("current valuation rolls"); }
@@ -920,7 +917,7 @@ function renderPolitics(s) {
   }
   const muni = s && s.name;
   if (muni) html += `<div style="margin-top:14px;font-size:12.5px">`
-    + `<a href="${LANG === "af" ? "af/" : ""}m/${slugOf(muni)}.html">${t("Full council &amp; ward councillors →")}</a></div>`;
+    + `<a href="${isAF() ? "af/" : ""}m/${slugOf(muni)}.html">${t("Full council &amp; ward councillors →")}</a></div>`;
   $("secPoliticsBody").innerHTML = html;
 }
 

@@ -32,8 +32,8 @@ import { initPlaceSearch } from "./places.js?v=3";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
 import { hatchImageData } from "./map/hatch.js?v=1";
 import { parseMapHash, buildMapHash } from "./map/hash.js?v=1";
-import { transformStyle, applyBasemap } from "./map/style.js?v=1";
-import { currentLang } from "./i18n.js?v=1";
+import { transformStyle, applyBasemap, applyLanguage } from "./map/style.js?v=1";
+import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 
 // The shell's default basemap (map.html: sat, plain.html: map) — omitted from the hash when current.
 const PAGE_B = document.body.dataset.basemap === 'sat' ? 'sat' : 'map';
@@ -520,7 +520,7 @@ const N = v => Number(v).toLocaleString('en-ZA');
 const R = v => {
   if (v == null) return '—';
   // Afrikaans large-number words differ (10⁹ = miljard, not "billion") — see atlas.js R()
-  const af = LANG === 'af', d = s => af ? s.replace('.', ',') : s;
+  const af = currentLang() === 'af', d = s => af ? s.replace('.', ',') : s;
   if (v >= 1e9) return 'R' + d((v / 1e9).toFixed(2)) + (af ? ' mjd.' : ' bn');
   if (v >= 1e6) return 'R' + d((v / 1e6).toFixed(2)) + (af ? ' mn.' : ' m');
   return 'R' + N(Math.round(v));
@@ -901,7 +901,7 @@ function renderSchemeList(g, props) {
     ? `<div class="pVal">${R(total)}</div><div class="pSub">${tf('sum of the {n} unit valuations on the roll for scheme {scheme} — not the erf’s official valuation, which is R0', { n: g.rows.length, scheme: esc(clWs(g.scheme)) })}</div>`
     : `<div class="pSub">${tf('{n} sectional-title units matched — list may be incomplete; no parcel valuation is implied', { n: g.rows.length })}</div>`;
   $('pbody').innerHTML =
-    `<div class="pKick">${esc([props.Town_name, props._ward != null ? 'Ward ' + props._ward : null]
+    `<div class="pKick">${esc([props.Town_name, props._ward != null ? t('Ward') + ' ' + props._ward : null]
       .filter(Boolean).join(' · '))}</div>` +
     `<div class="pAddr">${esc(clWs(g.scheme))}</div>` + head +
     `<div class="pNote">${t('Scheme identified from the City’s sectional-scheme layer at the click point; units matched by scheme reference or name.')}</div>` +
@@ -939,42 +939,48 @@ function wireAct(el, fn) {
   el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
 }
 
-/* ---- i18n (same catalog + resolution as atlas.js; see data/i18n-af.json) ---- */
-const LANG = (() => { try { const v = localStorage.getItem('wcv-lang'); if (v === 'af' || v === 'en') return v; } catch (_) {}
-  return (navigator.language || '').toLowerCase().startsWith('af') ? 'af' : 'en'; })();
-let I18N = null;
-const t = str => (I18N && I18N.strings[str]) || str;
-const tn = n => (I18N && I18N.names[n]) || n;
-const tf = (str, kw) => t(str).replace(/\{(\w+)\}/g, (_, k) => kw[k]);
-async function initI18n() {
-  if (LANG !== 'af') return;
-  try { I18N = await (await fetch('data/i18n-af.json')).json(); } catch (_) { return; }
-  document.documentElement.lang = 'af';
+/* ---- i18n: shared module (assets/i18n.js, catalogue data/i18n-af.json). The EN/AF buttons switch
+ * IN PLACE (no reload): setLang() re-applies the [data-i18n] DOM and notifies onLangChange, which
+ * re-derives the basemap label expressions (applyLanguage) and re-renders the open panel. ---- */
+function applyPageI18n() {
   document.title = t(PAGE_B === 'map'
     ? 'Western Cape Property Valuation Atlas — Map'
     : 'Western Cape Property Valuation Atlas — Satellite map');
-  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
-  document.querySelectorAll('[data-i18n-ph]').forEach(el => {
-    el.placeholder = t(el.dataset.i18nPh);
-    if (el.getAttribute('aria-label')) el.setAttribute('aria-label', t(el.dataset.i18nPh));
-  });
-  document.querySelectorAll('[data-i18n-aria]').forEach(el =>
-    el.setAttribute('aria-label', t(el.dataset.i18nAria)));
-  $('brandTitle').textContent = tn('Western Cape');
+  const bt = $('brandTitle'); if (bt) bt.textContent = tn('Western Cape');
+  document.querySelectorAll('button[data-lang]').forEach(b =>
+    b.setAttribute('aria-pressed', String(b.dataset.lang === currentLang())));
+}
+async function initI18n() {
+  const lang = currentLang();
+  await loadCatalog(lang);                     // EN: no fetch (the key is the text)
+  if (currentLang() !== lang) return;          // the user switched meanwhile — setLang owns the page
+  document.documentElement.lang = lang;
+  applyDom();
+  applyPageI18n();
 }
 function wireLangToggle() {
   document.querySelectorAll('[data-lang]').forEach(a => {
-    a.setAttribute('aria-pressed', String(a.dataset.lang === LANG));
     a.addEventListener('click', e => { e.preventDefault();
-      try { localStorage.setItem('wcv-lang', a.dataset.lang); } catch (_) {}
-      if (a.dataset.lang !== LANG) location.reload();
+      if (a.dataset.lang !== currentLang()) setLang(a.dataset.lang);
     });
   });
+  onLangChange(lang => {
+    applyPageI18n();
+    const map = window._map;
+    if (map && map.getStyle()) {
+      applyLanguage(map, lang, []);             // renamed-places overrides: not approved yet
+      if (map.getLayer('ward-labels'))
+        map.setLayoutProperty('ward-labels', 'text-field', ['concat', t('Ward') + ' ', ['get', 'ward']]);
+    }
+    rerenderPanel();
+  });
+  applyPageI18n();
 }
 function setHint(text) { const h = $('maphint'); if (h) { h.textContent = text; h.hidden = !text; } }
 function openPanel() { $('ppanel').hidden = false; }
 function closePanel() {
   $('ppanel').hidden = true;
+  lastView = null;
   if (selId !== null && window._map) window._map.setFeatureState({ source: 'parcels', id: selId }, { sel: false, verified: false, none: false });
   selId = null;
   if (window._map) setSelFilter(window._map, null);
@@ -1016,7 +1022,7 @@ function renderDetail(r, props, backList, backSub) {
 
 function renderList(rows, props, subText) {
   $('pbody').innerHTML =
-    `<div class="pKick">${esc([props.Town_name, props._ward != null ? 'Ward ' + props._ward : null]
+    `<div class="pKick">${esc([props.Town_name, props._ward != null ? t('Ward') + ' ' + props._ward : null]
       .filter(Boolean).join(' · '))}</div>` +
     `<div class="pAddr">${tf('Erf {erf} — {n} valuations', { erf: esc(props.TAG_VALUE || '?'), n: rows.length })}</div>` +
     `<div class="pSub">${esc(subText || t('portions or sectional-title units share this parcel'))}</div>` +
@@ -1057,21 +1063,41 @@ function renderParcelChooser() {
   openPanel();
 }
 
-async function showValuation(props, token = selection.begin()) {
+// The parcel whose valuation the panel shows, and its last link decision — a language switch
+// re-renders it from these (rerenderPanel) instead of reloading the page.
+let lastView = null;             // { props }
+let lastLink = null;             // { key, link } — the immutable DB's answer for that parcel
+
+// Re-render the open panel in the current language: same parcel, fresh selection token, no
+// loading placeholder (the old-language card stays until the new one is ready), and the cached
+// link decision when there is one. A drill-in (list → one entry, scheme chooser) returns to the
+// parcel's main card.
+function rerenderPanel() {
+  if (!lastView || $('ppanel').hidden || selId === null) return;
+  showValuation(lastView.props, selection.begin(), { rerender: true });
+}
+
+async function showValuation(props, token = selection.begin(), { rerender = false } = {}) {
   const live = () => selection.isCurrent(token);   // only the CURRENT selection may write to the panel
-  $('pbody').innerHTML =
-    `<div class="pKick">${esc(props.Town_name || '')}</div>` +
-    `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-    `<div class="pSub">${t('Looking up valuation…')}</div>`;
-  openPanel();
-  maybeInjectChooser();          // let the user switch parcels immediately, even while loading
+  lastView = { props };
+  if (!rerender) {
+    $('pbody').innerHTML =
+      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
+      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
+      `<div class="pSub">${t('Looking up valuation…')}</div>`;
+    openPanel();
+    maybeInjectChooser();        // let the user switch parcels immediately, even while loading
+  }
   // Offline link table first (search.db ≥ v10 with `link`): one explicit, evidence-backed decision
   // for EVERY current parcel. Any decision — abstain and ambiguous included — wins over the
   // click-time heuristic below. A key missing from the table is a data-build mismatch and is
   // reported as such; the heuristic runs only when the whole table is absent (older hosted DB)
   // or intentionally disabled with ?nolink=1.
   let link = null;
-  try { link = await lookupLink(props.PRCL_KEY); }
+  try {
+    link = rerender && lastLink && lastLink.key === props.PRCL_KEY ? lastLink.link : await lookupLink(props.PRCL_KEY);
+    lastLink = { key: props.PRCL_KEY, link };
+  }
   catch (e) {
     if (!live()) return;
     if (e && e.code === 'DB_UNAVAILABLE') {
@@ -1100,7 +1126,7 @@ async function showValuation(props, token = selection.begin()) {
   }
   if (!live()) return;
   if (link) { await renderLink(link, props, live); return; }
-  heuristicRuns++;                          // legitimately reached only via ?nolink=1 or a proven older DB
+  if (!rerender) heuristicRuns++;            // legitimately reached only via ?nolink=1 or a proven older DB
   let res;
   try { res = await lookupErf(props.TAG_VALUE, props.Town_name, props._muni); }
   catch (e) {

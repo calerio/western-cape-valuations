@@ -134,10 +134,10 @@
   /* iOS-style segmented view switcher — identical on Atlas and Satellite */
   #viewsegWrap{position:fixed;top:16px;right:16px;z-index:30;padding:4px;border-radius:12px}
   .viewseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
-  .viewseg a{text-decoration:none;font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
+  .viewseg a,.viewseg button{appearance:none;border:0;background:none;margin:0;font-family:inherit;text-decoration:none;font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
     padding:11px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
-  .viewseg a:hover{color:var(--ink)}
-  .viewseg a[aria-current="page"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
+  .viewseg a:hover,.viewseg button:hover{color:var(--ink)}
+  .viewseg a[aria-current="page"],.viewseg button[aria-pressed="true"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
   /* reset-to-overview control — a quiet glass pill under the view switcher */
   #resetBtn{min-height:44px;position:fixed;top:70px;right:16px;z-index:30;display:inline-flex;align-items:center;gap:6px;
     padding:8px 14px 8px 11px;border:1px solid var(--sep);border-radius:var(--r-pill);
@@ -289,7 +289,7 @@
 
     /* legend gives way to the sheet once drilled (JS toggles it) */
     #legendBox{left:14px;right:14px;min-width:0}
-    .viewseg a{font-size:11.5px;padding:12px 12px}
+    .viewseg a,.viewseg button{font-size:11.5px;padding:12px 12px}
   }
 
   @media (prefers-reduced-motion:reduce){
@@ -325,8 +325,8 @@
         <a href="map.html" data-i18n="Satellite">Satellite</a>
       </nav>
       <nav class="viewseg" aria-label="Language / Taal">
-        <a href="#" data-lang="en">EN</a>
-        <a href="#" data-lang="af">AF</a>
+        <button type="button" data-lang="en" aria-pressed="true">EN</button>
+        <button type="button" data-lang="af" aria-pressed="false">AF</button>
       </nav>
     </div>
   </div>
@@ -432,8 +432,8 @@
     <a href="map.html" data-i18n="Satellite">Satellite</a>
   </nav>
   <nav class="viewseg" aria-label="Language / Taal">
-    <a href="#" data-lang="en">EN</a>
-    <a href="#" data-lang="af">AF</a>
+    <button type="button" data-lang="en" aria-pressed="true">EN</button>
+    <button type="button" data-lang="af" aria-pressed="false">AF</button>
   </nav>
 </div>
 

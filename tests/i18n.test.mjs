@@ -11,3 +11,10 @@ test('setLang notifies listeners and persists without reload', async () => {
   let seen = null; onLangChange(l => { seen = l; });
   await setLang('en'); assert.equal(seen, 'en'); assert.equal(localStorage.getItem('wcv-lang'), 'en'); assert.equal(currentLang(), 'en');
 });
+test('setLang: the last call wins when an earlier one is still loading', async () => {
+  const seen = []; onLangChange(l => seen.push(l));
+  const p1 = setLang('af'); const p2 = setLang('en');   // af awaits the catalogue promise; en resolves first
+  await Promise.all([p1, p2]);
+  assert.equal(currentLang(), 'en'); assert.equal(document.documentElement.lang, 'en');
+  assert.deepEqual(seen, ['en']); assert.equal(localStorage.getItem('wcv-lang'), 'en');
+});

@@ -52,10 +52,15 @@ export function applyDom(root = (typeof document !== 'undefined' ? document : nu
   root.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
 }
 
+// Monotonic call counter: a slow af catalogue load must not land after a later setLang('en').
+// Only the LATEST call applies the language and notifies; superseded calls resolve quietly.
+let setSeq = 0;
 export async function setLang(lang) {
   lang = lang === 'af' ? 'af' : 'en';
+  const mine = ++setSeq;
   try { localStorage.setItem(KEY, lang); } catch (_) {}
   await loadCatalog(lang);
+  if (mine !== setSeq) return I18N.lang;
   I18N.lang = lang;
   if (typeof document !== 'undefined' && document.documentElement) document.documentElement.lang = lang;
   applyDom();
