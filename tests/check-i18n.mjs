@@ -78,7 +78,32 @@ export function findMissing(catalog = cat) {
   return { total, files: files.length, missing: [...missing].map(([key, fs]) => ({ key, files: [...fs] })) };
 }
 
+// Catalogue keys no source mentions any more (a WARNING, never a failure: some keys arrive from data
+// the check cannot see). A key counts as used when its text — raw, JS/JSON-escaped or HTML-escaped —
+// appears in the scanned site files, 404.html, data/*.json, or the data repo's extract/*.py (the
+// static-page generator and the authored prose it translates), found next to this checkout
+// or via WCV_DATA_REPO.
+export function findUnused(catalog = cat) {
+  const dataRepo = process.env.WCV_DATA_REPO || join(ROOT, '..', 'western-cape-property-valuations');
+  const texts = [...files, '404.html', ...ls('data', /\.json$/).filter(f => !f.endsWith('i18n-af.json'))]
+    .filter(f => existsSync(join(ROOT, f))).map(f => readFileSync(join(ROOT, f), 'utf8'));
+  const ex = join(dataRepo, 'extract');
+  const pySeen = existsSync(ex);
+  if (pySeen) for (const f of readdirSync(ex).filter(f => f.endsWith('.py'))) texts.push(readFileSync(join(ex, f), 'utf8'));
+  // join implicitly concatenated literals split over lines ("…"\n    "…" in Python, '…' +\n '…' in JS)
+  const hay = texts.join('\n').replace(/(["'])\s*\+?\s*\n\s*\+?\s*\1/g, '');
+  const uEsc = k => k.replace(/[^\x00-\x7f]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+  const forms = k => [k, JSON.stringify(k).slice(1, -1), k.replace(/'/g, "\\'"), k.replace(/&/g, '&amp;'), uEsc(k)];
+  const unused = Object.keys(catalog.strings || {}).filter(k => !forms(k).some(f => hay.includes(f)));
+  return { unused, pySeen };
+}
+
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  const u = findUnused();
+  if (u.unused.length) {
+    console.warn(`check-i18n: WARNING ${u.unused.length} catalogue key(s) no source uses${u.pySeen ? '' : ' (data repo not found: generator keys not checked)'}:`);
+    for (const k of u.unused) console.warn(`  ${JSON.stringify(k)}`);
+  }
   const r = findMissing();
   if (r.missing.length) {
     console.error(`check-i18n: ${r.missing.length} key(s) without an af entry in data/i18n-af.json:`);

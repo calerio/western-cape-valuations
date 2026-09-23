@@ -1,6 +1,6 @@
 // tests/check-i18n.test.mjs — the i18n completeness check itself, and the live catalogue passing it.
 import { test } from 'node:test'; import assert from 'node:assert/strict';
-import { extract, findMissing } from './check-i18n.mjs';
+import { extract, findMissing, findUnused } from './check-i18n.mjs';
 
 test('extract: t/tf/tn/setHint literals and data-i18n attributes, not look-alikes', () => {
   const js = `t('A'); tf("B {n}", {n}); tn('Mossel Bay'); setHint('Loading…'); x.t('C'); split('D'); t(v); t('It\\'s'); t('\\u2014')`;
@@ -19,4 +19,9 @@ test('findMissing: flags a key the catalogue lacks', () => {
 test('every literal key on the site has an af entry', () => {
   const r = findMissing();
   assert.deepEqual(r.missing, [], JSON.stringify(r.missing, null, 1));
+});
+
+test('findUnused: warns about a catalogue key nothing uses, never about a used one', () => {
+  const r = findUnused({ strings: { 'zz key nothing uses': 'x', 'Tap or click an erf for its valuation': 'y' } });
+  assert.deepEqual(r.unused, ['zz key nothing uses']);
 });
