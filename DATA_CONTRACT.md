@@ -157,7 +157,18 @@ field is optional and is consumed defensively (see §5). New municipalities just
    `extract/geo/simplify_geo.py --check` (needs `shapely`), which rewrites the site's
    `za-outline`, `wc-districts`, `wc-municipalities`, `wc-wards` and copies the unsimplified
    municipalities to `wc-municipalities-full.geojson` (see §11 for sizes and why the map keeps the
-   full file).
+   full file). `simplify_geo.py` computes the municipal area drift (source → simplified) before
+   writing and refuses to write at 0.5 % or more; `--dry-run` reports sizes, tolerances and drift
+   without writing anything. It has no `shapely` in the system Python — run it as
+   `uv run --no-project --with shapely python extract/geo/simplify_geo.py --check`.
+4. **`data/i18n-af.json`** — the Afrikaans catalogue (§13.9). **Before committing any change that
+   adds or edits a user-facing English string, run `node tests/check-i18n.mjs`** (there is no
+   package.json; `node --test 'tests/*.test.mjs'` runs it too via `tests/check-i18n.test.mjs`). It
+   exits 1 and lists every literal key without an `af` entry: `t()`/`tf()`/`tn()`/`setHint()`
+   literals in `assets/*.js` and `assets/map/*.js`, `data-i18n`/`-ph`/`-aria` attributes in
+   `index.html`, `map.html`, `plain.html`, `templates/*.html`, and the `data/explore.json` strings the
+   page translates (`meta.caveats`, `rolls[].date_note`, `findings[].en` without an own `af`). Keys
+   built at runtime (variables, ternaries inside `t()`) are not seen — add those by hand.
 
 ---
 
