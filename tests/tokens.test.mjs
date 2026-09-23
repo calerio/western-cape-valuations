@@ -34,3 +34,38 @@ test('theme pins declare only the six --map-* custom properties', () => {
     assert.equal(names.length, MAP.length, sel + ' has duplicate declarations');
   }
 });
+
+// WCAG 2.x contrast of the five status badge pairs (ink on its own tint), light and dark.
+// A translucent dark tint is composited over the surfaces a badge sits on (--bg, --bg2).
+const parseColor = s => {
+  s = s.trim();
+  let m = s.match(/^#([0-9a-f]{6})$/i);
+  if (m) return [0, 2, 4].map(i => parseInt(m[1].slice(i, i + 2), 16)).concat(1);
+  m = s.match(/^rgba?\(([^)]+)\)$/i);
+  if (m) { const p = m[1].split(',').map(Number); return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; }
+  throw new Error('unparsed colour ' + s);
+};
+const lightDark = name => {
+  const m = css.match(new RegExp(name + ':\\s*light-dark\\(\\s*(#[0-9a-f]{6}|rgba?\\([^)]*\\))\\s*,\\s*(#[0-9a-f]{6}|rgba?\\([^)]*\\))\\s*\\)', 'i'));
+  assert.ok(m, name + ' is a light-dark() pair');
+  return { light: parseColor(m[1]), dark: parseColor(m[2]) };
+};
+const over = (top, under) => { const a = top[3]; return [0, 1, 2].map(i => top[i] * a + under[i] * (1 - a)).concat(1); };
+const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
+  return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+test('status badge pairs reach 4.5:1 in light and dark (WCAG 2.x)', () => {
+  const surfaces = ['--bg', '--bg2'].map(lightDark);
+  for (const st of ['ok', 'warn', 'neutral', 'none', 'bad']) {
+    const ink = lightDark(`--st-${st}-ink`), bg = lightDark(`--st-${st}-bg`);
+    for (const scheme of ['light', 'dark']) for (const s of surfaces) {
+      const tint = over(bg[scheme], s[scheme]);
+      const r = ratio(over(ink[scheme], tint), tint);
+      assert.ok(r >= 4.5, `${st} ${scheme}: ${r.toFixed(2)}:1`);
+    }
+  }
+});
+test('contrast helper matches known WCAG values', () => {
+  assert.equal(ratio([0, 0, 0, 1], [255, 255, 255, 1]).toFixed(2), '21.00');
+  assert.equal(ratio([0x6b, 0x6f, 0x76, 1], [0xf0, 0xf0, 0xf2, 1]).toFixed(2), '4.43');
+});

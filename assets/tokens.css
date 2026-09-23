@@ -71,7 +71,7 @@
   --st-warn-bg: light-dark(#f7efdc, rgba(227, 179, 65, .18));
   --st-neutral-ink: light-dark(#5c6570, #aab2bd);
   --st-neutral-bg: light-dark(#eceef1, rgba(170, 178, 189, .18));
-  --st-none-ink: light-dark(#6b6f76, #9aa0a6);
+  --st-none-ink: light-dark(#5f636a, #a8aeb4);   /* ≥5:1 on its tint: 5.30 light; 5.58/5.06 dark on --bg/--bg2 */
   --st-none-bg: light-dark(#f0f0f2, rgba(154, 160, 166, .18));
   --st-bad-ink: light-dark(#a12a2a, #f28b82);
   --st-bad-bg: light-dark(#f8e6e6, rgba(242, 139, 130, .18));
