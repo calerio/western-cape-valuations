@@ -1,1 +1,1 @@
-{"serverMode": "chunked", "requestChunkSize": 65536, "databaseLengthBytes": 541908992, "serverChunkSize": 33554432, "urlPrefix": "search.db.", "suffixLength": 3, "buildId": "20260922T222703-f09249", "sha256": "2b502178f94f34191319510b02579223bc1bf7d82c112cf6c386a47d3c4550db"}
+{"serverMode": "chunked", "requestChunkSize": 65536, "databaseLengthBytes": 542093312, "serverChunkSize": 33554432, "urlPrefix": "search.db.", "suffixLength": 3, "buildId": "20260923T125124-360099", "sha256": "93c01c0b62021f70126c54ba067d1b07b2053f227401ebbfda72e1bf77080f2f"}
