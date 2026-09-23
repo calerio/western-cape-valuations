@@ -154,6 +154,64 @@ field is optional and is consumed defensively (see §5). New municipalities just
 
 ---
 
+## 4a. `data/explore.json` — pre-computed statistics for the Explore page
+
+**What it is.** One compact JSON file (about 58 KB raw, 17 KB gzipped) holding everything the
+Explore page needs that cannot be derived in the browser from `stats.json`: nearest-rank
+percentiles, a log-binned value histogram, the 8-group category split, land-size and value-per-m²
+figures, concentration measures, the most and least valuable places, a few headline findings and
+the valuation dates. It is produced by **`extract/export_explore.py`**, separately from
+`export_site.py`, and never touches `search.db`. Every number comes from a SQL query in that script,
+and the file ships the SQL text in its `queries` block (per-node queries are templates with a
+`{node}` placeholder; `queries._node` gives the three node expressions).
+
+**Blocks.** `meta` (build date, roll-DB sha256 and row count, totals, roll/SV coverage, the
+reliability rule, category-rule version, caveats) · `nodes` (province `province`, districts `d:<slug>`,
+municipalities `m:<slug>`; slug = `name.strip().lower().replace(' ','-')`) · `rolls[25]` · `pct`
+(`all` and `res_fh` = freehold residential; columns in `pct.cols`) · `loghist` (22 bins: under R10k,
+20 quarter-decade bins from R10k to R1bn, R1bn and over; counts and value in R thousands) · `groups`
+(8 groups × {n, value, median}) · `land` (per municipality; `null` with a reason in `land_reasons`
+when the rule fails) · `conc` (Gini, top 10/1/0.1% and bottom 50% shares, residential Gini) ·
+`places` (top 30 and bottom 10 place labels by median freehold-residential value, n ≥ 200) ·
+`findings` (id, `en`, `af` = null until the front-end translator fills it, value, unit, query_id) ·
+`dates` (per-municipality date of valuation for the date chart).
+
+**Regenerate** (about 3 minutes, read-only on the roll DB, ~200 MB RAM):
+
+```bash
+cd ~/projects/western-cape-property-valuations
+python3 extract/export_explore.py --out <site checkout>/data/explore.json
+extract/match/.venv/bin/python -m pytest extract/tests/test_export_explore.py -q   # ~3 min
+```
+
+`stats.json` and `towns.json` alone can be refreshed without building `search.db`:
+`python3 extract/export_site.py --site <site checkout> --stats-only`.
+
+**Reliability rule (land size, value per m², and the matching `stats.json` fields `erf_*`,
+`ppm_*`, `vacant_ppm_median`, `vacant_land_share`).** Only rows that are `full_title`, valued at
+R10,000 or more, with `extent_m2` between 20 and 50,000, from a roll that passed the cadastre
+extent check (`match.db` `roll_unit`: `unreliable=0 AND n>=30`). Sectional extents are unit floor
+areas and farm extents were never validated (Oudtshoorn and Knysna farms are corrupt), so neither is
+ever used.
+
+**Category rule.** `extract/catrules.py` maps every raw category (text before `[`, upper-cased)
+with an ordered keyword rule into residential, business_commercial, industrial, agricultural,
+vacant, public_infrastructure, municipal_state or other (farm tenure falls back to agricultural).
+`stats.json` `res_median`/`residential_avg` now use this rule's `residential` group; `cat_mix` keeps
+the older `classify()` buckets.
+
+**Caveats the page must show** (also in `meta.caveats`): dates of valuation differ between
+municipalities (2020 to 2025, plus Laingsburg's 2018 draft); City of Cape Town lists multi-use
+properties twice (HOLDING/MULTIPLE PURPOSES parent + erf-less ALLOCATION rows, about R36bn), which
+headline totals include but place rankings and `stats.json` `hi` exclude, and findings exclude the
+allocation rows; sectional units count as properties and their share is not comparable
+(`stats.json` `sectional_share` is now `null` with `sectional_share_note`); supplementary rolls are
+in for only 9 municipalities; about 1.5% of rows are uncoded; value per m² is land plus buildings
+over land area. **No address or owner field is used**: places are suburb/town labels only, and the
+tests assert that no `site_address` string appears in the file.
+
+---
+
 ## 5. Why incomplete data will NOT break the site (graceful degradation)
 
 The front-end guards everything. Add a sparse municipality, or leave fields null, and the site
