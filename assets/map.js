@@ -26,6 +26,7 @@ const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(
 import { getRates, computeRates } from "./rates.js?v=1";
 import { initPlaceSearch } from "./places.js?v=2";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
+import { hatchImageData } from "./map/hatch.js?v=1";
 
 // Which basemap this page wants (plain.html sets <body data-basemap="plain">).
 const MODE = document.body.dataset.basemap === 'plain' ? 'plain' : 'satellite';
@@ -253,31 +254,72 @@ function esriToGeoJSON(esri) {
   };
 }
 
+// '#rrggbb' (or '#rgb') → [r,g,b,255] for the hatch tiles; falls back to the cadastral accent.
+function hexToRgba(hex) {
+  let h = String(hex || '').trim().replace(/^#/, '');
+  if (h.length === 3) h = h.replace(/./g, c => c + c);
+  if (!/^[0-9a-f]{6}$/i.test(h)) return [31, 78, 140, 255];
+  return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).concat(255);
+}
+
+// Filter that matches only the selected erf ('' matches nothing: PRCL_KEY is never empty).
+const selFilter = id => ['==', ['get', 'PRCL_KEY'], id == null ? '' : id];
+// Selection outline dash per link status (line-dasharray cannot read feature-state, so it is set
+// with setPaintProperty by setSelectionStatus).
+const SEL_DASH = { verified: [1, 0], possible: [2, 2], none: [1, 2] };
+// Hatch tile per status ('none' keeps sparse but its opacity drops to 0 via feature-state).
+const SEL_PATTERN = { verified: 'hatch-dense', possible: 'hatch-sparse', none: 'hatch-sparse' };
+
 function addParcels(map, beforeId) {
   map.addSource('parcels', {
     type: 'geojson', data: EMPTY_FC,
     promoteId: 'PRCL_KEY',           // feature-state (selection highlight) keys on the SG key
     attribution: CADASTRE.attribution,
   });
-  // invisible-ish fill = the click/hover target + selection tint
+  const selColor = cssVar('--map-parcel-sel');   // plain hex on the [data-theme] pins
+  // SG-diagram hatch tiles for the selected erf (design 2026-09): dense = verified, sparse = possible
+  const rgba = hexToRgba(selColor);
+  for (const d of ['dense', 'sparse'])
+    if (!map.hasImage('hatch-' + d)) map.addImage('hatch-' + d, hatchImageData(12, 4, rgba, d), { pixelRatio: 2 });
+  const SEL = ['boolean', ['feature-state', 'sel'], false];
+  // invisible-ish fill = the click/hover target + a light selection tint (the hatch carries the selection)
   map.addLayer({
     id: 'parcels-fill', type: 'fill', source: 'parcels',
     paint: {
-      'fill-color': cssVar('--map-parcel-sel'),
-      'fill-opacity': ['case', ['boolean', ['feature-state', 'sel'], false], 0.30, 0.03],
+      'fill-color': selColor,
+      'fill-opacity': ['case', SEL, 0.12, 0.03],
     },
   }, beforeId);
-  const SEL = ['boolean', ['feature-state', 'sel'], false];
+  // 45° hatch inside the selected erf. fill-pattern cannot read feature-state (style spec: parameters
+  // zoom + feature only), so the layer is filtered to the selected id and setSelectionStatus() swaps
+  // the pattern with setPaintProperty; opacity does read feature-state ('none' → no hatch).
+  map.addLayer({
+    id: 'parcels-sel-hatch', type: 'fill', source: 'parcels',
+    filter: selFilter(null),
+    paint: {
+      'fill-pattern': SEL_PATTERN.possible,
+      'fill-opacity': ['case', ['boolean', ['feature-state', 'none'], false], 0, 0.9],
+    },
+  }, beforeId);
+  // every erf: pale hairline so the selection reads first
   map.addLayer({
     id: 'parcels-line', type: 'line', source: 'parcels',
     paint: {
-      'line-color': ['case', SEL, cssVar('--map-parcel-sel'), cssVar('--map-parcel-line')],
+      'line-color': cssVar('--map-parcel-line'),
+      'line-opacity': 0.6,
       // NB: zoom interpolation must be the TOP-LEVEL expression (MapLibre rejects
-      // zoom nested inside case — the layer silently never draws), so the
-      // selected-vs-normal width choice lives inside each interpolation stop.
-      'line-width': ['interpolate', ['linear'], ['zoom'],
-        15.5, ['case', SEL, 2.5, 0.5],
-        19, ['case', SEL, 3.2, 1.4]],
+      // zoom nested inside case — the layer silently never draws).
+      'line-width': ['interpolate', ['linear'], ['zoom'], 15.5, 0.8, 19, 1.4],
+    },
+  }, beforeId);
+  // ink outline of the selected erf; solid/dashed/dotted set per status by setSelectionStatus()
+  map.addLayer({
+    id: 'parcels-sel-line', type: 'line', source: 'parcels',
+    filter: selFilter(null),
+    paint: {
+      'line-color': selColor,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 15.5, 2.5, 19, 3.2],
+      'line-dasharray': SEL_DASH.possible,
     },
   }, beforeId);
   const refresh = () => { clearTimeout(parcelTimer); parcelTimer = setTimeout(() => loadParcels(map), 250); };
@@ -367,12 +409,32 @@ function onParcelClick(map) {
 async function pickParcel(f) {
   const token = selection.begin();        // this selection now owns the panel; earlier lookups are stale
   const map = window._map;
-  if (selId !== null) map.setFeatureState({ source: 'parcels', id: selId }, { sel: false });
+  if (selId !== null) map.setFeatureState({ source: 'parcels', id: selId }, { sel: false, verified: false, none: false });
   selId = f.id;
-  map.setFeatureState({ source: 'parcels', id: selId }, { sel: true });
+  map.setFeatureState({ source: 'parcels', id: selId }, { sel: true, verified: false });
+  setSelFilter(map, selId);
+  setSelectionStatus('possible');        // sparse hatch + dashed until the link decision is known
   await Promise.all([SG_TOWNS, MUNIS]);   // town names + muni polygons: tiny, normally long loaded
   if (!selection.isCurrent(token)) return;
   await showValuation({ ...f.properties, Town_name: townOf(f.properties), _ward: parcelWard, _muni: muniAt(lastClickLL) }, token);
+}
+
+// Point the selection layers (hatch + outline) at one erf, or at nothing (id null).
+function setSelFilter(map, id) {
+  for (const l of ['parcels-sel-hatch', 'parcels-sel-line'])
+    if (map.getLayer(l)) map.setFilter(l, selFilter(id));
+}
+
+// Draw the selected erf by link status, like an SG diagram:
+//   'verified' → dense hatch + solid outline; 'possible' (possible/several) → sparse hatch + dashed;
+//   'none' (no valuation / could not link) → no hatch, dotted outline.
+function setSelectionStatus(status) {
+  const map = window._map;
+  if (!map || selId === null) return;
+  if (!SEL_DASH[status]) status = 'possible';
+  map.setFeatureState({ source: 'parcels', id: selId }, { verified: status === 'verified', none: status === 'none' });
+  if (map.getLayer('parcels-sel-hatch')) map.setPaintProperty('parcels-sel-hatch', 'fill-pattern', SEL_PATTERN[status]);
+  if (map.getLayer('parcels-sel-line')) map.setPaintProperty('parcels-sel-line', 'line-dasharray', SEL_DASH[status]);
 }
 
 // ---- tiny formatting helpers (mirrors atlas.js conventions) ----
@@ -835,8 +897,9 @@ function setHint(text) { const h = $('maphint'); if (h) { h.textContent = text; 
 function openPanel() { $('ppanel').hidden = false; }
 function closePanel() {
   $('ppanel').hidden = true;
-  if (selId !== null && window._map) window._map.setFeatureState({ source: 'parcels', id: selId }, { sel: false });
+  if (selId !== null && window._map) window._map.setFeatureState({ source: 'parcels', id: selId }, { sel: false, verified: false, none: false });
   selId = null;
+  if (window._map) setSelFilter(window._map, null);
 }
 
 function statRow(k, v) {
