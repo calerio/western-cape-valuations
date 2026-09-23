@@ -29,7 +29,7 @@ let maplibregl = null;          // window.maplibregl — the deferred CDN script
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=4";
 import { dur } from "./motion.js?v=1";
-import { initPlaceSearch } from "./places.js?v=5";
+import { initPlaceSearch } from "./places.js?v=6";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
 import { hatchImageData } from "./map/hatch.js?v=1";
 import { shouldRefetch } from "./map/bbox.js?v=2";
@@ -1240,7 +1240,7 @@ async function boot() {
     addParcels(map, beforeId);
     onParcelClick(map);
     initLabelChip(map);
-    initPlaceSearch(map, { t, tf, setHint, beforeId, writeHash, renamed: renamed.search, bounds: WC_PAN });
+    initPlaceSearch(map, { t, tf, setHint, beforeId, writeHash, renamed: renamed.search, bounds: WC_PAN, lang: currentLang });
     trackCamera(map);
   });
   map.on('error', (e) => console.warn('map error', e && e.error)); // tile gaps degrade quietly

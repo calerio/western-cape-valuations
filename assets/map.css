@@ -68,6 +68,10 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
 .sCtx{font-size:var(--t-12);color:var(--label2);white-space:nowrap;overflow:hidden;
   text-overflow:ellipsis;max-width:55%}
 .sEmpty{padding:var(--s-3) 10px;font-size:var(--t-13);color:var(--label2)}
+/* a renamed place: the former name, then its official name (and, far away, "outside the map area")
+   on a small second line */
+.sRow[data-renamed]{flex-direction:column;align-items:flex-start;gap:2px}
+.sRow[data-renamed] .sCtx{max-width:100%;white-space:normal}
 
 /* chip row: Wards · Labels · Ward labels (each a role="switch") */
 #chips{top:calc(env(safe-area-inset-top,0px) + 142px);left:var(--s-4);
