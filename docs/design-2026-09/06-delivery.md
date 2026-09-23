@@ -48,7 +48,8 @@ on the selected erf, with its status drawn in line-work rather than colour alone
 | i18n | `assets/i18n.js`, `data/i18n-af.json`, `tests/check-i18n.mjs` | One shared module; in-place EN/AF switch; completeness check (all literal keys + explore.json strings) |
 | Data | `data/explore.json`, `data/geo/*.geojson` | Pre-computed Explore statistics with their SQL; simplified boundaries (outline 28 KB, municipalities 89 KB) plus the full-resolution municipalities for the Integrity rule |
 | Static pages | `templates/shell.html`, regenerated `m/`, `d/`, `guide/`, `af/`, `sitemap.xml` | Self-hosted fonts via tokens.css, shared `viewseg.css`, sentence case, copy without middle-dot strings. The figures now match `stats.json` (they had not been regenerated since 2026-07-19). |
-| Tests | `tests/*.test.mjs` (58 passing), `tests/browser/*.js` | Unit tests for tokens (incl. WCAG contrast of the five status pairs), fonts, format, hash, hatch, style, selection, bbox, slug, evidence, panel disclosure, charts, i18n, explore sections, check-i18n; WebKit scenarios for every page and state |
+| Renamed places | `data/geo/renamed-places/` (registry 1.1.0, `overrides.json`), `scripts/build-overrides.mjs`, `assets/map/style.js`, `assets/places.js` | Former names (Graaff-Reinet, East London, Grahamstown, Umhlanga Rocks …) are the map labels on both basemaps and in both languages, on place labels only, matched by tile feature id + class + exact current name. Official names stay searchable: the place search lists a renamed place under its former name with its official name on a second line. One line in the map credits links to the registry. |
+| Tests | `tests/*.test.mjs` (71 passing), `tests/browser/*.js` | Unit tests for tokens (incl. WCAG contrast of the five status pairs), fonts, format, hash, hatch, style, selection, bbox, slug, evidence, panel disclosure, charts, i18n, explore sections, check-i18n; WebKit scenarios for every page and state |
 
 Data repo (`~/projects/western-cape-property-valuations`, no remote): `extract/export_explore.py`,
 `extract/catrules.py`, `extract/geo/simplify_geo.py` (drift gate and `--dry-run`),
@@ -88,7 +89,8 @@ Run 2026-09-23 18:2x on ea46beb, then re-run after the last fixes on 82a0b07, ag
 | `test-mobile-map.js` | PASS | |
 | `test-basemap-switch.js` | PASS (0 imagery requests before Satellite; one MapLibre instance) | |
 | `test-lang-switch.js` | PASS (AF panel in 83 ms, no reload; hint follows the language — `probe-hint-focus`) | also check that the `#maphint` text follows the language |
-| `test-af-labels.js` | PASS | |
+| `test-af-labels.js` | PASS | now expects the rendered label "Graaff-Reinet" where the tiles say "Robert Sobukwe Town" |
+| `test-renamed-places.js` | not yet run | former names on `plain.html` at province zoom (EN, AF, Satellite), Nieu-Bethesda at zoom 11, search by official name, fly-to Grahamstown, Umhlanga Rocks listed as outside the map area without moving the map |
 | `test-failopen.js` | PASS (fails closed while blocked; link table after recovery) | |
 | `test-race.js` | PASS (later click kept) | |
 | `test-hotfix-matzikama.js` | PASS (Matzikama addresses suppressed; Drakenstein keeps its address) | the suppression must still hold |
@@ -148,9 +150,14 @@ All twelve were re-captured on 82a0b07 (after the inline desktop credits) (1440�
 - **Afrikaans basemap labels come from the vector tiles' `name:af`.** Coverage is about 90% of towns,
   30% of suburbs and close to 0% of streets and POIs. Everything without a `name:af` stays in the
   English or local name.
-- **The renamed-places registry has not been approved.** `applyLanguage(map, lang, [])` passes an empty
-  override list, so tiles still show old names (for example Graaff-Reinet's township as "Robert Sobukwe
-  Town"). The six open questions in `REGISTRY.md` are still open.
+- **Renamed places not in the tiles get no override.** Seven registry entries (Triomf/Sophiatown,
+  Loskop, Langeloop, Hartebeeskop, Schoemansdal, Oshoek, Goedgewonden) have no place feature in the
+  vector tiles, so there is nothing to relabel; they are still found by the place search. Overrides are
+  keyed on the tile feature ids of snapshot `20260913_164504_pt`: if OpenFreeMap changes a feature's id,
+  class or name, that label falls back to the tiles' own until the registry is updated.
+- **Renamed places outside the map bounds** (lon 13 to 28, lat −41.5 to −24.5) are listed by the search
+  with "outside the map area" and are never flown to; the map cannot pan there. Most of the registry
+  (KwaZulu-Natal, Gauteng, Limpopo, Mpumalanga) is outside.
 - **Cape Town's share is derived from the findings.** `explore.json` carries the share with the
   allocation rows excluded (`ct_share`, 4 decimals) but not the excluded rand amount. The ledger
   recovers it as D = (C − s·T)/(1 − s) (≈ R36.6bn, within about R0.4bn). The shares add up to 100%, and

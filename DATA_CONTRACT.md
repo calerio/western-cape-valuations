@@ -800,8 +800,8 @@ the selected erf survive the switch.
   (`SAT_LABEL_PAINT`); originals are stashed in `layer.metadata` (`wcv_visibility`, `wcv_paint`,
   `wcv_name_expr`);
 - rewrites each name-reading `text-field` (AF: `name:af` first, falling back to the original;
-  renamed-place overrides keyed on tile feature id + class + exact current name, never a global
-  text replace); drops parking POIs and starts `poi_r20` at z18.
+  renamed-place overrides keyed on tile feature id + class + exact current name, on place labels
+  only, never a global text replace, see §17); drops parking POIs and starts `poi_r20` at z18.
 
 **`applyBasemap(map, b)`** switches a live map between `map` and `sat` using that metadata:
 `setLayoutProperty('visibility')` / `setPaintProperty` only, restoring each hidden layer's own
@@ -819,3 +819,44 @@ label `text-field`s the same way. Neither calls `setStyle`.
 - Legacy `#p/<place>` / `#m/<slug>` still parse; unknown or malformed keys are ignored.
 - Every writer (map.js `writeHash`, places.js via the `writeHash` option) merges into the current
   hash, so one writer never drops another's keys.
+
+## 17. Renamed places (display overrides) (`data/geo/renamed-places/`)
+
+The basemap labels a renamed South African town, suburb or settlement by its **former** English or
+Afrikaans name (Graaff-Reinet, East London / Oos-Londen, Grahamstown / Grahamstad, Umhlanga Rocks …),
+on both basemaps and in both languages. The official current name stays searchable and is kept as
+metadata; it is never the label. This is a display choice of the site owner (decided 2026-09-24).
+
+- **The registry** is `data/geo/renamed-places/registry.v1.json` (human summary: `REGISTRY.md`, evidence
+  in `sources/`). Each entry has a `display` block (`primary_en`, `primary_af`, `official`, `aliases`),
+  an `override` block (`match`, `tile_feature_id`, `class`, `current_names`, `status`), an `effective`
+  period and a `source`. The `decisions` block records what was decided and why; `excluded` lists what is
+  deliberately not applied (municipality names, registrations without a former name) with the ruling.
+- **Match rule.** An override changes a label only when the tile feature has the recorded feature id
+  (`match: "id"`), the recorded place class and one of the recorded current names. Where no feature id
+  is known, `match: "name-class"` keys on class plus exact name(s), and is only allowed when the feature
+  was found at the entry's coordinates. There is no broad text replacement. Overrides apply to place
+  labels only (symbol layers whose `source-layer` is `place`; `isPlaceLayer()` in `assets/map/style.js`),
+  never to stations, airports, roads or POIs. Entries not in the tiles are `pending (not in tiles)` and
+  produce no override; reverted renamings (Louis Trichardt, Vaalwater) need none.
+- **Effective period.** `effective.from` is the renaming or gazette date (for Nieu-Bethesda, a label
+  correction of OpenStreetMap, the tile snapshot date); `effective.to` is `null`. If a renaming is set
+  aside or the tiles change, edit the registry and rebuild.
+- **Runtime file.** `data/geo/renamed-places/overrides.json` is generated, never hand-edited:
+
+  ```sh
+  node scripts/build-overrides.mjs      # registry.v1.json -> overrides.json (sorted, deterministic)
+  node --test tests/overrides.test.mjs  # fails if the file is out of sync with the registry
+  ```
+
+  It holds `overrides` (`id`, `cls`, `current`, `en`, `af`, `official`, `effective_from`, `source`) and
+  `search` (`primary`, `primary_af`, `official`, `aliases`, `lat`, `lon`, `province`). `map.js` fetches it
+  once at boot (`?v=1`; bump it when the file changes) in parallel with the style, passes `overrides` to
+  `transformStyle` and `applyLanguage`, and hands `search` to the place search (§14), which lists a
+  renamed place under its former name with "official: …" on a second line. Selecting one flies to it at
+  zoom 12 when it lies inside the map bounds; otherwise the row says "outside the map area" and the map
+  stays put. If the file fails to load the map has no overrides and the labels are the tiles' own.
+- **Data untouched.** The valuation rolls, the search DB, the cadastre and the parcel panel are not
+  affected: overrides change basemap label text only.
+- **Credits.** `#attrib` carries one line, "Some places are shown by their former names; official names
+  stay searchable.", linking to `REGISTRY.md` on GitHub.
