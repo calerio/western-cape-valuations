@@ -26,8 +26,8 @@ municipality**, with fluid zoom, hover tooltips, search, and a scroll-reveal sta
   parent municipality) **plus** per-property **address** search via
   [`sql.js-httpvfs`](https://github.com/phiresky/sql.js-httpvfs) — real SQL over a chunked static
   SQLite file (HTTP range requests; only a few KB fetched per query). The SQLite file is served from
-  **Supabase Storage** rather than GitHub Pages, which gzips responses and corrupts range requests
-  (see `DATA_CONTRACT.md` §8).
+  **Cloudflare R2** (bucket `wc-valuations-db`, since 2026-09-24; previously Supabase Storage) rather
+  than GitHub Pages, which gzips responses and corrupts range requests (see `DATA_CONTRACT.md` §8).
 - **Static SEO pages** (`m/`, `d/`): one generated, crawlable page per municipality (24) and
   district (5), plus a browse index (`m/`) and an honest City of Cape Town explainer — rendered by
   the export from git-tracked `templates/`, listed in the generated `sitemap.xml`, each

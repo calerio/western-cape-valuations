@@ -41,13 +41,17 @@ cd ~/projects/western-cape-property-valuations
 python3 extract/build.py            # rebuild wc-valuations.db from the source rolls (if sources changed)
 python3 extract/export_site.py      # regenerate stats.json, towns.json, search.db chunks INTO this repo
 
+# If the search DB changed: publish it to Cloudflare R2 under its own namespace b-<sha256[:12]>
+# (export_site.py prints the exact commands). The site reads the DB from R2, NOT from this repo.
+~/projects/western-cape-property-valuations/extract/match/upload_r2.sh \
+    ~/projects/western-cape-valuations b-<sha12> https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev
 cd ~/projects/western-cape-valuations
-# RE-UPLOAD the regenerated search DB to Supabase Storage — the site reads it from there, NOT this
-# repo. Upload the 4 files in data/db/ (config.json + search.db.000/001/002) to the `valuations`
-# bucket ROOT: dashboard drag-drop, or `supabase storage cp` (after `supabase login`; run
-# `supabase storage cp --help` for the ss:// URI syntax). Objects cache 1h (cache-control
-# max-age=3600) — allow up to an hour for new data to show, or version the bucket path + bump the
-# configUrl in atlas.js. (If only stats/figures changed and the DB didn't, you can skip this.)
+scripts/verify_remote_db.sh data/db/manifest.json          # rebuild the whole DB from R2, hashes + build ids
+scripts/preflight_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-<sha12>/config.json   # MANDATORY
+scripts/rollback_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-<sha12>/config.json    # switch: commit + push
+# after the switch is live and verified: keep the new build and the previous one, prune anything older
+~/projects/western-cape-property-valuations/extract/match/upload_r2.sh --prune <older-namespace>
+# (If only stats/figures changed and the DB didn't, skip the five DB lines above.)
 
 # if you changed assets/atlas.js, bump the ?v=N on its <script> tag in index.html (CDN cache-bust)
 git add -A && git commit -m "…"    # commit as the user only, with no co-author trailers
@@ -56,7 +60,8 @@ git push
 
 Then verify live: load the site, drill country → WC → district → municipality, open the
 "most valuable property" overlay AND search a known address (e.g. "55 Lovell") — those last two
-steps prove the Supabase-hosted chunked DB + indexes are intact and reachable.
+steps prove the R2-hosted chunked DB + indexes are intact and reachable. Storage budget: never more
+than two builds in the bucket; prune after every verified switch (§8).
 
 ### Sanity-check the rebuild BEFORE exporting (avoid double-counting)
 
@@ -321,10 +326,10 @@ no heuristic detection of names. Remove the rule only when the new build (Matzik
 re-adjudicated, verified) is the one referenced by `configUrl`. Static pages and `stats.json` `hi`/`lo` for
 Matzikama carry only street/town strings today and are regenerated with the same rule at the next export.
 
-## 8. Why the search DB is hosted on Supabase Storage (NOT GitHub Pages)
+## 8. Where the search DB is hosted: Cloudflare R2 (since 2026-09-24)
 
 `sql.js-httpvfs` reads `search.db` with HTTP **Range requests** (it fetches only the few KB of pages a
-query touches, instead of the whole 85 MB file). This requires the host to serve **raw byte ranges**.
+query touches, instead of the whole ~540 MB file). This requires the host to serve **raw byte ranges**.
 
 - **GitHub Pages (Fastly) gzips every response** and serves ranges against the **compressed** bytes:
   `content-range` totals come back as the gzip size, deep ranges return `416`, and the first bytes are
@@ -334,43 +339,107 @@ query touches, instead of the whole 85 MB file). This requires the host to serve
   header, so JS can't request `identity`.
 - **jsDelivr is also unusable** — it stores files Brotli-compressed at rest and ranges against the
   compressed blob, ignoring `Accept-Encoding` entirely (and rejects >20 MB files).
-- **Supabase Storage** (S3-backed) serves raw byte-ranges with `Accept-Ranges: bytes`, correct
-  `content-range` totals, and `Access-Control-Allow-Origin: *` — **verified** returning real
-  `SQLite format 3` bytes and resolving "55 Lovell" end-to-end.
+- **Supabase Storage** served raw ranges correctly and hosted the DB until 2026-09-24, but its free plan
+  allows 1 GB of storage for the whole organisation. Superseded builds were left in place, the project
+  went over the quota, and Supabase restricted it: every storage read returned HTTP 402 and live parcel
+  lookups failed closed. See `docs/incidents/2026-09-24-supabase-storage-quota.md`.
+- **Cloudflare R2** serves raw byte ranges (`206`, `Accept-Ranges: bytes`, correct `Content-Range`
+  totals), has configurable CORS, charges nothing for egress, and its free tier is ten times larger.
 
-**Setup:** Supabase project `nxeasppmwvzcqbbgrdvf`, **public** bucket `valuations`, the 4 `data/db/`
-files under a **versioned path prefix** (`v9/` since 2026-07-19; `v4/` added Cape Town + the `dwext` column). `atlas.js` + `map.js` `ensureDB()` point `configUrl`
-at `…/storage/v1/object/public/valuations/v9/config.json`; the chunks resolve relative to it via
-`config.json`'s `urlPrefix`. Chunking is retained because each chunk (≤32 MB) stays under Supabase's
-50 MB-per-file upload limit. **Why a versioned path:** objects cache `max-age=3600`, so overwriting
-in place risks an hour of stale/mismatched chunks; uploading a rebuilt DB to a *new* prefix
-(`v4/`, …) and flipping the one `configUrl` in both JS files makes the swap atomic and instantly
-reversible (revert the configUrl) — the old path stays serving until the flip deploys.
-**Free-plan storage quota (1 GB for the whole org):** each version is ~330 MB, so only ~2 fit.
-Once the flip is live and verified, **delete the previous prefix** — keeping v3–v8 around pushed the
-org to 1.52 GB avg in Jul–Aug 2026, past the quota (grace period ended 30 Aug; cleaned 2026-09-22).
-The vendored `sqlite.worker.js` + `sql-wasm.wasm` still load from this
-repo (full GETs, so gzip is fine).
+**Setup:** bucket `wc-valuations-db` (location WEUR), public development endpoint
+`https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev`. Each build lives under its own namespace
+`b-<sha256[:12]>/` (§8b) as `config.json`, `manifest.json` and `search.db.000 … .NNN` (32 MB chunks).
+The live config URL is
+`https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json`, held in
+`DB_CONFIG_URL` (`assets/map.js`) and `DB_CONFIG` (`assets/atlas.js`); the chunks resolve relative to
+it through `config.json`'s `urlPrefix`. No Cloudflare zone is managed for this site, so the r2.dev
+endpoint is used; if a zone is ever added, a custom data hostname on the bucket is the follow-up (one
+config-URL switch). The vendored `sqlite.worker.js` + `sql-wasm.wasm` still load from this repo (full
+GETs, so gzip is fine).
+
+**Free tier (per month):** 10 GB-month of storage, 10 million Class B operations (reads), 1 million
+Class A operations (writes, lists), egress free. A build is ~542 MB, so storage is not the constraint
+as long as the retention rule holds; reads are the metric to watch if traffic grows.
+
+**Storage budget, the rule that the 2026-09-24 incident added:** never more than two builds in the
+bucket, the live one and the previous one (the rollback target). **Prune after every verified switch.**
+The uploader enforces it: `extract/match/upload_r2.sh` refuses when the bucket would exceed 3 GB
+(`MAX_GB`) or when `MAX_BUILDS` (2) namespaces already exist, and after a successful upload it prints
+which namespace would be pruned. It never deletes on its own; `upload_r2.sh --prune <namespace>`
+deletes exactly that namespace's objects by name and refuses the namespace named in the live site's
+config URL. Archive the pruned build's `config.json` + `manifest.json` in the data repo's
+`extract/db-manifests-archive/` before pruning. Wrangler 4.137 has no object-list command, so the
+uploader finds namespaces by probing the ones named in tracked and archived manifests.
+
+**CORS** (data repo `extract/match/r2_cors.json`, applied to the bucket): origins
+`https://calerio.github.io` and the local development origins `http://127.0.0.1:8765` to `:8768` and
+`http://localhost:8766`; methods `GET`, `HEAD`; allowed headers `Range`, `If-None-Match`, `If-Match`,
+`If-Range`, `Content-Type`; exposed headers `Content-Range`, `Accept-Ranges`, `Content-Length`, `ETag`;
+max age 86400 s. A new local port or a new site origin must be added there first, or ranged reads fail
+in the browser.
+
+**Caching:** objects are uploaded with their bytes unchanged. Chunks carry
+`Cache-Control: public, max-age=31536000, immutable` (their namespace fixes their content);
+`config.json` and `manifest.json` carry `public, max-age=300`, and the site fetches both with
+`cache: 'no-store'`.
+
+**Upload:** `extract/match/upload_r2.sh <site-checkout> <namespace> <public-base-url>` (after
+`npx wrangler login`). It uploads the chunks, then `config.json` and `manifest.json`, checks every
+object's remote size, a ranged GET (`206` + `Accept-Ranges`) and CORS from the site origin. Then
+`scripts/verify_remote_db.sh data/db/manifest.json --base <base>/<namespace>/` rebuilds the whole DB
+from R2 and checks every hash and the three build ids.
+
+**Preflight (mandatory before any switch or merge that changes the config URL):**
+`scripts/preflight_db.sh <config-url>`. It fails unless `config.json` answers 200 with
+`serverMode: chunked`; `manifest.json` answers 200 with the same `build_id` and `sha256`; a ranged
+GET of the first chunk answers `206` with `Accept-Ranges: bytes` and the four exposed headers; a
+request from `https://calerio.github.io` gets `Access-Control-Allow-Origin`; the chunk's
+`Cache-Control` contains `immutable`; and, on r2.dev with wrangler logged in, the bucket reports less
+than 3 GB (R2 bucket metrics lag uploads, so the figure may not include a build uploaded minutes ago).
+
+**Switch:** `scripts/rollback_db.sh <config-url>` rewrites the config URL in `assets/map.js` and
+`assets/atlas.js`, bumps the `?v=` on the pages, commits and pushes. It also accepts a bare Supabase
+namespace, which it expands to the Supabase config URL.
+
+**Rollback:** `scripts/rollback_db.sh <previous-config-url>`: the previous build stays in the bucket
+until the next switch for exactly this reason. While it exists, the Supabase copy of b-93c01c0b6202 is
+a second rollback target:
+`https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json`
+(`scripts/rollback_db.sh b-93c01c0b6202` produces the same URL). It only works once Supabase has lifted
+the storage restriction.
+
+**Supabase Storage is now a temporary rollback copy only:** project `nxeasppmwvzcqbbgrdvf`, public
+bucket `valuations`, one namespace (`b-93c01c0b6202`, 19 objects, 542,099,494 bytes). It is kept until
+production has run on R2, then removed; after that only what is deliberately required stays there. Do
+not upload further builds to it (`extract/match/upload_supabase.sh` is legacy): two builds exceed the
+free plan's 1 GB.
 
 ---
 
 ### 8b. Immutable, content-addressed builds (since 2026-09-22)
 
-- Every search-DB build is published under its own namespace `valuations/b-<sha256[:12]>/` (the
-  sha of the whole reassembled DB, from `data/db/manifest.json`). **A namespace is never
-  overwritten** — `extract/match/upload_supabase.sh` refuses if `config.json` already exists there.
-  Version-style paths (`v9`, `v10`) are legacy; `v10` was written once as a staging path and is not
-  referenced.
-- Cache policy: chunks `Cache-Control: public, max-age=31536000, immutable` (their content is fixed
-  by the namespace); `config.json` and `manifest.json` `max-age=60`. The site fetches config and
-  manifest with `cache: 'no-store'`.
+- Every search-DB build is published under its own namespace `b-<sha256[:12]>/` (the sha of the whole
+  reassembled DB, from `data/db/manifest.json`). **A namespace is never overwritten**; a rebuilt DB
+  gets a new sha and therefore a new namespace. Version-style paths (`v9`, `v10`) are legacy.
+- The manifest records where the chunks were published: `remote_prefix` and `chunks[].url`.
+  `export_site.py` writes `https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/<namespace>/` by
+  default; set `WC_DB_BASE` (e.g.
+  `https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations`) to record another
+  host. The manifest of b-93c01c0b6202 still names Supabase because its bytes were copied to R2
+  unchanged. The front end never uses these URLs: it reads the manifest for `build_id` and `sha256`
+  only, and finds the chunks through `config.json`'s relative `urlPrefix`.
+- Cache policy: chunks `Cache-Control: public, max-age=31536000, immutable`; `config.json` and
+  `manifest.json` `public, max-age=300`. The site fetches config and manifest with `cache: 'no-store'`.
 - `build_id` (stamped by `export_site.py`) lives in three places: `link_meta` inside the DB,
   `manifest.json`, `config.json`. `map.js verifyBuild()` compares all three (and manifest
   `size_bytes` vs config `databaseLengthBytes`) before the link table is trusted. **Mismatch fails
   closed:** every click renders the integrity card ("link table could not be read"); the heuristic
-  never runs. Switching builds = `scripts/rollback_db.sh <namespace>` (one commit + push).
-- Any build reconstructs from Supabase + its tracked manifest: `scripts/verify_remote_db.sh
-  data/db/manifest*.json` (per-chunk hashes, order, whole-file hash, integrity_check).
+  never runs. Switching builds = `scripts/rollback_db.sh <config-url>` (one commit + push), after
+  `scripts/preflight_db.sh <config-url>` passes.
+- Any build reconstructs from its host + its tracked manifest: `scripts/verify_remote_db.sh
+  data/db/manifest*.json [--base <url-prefix>]` (per-chunk hashes, order, whole-file hash,
+  integrity_check, then config/manifest/link_meta build ids). `--base` reads the chunks from another
+  host than the one the manifest names.
 
 ## 9. The map view's data path (map.html + assets/map.js)
 
