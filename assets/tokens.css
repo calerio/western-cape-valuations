@@ -1,7 +1,10 @@
 /* Design tokens — shared by index.html (Atlas) and map.html (Satellite).
- * Light values on :root; the dark overrides are declared ONCE, under the
- * prefers-color-scheme media query. The [data-theme] pins below carry only the
- * six --map-* overlay tokens: map.html pins dark (satellite), plain.html light.
+ * Every colour token is declared ONCE on :root as light-dark(<light>, <dark>);
+ * the scheme comes from color-scheme: :root follows the OS, [data-theme] pins it
+ * (map.html pins dark for satellite, plain.html pins light). The pins also carry
+ * the six --map-* overlay tokens (data-contract invariant).
+ * NB: cssVar() returns a light-dark() token unresolved; only feed it to CSS or
+ * SVG presentation attributes, never to a colour parser (d3/MapLibre).
  * Sources: design-specs/apple-maps.md (platter language, iOS label ramp) +
  * design-specs/flighty.md (20px soft-shadow cards); 2026-09 refresh adds the rem
  * type scale, spacing steps, paper surfaces, status pairs and cadastral accent.
@@ -22,20 +25,22 @@
   unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 
 :root {
+  color-scheme: light dark;
+
   /* surfaces */
-  --bg: #ffffff;
-  --bg2: #fbfbfd;            /* cards */
-  --bg3: #f5f5f7;            /* rails, wells, secondary buttons */
-  --ink: #1d1d1f;
-  --ink2: #6e6e73;
-  --label2: rgba(60, 60, 67, .75);   /* ≥4.5:1 on bg/bg2/bg3 (WCAG AA, audit 2026-07-19) */
-  --label3: rgba(60, 60, 67, .45);   /* decoration/disabled only — NOT for reading text */
-  --sep: rgba(60, 60, 67, .18);
-  --hairline: #e8e8ed;
-  --scrim: rgba(0, 0, 0, .4);
-  --paper: #fbfaf7;          /* warm document surface */
-  --paper-2: #f3f2ee;
-  --rule: #d9d6cf;           /* printed-register rules */
+  --bg: light-dark(#ffffff, #1c1c1e);
+  --bg2: light-dark(#fbfbfd, #242426);            /* cards */
+  --bg3: light-dark(#f5f5f7, #2c2c2e);            /* rails, wells, secondary buttons */
+  --ink: light-dark(#1d1d1f, #f5f5f7);
+  --ink2: light-dark(#6e6e73, #98989d);
+  --label2: light-dark(rgba(60, 60, 67, .75), rgba(235, 235, 245, .6));   /* ≥4.5:1 on bg/bg2/bg3 (WCAG AA, audit 2026-07-19) */
+  --label3: light-dark(rgba(60, 60, 67, .45), rgba(235, 235, 245, .45));  /* decoration/disabled only — NOT for reading text */
+  --sep: light-dark(rgba(60, 60, 67, .18), rgba(84, 84, 88, .65));
+  --hairline: light-dark(#e8e8ed, #3a3a3c);
+  --scrim: light-dark(rgba(0, 0, 0, .4), rgba(0, 0, 0, .55));
+  --paper: light-dark(#fbfaf7, #1c1c1e);          /* warm document surface */
+  --paper-2: light-dark(#f3f2ee, #242426);
+  --rule: light-dark(#d9d6cf, #3a3a3c);           /* printed-register rules */
 
   /* type scale (rem) + spacing steps */
   --t-11: .6875rem;
@@ -55,35 +60,41 @@
   --s-7: 48px;
 
   /* the one accent + semantic ramp (state only, never decoration) */
-  --accent: #1f4e8c;         /* cadastral blue */
+  --accent: light-dark(#1f4e8c, #6ea8ff);         /* cadastral blue */
   --accent-ink: #ffffff;
-  --ok: #039855;
-  --bad: #d92d20;
+  --ok: light-dark(#039855, #30d158);
+  --bad: light-dark(#d92d20, #ff453a);
   /* status pairs: ink on its own tint (badge = glyph + text, never colour alone) */
-  --st-ok-ink: #1f6b3a;
-  --st-ok-bg: #e6f2ea;
-  --st-warn-ink: #8a5a00;
-  --st-warn-bg: #f7efdc;
-  --st-neutral-ink: #5c6570;
-  --st-neutral-bg: #eceef1;
-  --st-none-ink: #6b6f76;
-  --st-none-bg: #f0f0f2;
-  --st-bad-ink: #a12a2a;
-  --st-bad-bg: #f8e6e6;
-  --seg-on: #ffffff;         /* active chip of iOS-style segmented controls */
+  --st-ok-ink: light-dark(#1f6b3a, #6fcf97);
+  --st-ok-bg: light-dark(#e6f2ea, rgba(111, 207, 151, .18));
+  --st-warn-ink: light-dark(#8a5a00, #e3b341);
+  --st-warn-bg: light-dark(#f7efdc, rgba(227, 179, 65, .18));
+  --st-neutral-ink: light-dark(#5c6570, #aab2bd);
+  --st-neutral-bg: light-dark(#eceef1, rgba(170, 178, 189, .18));
+  --st-none-ink: light-dark(#6b6f76, #9aa0a6);
+  --st-none-bg: light-dark(#f0f0f2, rgba(154, 160, 166, .18));
+  --st-bad-ink: light-dark(#a12a2a, #f28b82);
+  --st-bad-bg: light-dark(#f8e6e6, rgba(242, 139, 130, .18));
+  --seg-on: light-dark(#ffffff, #636366);         /* active chip of iOS-style segmented controls */
 
-  /* shape + elevation */
+  /* shape + elevation (shadow colours switch per layer; a layer that exists in
+   * only one scheme is transparent in the other) */
   --r-panel: 16px;
   --r-card: 20px;
   --r-ctl: 8px;
   --r-chip: 10px;
   --r-pill: 999px;
-  --shadow-platter: 0 -2px 20px rgba(0, 0, 0, .1), 0 0 12px rgba(0, 0, 0, .1);
-  --shadow-card: 0 0 0 1px rgba(0, 0, 0, .04), 0 1px 1px .5px rgba(0, 0, 0, .02),
-    0 3px 3px 1.5px rgba(0, 0, 0, .02), 0 6px 6px -3px rgba(0, 0, 0, .02),
-    0 12px 12px -6px rgba(0, 0, 0, .02), 0 24px 24px -12px rgba(0, 0, 0, .02);
-  --shadow-overlay: 0 30px 80px -30px rgba(0, 0, 0, .45);
-  --platter-bg: rgba(255, 255, 255, .72);
+  --shadow-platter: 0 -2px 20px light-dark(rgba(0, 0, 0, .1), rgba(0, 0, 0, .45)),
+    0 0 12px light-dark(rgba(0, 0, 0, .1), rgba(0, 0, 0, .35));
+  --shadow-card: 0 0 0 1px light-dark(rgba(0, 0, 0, .04), rgba(255, 255, 255, .06)),
+    0 1px 1px .5px light-dark(rgba(0, 0, 0, .02), transparent),
+    0 3px 3px 1.5px light-dark(rgba(0, 0, 0, .02), transparent),
+    0 6px 6px -3px light-dark(rgba(0, 0, 0, .02), transparent),
+    0 12px 12px -6px light-dark(rgba(0, 0, 0, .02), transparent),
+    0 24px 24px -12px light-dark(rgba(0, 0, 0, .02), transparent),
+    0 6px 18px -8px light-dark(transparent, rgba(0, 0, 0, .6));
+  --shadow-overlay: 0 30px 80px -30px light-dark(rgba(0, 0, 0, .45), rgba(0, 0, 0, .8));
+  --platter-bg: light-dark(rgba(255, 255, 255, .72), rgba(30, 30, 32, .72));
   --blur: blur(20px) saturate(180%);
 
   /* type */
@@ -91,19 +102,20 @@
   --font-display: "Source Serif 4", Georgia, "Times New Roman", serif;
   --font-map: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
 
-  /* choropleth (same fills both schemes — opaque; chrome varies) */
+  /* choropleth (ramp fills are the same in both schemes and stay plain hex:
+   * atlas.js interpolates them with d3, which cannot parse light-dark()) */
   --ramp-1: #e0efff;
   --ramp-2: #a9d0fb;
   --ramp-3: #5ea9f7;
   --ramp-4: #1f7ae0;
   --ramp-5: #0b4fa8;
-  --land: #e7e7ec;
-  --nodata: #dcdce2;
-  --map-stroke: #ffffff;      /* borders between regions on the choropleth */
-  --map-outline: #1d1d1f;     /* WC outline + label ink */
-  --map-halo: rgba(255, 255, 255, .85);
+  --land: light-dark(#e7e7ec, #2c2c2e);
+  --nodata: light-dark(#dcdce2, #3a3a3c);
+  --map-stroke: light-dark(#ffffff, #1c1c1e);      /* borders between regions on the choropleth */
+  --map-outline: light-dark(#1d1d1f, #f5f5f7);     /* WC outline + label ink */
+  --map-halo: light-dark(rgba(255, 255, 255, .85), rgba(20, 20, 22, .85));
 
-  /* category mix (muted 6-hue) */
+  /* category mix (muted 6-hue; same in both schemes) */
   --cat-res: #4193f0;
   --cat-com: #e8a13c;
   --cat-agri: #37b184;
@@ -117,51 +129,10 @@
    * so map.js's cssVar() reads resolve per page with no JS branching. */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]),
-  :root[data-theme="dark"] {
-    --bg: #1c1c1e;
-    --bg2: #242426;
-    --bg3: #2c2c2e;
-    --ink: #f5f5f7;
-    --ink2: #98989d;
-    --label2: rgba(235, 235, 245, .6);
-    --label3: rgba(235, 235, 245, .45);  /* decoration/disabled only — NOT for reading text */
-    --sep: rgba(84, 84, 88, .65);
-    --hairline: #3a3a3c;
-    --scrim: rgba(0, 0, 0, .55);
-    --paper: #1c1c1e;
-    --paper-2: #242426;
-    --rule: #3a3a3c;
-    --accent: #0a84ff;
-    --ok: #30d158;
-    --bad: #ff453a;
-    --st-ok-ink: #6fcf97;
-    --st-ok-bg: rgba(111, 207, 151, .18);
-    --st-warn-ink: #e3b341;
-    --st-warn-bg: rgba(227, 179, 65, .18);
-    --st-neutral-ink: #aab2bd;
-    --st-neutral-bg: rgba(170, 178, 189, .18);
-    --st-none-ink: #9aa0a6;
-    --st-none-bg: rgba(154, 160, 166, .18);
-    --st-bad-ink: #f28b82;
-    --st-bad-bg: rgba(242, 139, 130, .18);
-    --seg-on: #636366;
-    --shadow-platter: 0 -2px 20px rgba(0, 0, 0, .45), 0 0 12px rgba(0, 0, 0, .35);
-    --shadow-card: 0 0 0 1px rgba(255, 255, 255, .06), 0 6px 18px -8px rgba(0, 0, 0, .6);
-    --shadow-overlay: 0 30px 80px -30px rgba(0, 0, 0, .8);
-    --platter-bg: rgba(30, 30, 32, .72);
-    --land: #2c2c2e;
-    --nodata: #3a3a3c;
-    --map-stroke: #1c1c1e;
-    --map-outline: #f5f5f7;
-    --map-halo: rgba(20, 20, 22, .85);
-  }
-}
-
 /* plain.html pins light regardless of system preference (OpenFreeMap liberty
  * is a light basemap; the chrome + overlay inks match it) */
 :root[data-theme="light"] {
+  color-scheme: light;
   --map-bg: #eef0ee;                       /* neutral fallback before vector tiles paint */
   --map-parcel-line: rgba(29, 29, 31, .55);
   --map-parcel-sel: #0071e3;
@@ -170,9 +141,10 @@
   --map-muni-line: rgba(29, 29, 31, .35);
 }
 
-/* map.html pins the dark overlay inks regardless of system preference
- * (white/amber over dark satellite imagery). */
+/* map.html pins dark regardless of system preference (satellite imagery) */
 :root[data-theme="dark"] {
+  color-scheme: dark;
+  /* satellite map layers (white/amber over dark imagery) */
   --map-bg: #0b0b0d;
   --map-parcel-line: rgba(255, 255, 255, .85);
   --map-parcel-sel: #0a84ff;
