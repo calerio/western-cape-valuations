@@ -76,7 +76,7 @@ and vary with ArcGIS latency.
 
 ### WebKit (automated, Playwright)
 
-Run 2026-09-23 18:2x on 75ef902, then re-run after the last fixes on 77efb53, against http://127.0.0.1:8766/ (Playwright, WebKit 26.6, cold contexts). 14 scenarios (the 13 below plus `test-crossview.js`), 14 passed, 0 page errors, 0 console errors. The map scenarios were re-run against the live build `b-93c01c0b6202` (`?db=`) with the same results. One timing flake was seen in four runs of `test-mobile-map.js` (a synthetic 80 px swipe from peek did not register once; it passed on re-run with both builds). Scenario sources: `tests/browser/*.js`; the `probe-hint-focus` check (hint text after EN→AF + pan inside the fetched bbox; no `:focus-visible` on `#pclose` after a touch tap; zoom control present at 600 px desktop) also passed.
+Run 2026-09-23 18:2x on ea46beb, then re-run after the last fixes on 82a0b07, against http://127.0.0.1:8766/ (Playwright, WebKit 26.6, cold contexts). 14 scenarios (the 13 below plus `test-crossview.js`), 14 passed, 0 page errors, 0 console errors. The map scenarios were re-run against the live build `b-93c01c0b6202` (`?db=`) with the same results. One timing flake was seen in four runs of `test-mobile-map.js` (a synthetic 80 px swipe from peek did not register once; it passed on re-run with both builds). Scenario sources: `tests/browser/*.js`; the `probe-hint-focus` check (hint text after EN→AF + pan inside the fetched bbox; no `:focus-visible` on `#pclose` after a touch tap; zoom control present at 600 px desktop) also passed.
 
 | Scenario | Result | Notes |
 |---|---|---|
@@ -135,7 +135,7 @@ python3 extract/match/smoke_matrix.py --site http://127.0.0.1:8766 --db <prod co
 
 Made by `tests/browser/shots-delivery.js` (Playwright scenario) into `docs/design-2026-09/screenshots/`.
 
-All twelve were re-captured on 77efb53 (after the inline desktop credits) (1440×900 desktop; 390×844 phone). Explore pages are lossless PNG within the 400 KB budget. Map and satellite pages contain imagery that does not compress losslessly (0.4–2.5 MB as PNG), so those are stored as JPEG (quality 82). The two plain-map phone shots are PNG at 1×.
+All twelve were re-captured on 82a0b07 (after the inline desktop credits) (1440×900 desktop; 390×844 phone). Explore pages are lossless PNG within the 400 KB budget. Map and satellite pages contain imagery that does not compress losslessly (0.4–2.5 MB as PNG), so those are stored as JPEG (quality 82). The two plain-map phone shots are PNG at 1×.
 
 | Page | EN desktop | EN phone | AF desktop | AF phone |
 |---|---|---|---|---|
