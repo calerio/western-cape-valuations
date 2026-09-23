@@ -15,9 +15,9 @@ test('font files exist, are woff2 and total ≤ 150 KB', () => {
 test('tokens.css declares the faces with swap and unicode ranges', () => {
   const css = fs.readFileSync(new URL('../assets/tokens.css', import.meta.url), 'utf8');
   assert.equal((css.match(/@font-face/g) || []).length, 4);
-  assert.ok(/font-display:\s*swap/.test(css));
+  assert.equal((css.match(/font-display:\s*swap/g) || []).length, 4);
   assert.ok(/unicode-range:\s*U\+0100-02BA/.test(css), 'latin-ext range for Afrikaans diacritics');
-  assert.ok(/font-weight:\s*400 600/.test(css), 'variable Plex covers 400–600');
+  assert.equal((css.match(/font-weight:\s*400 600/g) || []).length, 2, 'variable Plex covers 400–600');
   assert.ok(/--font-ui:\s*"IBM Plex Sans"/.test(css));
   assert.ok(/--font-display:\s*"Source Serif 4"/.test(css));
 });
