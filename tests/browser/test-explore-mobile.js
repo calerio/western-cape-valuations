@@ -112,6 +112,12 @@ async (page) => {
     .map(({ el, r }) => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''} r=${Math.round(r.right)} "${(el.textContent || '').trim().slice(0, 40)}"`));
   out.overflowMuni = await overflow();
   out.wideMuni = await wideEls();
+  // the scroll-width chain: every box outside svg whose content is wider than itself (names the culprit)
+  const scrollChain = () => p.evaluate(() => [document.documentElement, ...document.querySelectorAll('body, body *')]
+    .filter(el => !el.closest('svg') && el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0 && getComputedStyle(el).overflowX === 'visible')
+    .map(el => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\s+/).join('.') : ''} sw=${el.scrollWidth} cw=${el.clientWidth} "${(el.textContent || '').trim().slice(0, 40)}"`));
+  out.chainMuni = await scrollChain();
+  out.docSwMuni = await p.evaluate(() => document.documentElement.scrollWidth);
   out.muniCards = await p.evaluate(() => document.querySelectorAll('#column > section.sec:not([hidden]) > details.card').length);
   await p.screenshot({ path: OUT + 'explore-mobile-muni.png' });
 
@@ -125,9 +131,11 @@ async (page) => {
   out.afOk = out.af.text === 'Wes-Kaapse waardasies' && out.af.sw <= out.af.cw && out.af.menuLabel === 'Kieslys';
   out.overflowAf = await overflow();
   out.wideAf = await wideEls();
+  out.chainAf = await scrollChain();
+  out.docSwAf = await p.evaluate(() => document.documentElement.scrollWidth);
 
   out.overflowOk = [out.overflow0, out.overflowMenu, out.overflowCard, out.overflowMuni, out.overflowAf].every(noOverflow)
-    && !out.wideMuni.length && !out.wideAf.length;
+    && !out.wideMuni.length && !out.wideAf.length && out.docSwMuni === 390 && out.docSwAf === 390;
   out.verdict = (out.overflowOk && out.brandOk && out.totalOk && out.cardsOk && out.menuOk && out.stickyOk && out.cardOpenOk &&
     out.muniCards >= 2 && out.afOk && !errs.length) ? 'PASS' : 'FAIL';
   await ctx.close();
