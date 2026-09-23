@@ -1,16 +1,27 @@
 // tests/explore-sections.test.mjs — ledger sort/rank, the one Cape Town share, the province concentration pair.
 import { test } from 'node:test'; import assert from 'node:assert/strict'; import fs from 'node:fs';
-const { sortRows, ctExclusion, spreadConc } = await import('../assets/explore-sections.js');
+const { sortRows, ledgerRows, ctExclusion, spreadConc } = await import('../assets/explore-sections.js');
 const X = JSON.parse(fs.readFileSync(new URL('../data/explore.json', import.meta.url), 'utf8'));
 const S = JSON.parse(fs.readFileSync(new URL('../data/stats.json', import.meta.url), 'utf8'));
 
-test('sortRows: blanks last, direction honoured; rank = position in the sorted order', () => {
+test('sortRows: blanks last, direction honoured, input untouched', () => {
   const rows = [{ name: 'b', label: 'B', total: 5 }, { name: 'a', label: 'A', total: null }, { name: 'c', label: 'C', total: 9 }];
   assert.deepEqual(sortRows(rows, { key: 'total', dir: -1 }).map(r => r.name), ['c', 'b', 'a']);
   assert.deepEqual(sortRows(rows, { key: 'total', dir: 1 }).map(r => r.name), ['b', 'c', 'a']);
-  const byName = sortRows(rows, { key: 'name', dir: 1 });
-  assert.deepEqual(byName.map((r, i) => [i + 1, r.label]), [[1, 'A'], [2, 'B'], [3, 'C']]);   // re-ranked after the sort
-  assert.equal(rows[0].name, 'b', 'input untouched');
+  assert.equal(rows[0].name, 'b');
+});
+
+// rank + name cells, in document order, from the rendered <tbody> HTML
+const cells = html => [...html.matchAll(/<td class="c-rank num">(\d+)<\/td><td class="c-name">(?:<a [^>]*>)?([^<]*)/g)].map(m => [+m[1], m[2]]);
+test('ledgerRows: the rendered rank column is the position after each sort, and the cut keeps the top rows', () => {
+  const rows = [{ label: 'Bravo', total: 5, properties: 10, median: 2e6 }, { label: 'Alpha', total: 9, properties: 30, median: 1e6 },
+    { label: 'Charlie', total: 7, properties: 20, median: 3e6 }];
+  assert.deepEqual(cells(ledgerRows(rows, { state: { key: 'total', dir: -1, expanded: true }, muni: true })),
+    [[1, 'Alpha'], [2, 'Charlie'], [3, 'Bravo']]);
+  assert.deepEqual(cells(ledgerRows(rows, { state: { key: 'name', dir: 1, expanded: true }, muni: true })),
+    [[1, 'Alpha'], [2, 'Bravo'], [3, 'Charlie']]);
+  assert.deepEqual(cells(ledgerRows(rows, { state: { key: 'median', dir: -1, expanded: false }, first: 2, muni: true })),
+    [[1, 'Charlie'], [2, 'Bravo']]);
 });
 
 test('ctExclusion: the province ledger shows the findings Cape Town share, and shares still add to 100%', () => {

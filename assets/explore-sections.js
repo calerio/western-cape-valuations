@@ -136,6 +136,17 @@ export function sortRows(rows, { key, dir } = tableState) {
     return (typeof va === 'string' ? va.localeCompare(vb) : va - vb) * dir;
   });
 }
+// The ledger's <tbody> rows: sorted by `state`, cut to `first` unless expanded. The rank cell is the
+// row's position in THIS order, so every sort re-ranks (tests/explore-sections.test.mjs reads it back).
+export function ledgerRows(rows, { state = tableState, first = FIRST, share = () => 0, muni = false, mMin = 1, mMax = 1 } = {}) {
+  const sorted = sortRows(rows, state), shown = state.expanded ? sorted : sorted.slice(0, first);
+  return shown.map((r, i) => `<tr${r.href ? ` data-href="${esc(r.href)}"` : ''}><td class="c-rank num">${i + 1}</td>` +
+    `<td class="c-name">${r.href ? `<a href="${esc(r.href)}">${esc(r.label)}</a>` : esc(r.label)}</td>` +
+    `<td class="c-props num">${esc(N(r.properties))}</td>` +
+    `<td class="c-total num"><span class="fig">${esc(R(r.total))}</span>${shareBar(share(r), { width: 96, lang: L() })}</td>` +
+    `<td class="c-med num"><span class="fig">${esc(r.median > 0 ? R(r.median, { short: true }) : '—')}</span>${markerScale(r.median, { min: mMin, max: mMax, width: 110, lang: L() })}</td>` +
+    (muni ? '' : `<td class="c-date"${r.dateNote && !r.date ? ` title="${esc(t(r.dateNote))}"` : ''}>${esc(r.dateText || t('date not stated'))}</td>`) + `</tr>`).join('');
+}
 function renderValue(ctx) {
   const X = ctx.explore, muni = ctx.level === 'municipality';
   const rows = valueRows(ctx).filter(r => r.total != null);
@@ -171,15 +182,7 @@ function renderValue(ctx) {
     th('name', t(muni ? 'Town or suburb' : 'Municipality'), 'c-name') + th('properties', t('Properties'), 'c-props num') +
     th('total', t('Total value'), 'c-total num') + th('median', t(muni ? 'Median value' : resFallback ? 'Median residential value' : 'Median home value'), 'c-med num') +
     (muni ? '' : th('date', t('Date of valuation'), 'c-date')) + `</tr></thead>`;
-  const body = () => {
-    const sorted = sortRows(rows), shown = tableState.expanded ? sorted : sorted.slice(0, FIRST);
-    return shown.map((r, i) => `<tr${r.href ? ` data-href="${esc(r.href)}"` : ''}><td class="c-rank num">${i + 1}</td>` +   // i + 1 = sort position
-      `<td class="c-name">${r.href ? `<a href="${esc(r.href)}">${esc(r.label)}</a>` : esc(r.label)}</td>` +
-      `<td class="c-props num">${esc(N(r.properties))}</td>` +
-      `<td class="c-total num"><span class="fig">${esc(R(r.total))}</span>${shareBar(share(r), { width: 96, lang: L() })}</td>` +
-      `<td class="c-med num"><span class="fig">${esc(r.median > 0 ? R(r.median, { short: true }) : '—')}</span>${markerScale(r.median, { min: mMin, max: mMax, width: 110, lang: L() })}</td>` +
-      (muni ? '' : `<td class="c-date"${r.dateNote && !r.date ? ` title="${esc(t(r.dateNote))}"` : ''}>${esc(r.dateText || t('date not stated'))}</td>`) + `</tr>`).join('');
-  };
+  const body = () => ledgerRows(rows, { state: tableState, first: FIRST, share, muni, mMin, mMax });
   // the unlisted remainder (municipality level only): a fixed footer row, outside the sort. Shown only
   // with the whole list: under a collapsed list it would read as "the rows below", which are listed.
   const foot = muni && showAll && rest / tot >= 0.0005

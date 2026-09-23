@@ -2,7 +2,7 @@ import { getRates, computeRates } from "./rates.js?v=1";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
 import { fmtR, fmtN } from "./format.js?v=2";
 import { dur } from "./motion.js?v=1";
-import { renderSections, renderCoverage } from "./explore-sections.js?v=3";
+import { renderSections, renderCoverage } from "./explore-sections.js?v=4";
 
 // d3 comes from the UMD bundle loaded in <head> — importing the jsdelivr +esm build
 // as well would fetch the whole ~30-module d3 graph a second time (and trigger a wall
