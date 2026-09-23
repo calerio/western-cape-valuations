@@ -189,9 +189,9 @@ All twelve were captured on HEAD 75ef902 (1440×900 desktop; 390×844 phone). Ex
   checkout (the comment in the file says so).
 - Static-page footer links are still separated by middle dots. They are navigation separators, not joined
   meta strings.
-- The map's Explore link carries the municipality under the map centre (`#m/<slug>`) at every zoom, so
-  from the untouched province view it opens Explore on whichever municipality the centre falls in
-  (spec §3 as written; a minimum zoom for the context would be a follow-up).
+- The map's Explore link carries the municipality under the map centre (`#m/<slug>`) only at
+  municipality scale (zoom ≥ 9); below that it opens the province overview (plain `index.html`), so the
+  province view never sends a reader to whichever municipality happens to sit under the centre.
 - The screenshots in §6 predate the final fix wave: desktop map shots still show the ⓘ credits button
   rather than the inline credits line.
 

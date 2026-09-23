@@ -1,10 +1,18 @@
 async (page) => {
   // Explore ↔ Map context (spec §3): #m/<slug> frames the municipality on the map; the map's Explore
-  // link carries the municipality under the centre; Explore's "Open the map" link carries its scope.
+  // link carries the municipality under the centre at zoom ≥ 9 (plain index.html below); Explore's "Open the map" link carries its scope.
   const BASE = 'http://127.0.0.1:8766/';
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctx.newPage();
   const errors = []; p.on('pageerror', e => errors.push(String(e)));
   const out = {};
+  // province view (no hash): the Explore link is the province overview
+  await p.goto(BASE + 'plain.html', { waitUntil: 'load' });
+  await p.waitForFunction(() => window._map && window._map.isStyleLoaded(), null, { timeout: 30000 });
+  await p.waitForTimeout(1200);                                  // MUNIS load + first link update
+  out.provinceHref = await p.evaluate(() => document.querySelector('#viewsegWrap a[data-i18n="Explore"]').getAttribute('href'));
+  await p.evaluate(() => window._map.jumpTo({ center: [18.86, -33.93], zoom: 12 }));
+  await p.waitForTimeout(800);
+  out.jumpHref = await p.evaluate(() => document.querySelector('#viewsegWrap a[data-i18n="Explore"]').getAttribute('href'));
   await p.goto(BASE + 'plain.html#m/stellenbosch', { waitUntil: 'load' });
   await p.waitForFunction(() => window._map && window._map.isStyleLoaded(), null, { timeout: 30000 });
   await p.waitForFunction(() => window._map.getZoom() > 8 && !window._map.isMoving(), null, { timeout: 15000 });
@@ -21,7 +29,7 @@ async (page) => {
   await p.waitForFunction(() => /#m\/swellendam$/.test(document.querySelector('a[data-maplink][data-i18n="Open the map"]').getAttribute('href') || ''), null, { timeout: 20000 }).catch(() => {});
   out.openMapHref = await p.evaluate(() => document.querySelector('a[data-maplink][data-i18n="Open the map"]').getAttribute('href'));
   out.errors = errors;
-  out.verdict = (out.zoom > 8 && out.containsCentroid && /#m\/stellenbosch$/.test(out.exploreHref)
+  out.verdict = (out.provinceHref === 'index.html' && /#m\/stellenbosch$/.test(out.jumpHref) && out.zoom > 8 && out.containsCentroid && /#m\/stellenbosch$/.test(out.exploreHref)
     && /#m\/swellendam$/.test(out.exploreHrefAfterPan) && out.openMapHref === 'plain.html#m/swellendam' && errors.length === 0) ? 'PASS' : 'FAIL';
   await ctx.close(); return out;
 }

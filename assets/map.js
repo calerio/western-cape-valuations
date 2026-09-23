@@ -1156,11 +1156,13 @@ async function fitMuniFromHash(map) {
 }
 
 // Map → Explore context: the switcher's Explore link (and the map-failure fallback) carries the
-// municipality under the map centre (#m/<slug>), plain index.html when the centre is outside every
-// municipality. Debounced on moveend, like the camera hash.
+// municipality under the map centre (#m/<slug>) only at municipality scale (zoom ≥ EXPLORE_MUNI_ZOOM);
+// below that, or outside every municipality, it is plain index.html (the province overview).
+// Debounced on moveend, like the camera hash.
+const EXPLORE_MUNI_ZOOM = 9;
 let exploreTimer = null;
 function updateExploreLinks(map) {
-  const m = map ? muniAt(map.getCenter()) : null;
+  const m = map && map.getZoom() >= EXPLORE_MUNI_ZOOM ? muniAt(map.getCenter()) : null;
   const href = 'index.html' + (m ? '#m/' + slugOf(m) : '');
   document.querySelectorAll('#viewsegWrap a[href^="index.html"], #mapfail a[href^="index.html"]')
     .forEach(a => a.setAttribute('href', href));
