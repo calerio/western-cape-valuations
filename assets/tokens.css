@@ -61,7 +61,7 @@
 
   /* the one accent + semantic ramp (state only, never decoration) */
   --accent: light-dark(#1f4e8c, #6ea8ff);         /* cadastral blue */
-  --accent-ink: #ffffff;
+  --accent-ink: light-dark(#ffffff, #0b1a2e);   /* ≥4.5:1 on --accent: 8.31 light, 7.25 dark */
   --ok: light-dark(#039855, #30d158);
   --bad: light-dark(#d92d20, #ff453a);
   /* status pairs: ink on its own tint (badge = glyph + text, never colour alone) */

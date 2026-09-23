@@ -26,3 +26,11 @@ test('theme pins set color-scheme and carry the six --map-* tokens', () => {
     assert.ok(new RegExp(`${t}\\s*:`).test(light), 'light pin ' + t);
   }
 });
+test('theme pins declare only the six --map-* custom properties', () => {
+  for (const sel of [':root[data-theme="dark"]', ':root[data-theme="light"]']) {
+    const body = rule(sel);
+    const names = [...body.matchAll(/(--[a-z0-9-]+)\s*:/g)].map(m => m[1]);
+    assert.deepEqual([...new Set(names)].sort(), [...MAP].sort(), sel);
+    assert.equal(names.length, MAP.length, sel + ' has duplicate declarations');
+  }
+});
