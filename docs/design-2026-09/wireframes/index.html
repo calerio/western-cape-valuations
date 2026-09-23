@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframes · Design refresh 2026-09</title>
+<style>
+/* Low-fidelity wireframe sheet. Palette: #fff #f4f4f4 #ddd #999 #333 + accent #1a5fb4 (primary actions + selected parcel only). */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#f4f4f4;color:#333;font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.mono,code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.page{max-width:1400px;margin:0 auto;padding:24px 16px 64px}
+a{color:#333}
+
+/* Title + legend */
+.title{background:#fff;border:1px solid #333;padding:20px}
+.title h1{margin:0 0 6px;font-size:22px;line-height:1.25}
+.title p{margin:0;color:#333}
+.title .meta{font:11px ui-monospace,Menlo,monospace;color:#999;margin-top:8px}
+.legend{margin-top:16px;background:#fff;border:1px solid #ddd;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 24px;font:11px/1.4 ui-monospace,Menlo,monospace}
+.legend .it{display:flex;align-items:center;gap:8px}
+.sw{display:inline-block;width:22px;height:14px;border:1px solid #333}
+.toc{margin-top:12px;font:11px ui-monospace,Menlo,monospace;color:#333;display:flex;flex-wrap:wrap;gap:6px 14px}
+
+/* Sections */
+section.s{margin-top:28px;background:#fff;border:1px solid #ddd;padding:16px}
+.s>h2{font-size:17px;margin:0 0 2px}
+.s>.lede{margin:0 0 14px;color:#333;font-size:13px}
+.s>.lede .mono{font-size:11px;color:#999}
+.row{display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap}
+.row+.row{margin-top:24px;padding-top:20px;border-top:1px dashed #ddd}
+.fscroll{max-width:100%;overflow-x:auto;flex:0 0 auto;padding-bottom:4px}
+.frames{display:flex;gap:16px;align-items:flex-start}
+.cap{font:11px ui-monospace,Menlo,monospace;color:#999;margin:6px 0 0}
+
+/* Frames: true device size, scaled */
+.fw{position:relative;overflow:hidden;border:1px solid #333;background:#fff}
+.fw.desk{width:722px;height:452px}
+.fw.mob{width:236px;height:508px}
+.dev{position:absolute;top:0;left:0;transform-origin:0 0;overflow:hidden;background:#fff;color:#333}
+.desk .dev{width:1440px;height:900px;transform:scale(.5);font-size:18px;line-height:1.35}
+.mob .dev{width:390px;height:844px;transform:scale(.6);font-size:15px;line-height:1.35}
+
+/* Annotation column */
+.notes{flex:1 1 320px;min-width:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px 20px;font-size:13px}
+.notes h4{font:600 11px ui-monospace,Menlo,monospace;text-transform:uppercase;letter-spacing:.06em;margin:0 0 4px;border-bottom:1px solid #ddd;padding-bottom:3px}
+.notes ul{margin:0;padding-left:16px}
+.notes li{margin:2px 0}
+.notes ul.co{list-style:none;padding-left:0}
+.notes ul.co li{padding-left:22px;text-indent:-22px}
+.notes .n{font-family:ui-monospace,Menlo,monospace}
+.notes ul.co .n{font:16px/1 system-ui,-apple-system,sans-serif}
+
+/* ------- primitives inside frames (world px; 2px lines render ≈1px) ------- */
+.dev *{border-width:2px}
+.pin{position:absolute;z-index:9;font:400 44px/1 system-ui,-apple-system,sans-serif;background:#fff;color:#333;padding:0 2px}
+.mob .pin{font-size:34px}
+.ann{position:absolute;z-index:8;font:22px/1.3 ui-monospace,Menlo,monospace;color:#333;background:#fff;border:2px dashed #999;padding:4px 8px}
+.mob .ann{font-size:18px}
+.xb{position:relative;border:2px solid #999;background:#f4f4f4;display:flex;align-items:center;justify-content:center;text-align:center}
+.xb>svg{position:absolute;inset:0;width:100%;height:100%}
+.xb>svg path{stroke:#999;stroke-width:1;fill:none;vector-effect:non-scaling-stroke}
+.xb>span{position:relative;background:#fff;padding:3px 10px;font-family:ui-monospace,Menlo,monospace;font-size:.85em;max-width:86%;border:2px solid #ddd}
+.ph{border:2px dashed #999}
+.bar{position:relative;z-index:3;display:flex;align-items:center;gap:24px;height:64px;padding:0 24px;border-bottom:2px solid #ddd;background:#fff}
+.brand{font-weight:600;white-space:nowrap}
+.mark{display:inline-block;width:26px;height:26px;border:2px solid #333;vertical-align:middle;margin-right:8px}
+.fld{display:flex;align-items:center;justify-content:space-between;border:2px solid #999;height:44px;padding:0 14px;color:#999;background:#fff;white-space:nowrap;overflow:hidden}
+.seg{display:inline-flex;border:2px solid #333;white-space:nowrap}
+.seg b{font-weight:400;padding:7px 14px}
+.seg b+b{border-left:2px solid #333}
+.seg .on{background:#333;color:#fff}
+.btn{display:inline-block;border:2px solid #333;padding:11px 20px;white-space:nowrap}
+.btn.pri{background:#1a5fb4;border-color:#1a5fb4;color:#fff}
+.btn.sec{border-color:#1a5fb4;color:#1a5fb4}
+.chip{display:inline-block;border:2px solid #999;border-radius:999px;padding:5px 14px;background:#fff;white-space:nowrap}
+.chip.on{border-color:#333}
+.k{font-size:.72em;letter-spacing:.12em;text-transform:uppercase;color:#999}
+.disc{color:#333;border-bottom:2px dashed #999;display:inline-block;font-size:.85em}
+.card{border:2px solid #ddd;background:#fff}
+.muted{color:#999}
+.fig b{display:block;font-size:1.6em;line-height:1.1;white-space:nowrap}
+.fig span{font-size:.8em;color:#999}
+.track{position:relative;height:14px;border-bottom:2px solid #ddd}
+.track i{position:absolute;top:0;width:4px;height:14px;background:#333}
+.hbar{height:14px;background:#999}
+.lgd{display:flex;gap:0}
+.lgd i{flex:1;height:14px;border:2px solid #999;border-left:none}
+.lgd i:first-child{border-left:2px solid #999}
+.panel{position:absolute;background:#fff;border:2px solid #333}
+.handle{width:60px;height:6px;background:#999;margin:10px auto 8px}
+.badge{display:inline-block;border:2px solid #333;padding:2px 8px;font-size:.72em;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+
+/* ------- G: result panel cards (380px wide, zoom .75) ------- */
+.cards{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+@media (min-width:1000px){.cards.rowmode{flex-wrap:nowrap;overflow-x:auto;padding-bottom:8px}}
+.pc{flex:0 0 auto;zoom:.75}
+.pc .lbl{font:15px ui-monospace,Menlo,monospace;color:#999;margin:0 0 6px}
+.pcard{width:380px;border:1px solid #333;background:#fff;padding:16px 18px 14px;font-size:16px;line-height:1.4;position:relative}
+.pcard .x{position:absolute;top:10px;right:14px;font-size:18px}
+.pcard .badge{max-width:calc(100% - 34px);border-width:1px;font-size:11px;padding:2px 7px;margin-bottom:10px}
+.pcard .kick{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:#999;margin:0 0 4px}
+.pcard h5{font-size:20px;margin:0 0 4px;line-height:1.25}
+.pcard .val{font-size:30px;font-weight:600;line-height:1.1;margin-top:6px}
+.pcard .sub{color:#999;font-size:14px;margin-bottom:8px}
+.pcard dl{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;margin:8px 0;font-size:14px}
+.pcard dt{color:#999}
+.pcard dd{margin:0;text-align:right}
+.pcard .note{font-size:13px;color:#333;border-left:2px solid #ddd;padding-left:8px;margin:8px 0}
+.pcard .lst{border-top:1px solid #ddd;margin:8px 0}
+.pcard .lst div{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #ddd;padding:6px 2px;font-size:14px}
+.pcard .lst div span:last-child{white-space:nowrap}
+.pcard .sum{font-size:14px;border:1px solid #ddd;background:#f4f4f4;padding:6px 8px;margin:6px 0}
+.pcard .overlap{border:1px dashed #999;background:#f4f4f4;font-size:13px;padding:5px 8px;margin:-4px 0 10px}
+.pcard details{border-top:1px solid #ddd;margin-top:10px;padding-top:6px;font-size:13px}
+.pcard summary{cursor:pointer;list-style:none}
+.pcard summary::-webkit-details-marker{display:none}
+.pcard summary b{font-weight:600}
+.pcard summary .why{display:block;color:#333;margin-top:2px}
+.pcard pre{margin:6px 0 0;padding:6px 8px;background:#f4f4f4;border:1px solid #ddd;font-size:11px;white-space:pre-wrap;word-break:break-word}
+.skel{height:12px;background:#ddd;margin:8px 0}
+.gtools{margin:0 0 12px;display:flex;gap:8px;flex-wrap:wrap}
+.gtools button{font:11px ui-monospace,Menlo,monospace;background:#fff;border:1px solid #333;color:#333;padding:5px 10px;cursor:pointer}
+
+/* H */
+.decide{margin-top:28px;background:#fff;border:2px solid #333;padding:16px 20px}
+.decide h2{margin:0 0 8px;font-size:17px}
+.decide ol{margin:0;padding-left:22px}
+.decide li{margin:6px 0}
+.decide .ap{font:11px ui-monospace,Menlo,monospace;color:#999;white-space:nowrap}
+
+@media (max-width:600px){
+  .title h1{font-size:18px}
+  section.s{padding:12px}
+  .notes{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="page">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <pattern id="pg" width="40" height="65" patternUnits="userSpaceOnUse"><rect width="40" height="65" fill="none" stroke="#999" stroke-width="1"/></pattern>
+  <pattern id="pgm" width="26" height="42" patternUnits="userSpaceOnUse"><rect width="26" height="42" fill="none" stroke="#999" stroke-width="1"/></pattern>
+  <pattern id="ps" width="40" height="65" patternUnits="userSpaceOnUse"><rect width="40" height="65" fill="none" stroke="#333" stroke-width="3"/><rect width="40" height="65" fill="none" stroke="#fff" stroke-width="1"/></pattern>
+  <pattern id="psm" width="26" height="42" patternUnits="userSpaceOnUse"><rect width="26" height="42" fill="none" stroke="#333" stroke-width="3"/><rect width="26" height="42" fill="none" stroke="#fff" stroke-width="1"/></pattern>
+</defs></svg>
+
+<header class="title">
+  <h1>Low-fidelity wireframes — design refresh 2026-09 — for approval, not visual design</h1>
+  <p>Western Cape Municipal Valuations (calerio.github.io/western-cape-valuations). An evolutionary refinement of the Explore, Map and Satellite views and the result panel, not a rebrand. Layout, content hierarchy and behaviour only: colour, type and spacing here are placeholders.</p>
+  <div class="meta">Frames at true device size: desktop 1440×900 shown at 50% · mobile 390×844 shown at 60% · panel cards 380 px shown at 75%. Figures are from the current build or marked “···” where explore.json will supply them.</div>
+</header>
+
+<div class="legend" aria-label="Legend">
+  <span class="it"><span class="sw" style="background:#fff"></span>#fff surface</span>
+  <span class="it"><span class="sw" style="background:#f4f4f4"></span>#f4f4f4 canvas</span>
+  <span class="it"><span class="sw" style="background:#ddd"></span>#ddd rule</span>
+  <span class="it"><span class="sw" style="background:#999"></span>#999 secondary</span>
+  <span class="it"><span class="sw" style="background:#333"></span>#333 text / selected tab</span>
+  <span class="it"><span class="sw" style="background:#1a5fb4;border-color:#1a5fb4"></span>accent = primary action or selected parcel only</span>
+  <span class="it"><span class="sw" style="border:1px dashed #999"></span>dashed = placeholder region</span>
+  <span class="it"><span class="sw" style="position:relative;background:#f4f4f4;overflow:hidden"><svg viewBox="0 0 10 10" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%"><path d="M0 0L10 10M10 0L0 10" stroke="#999" fill="none" vector-effect="non-scaling-stroke"/></svg></span>crossed box = map / chart / image</span>
+  <span class="it">① … ⑨ callout → numbered list beside the frame</span>
+  <span class="it">Glyphs: ✓ ? ≡ ⊘ ⚠ ▸ ▾ ⇅ ⊕ ⊖ ☰ ✕ ⌕</span>
+</div>
+<nav class="toc" aria-label="Sections">
+  <a href="#A">A Explore · desktop</a><a href="#B">B Explore · mobile</a><a href="#C">C Map · desktop</a><a href="#D">D Map · mobile</a><a href="#E">E Satellite · desktop</a><a href="#F">F Satellite · mobile</a><a href="#G">G Result panel states</a><a href="#H">H Decisions</a>
+</nav>
+
+<!-- =============================== A =============================== -->
+<section class="s" id="A">
+  <h2>A. Explore — desktop (1440×900)</h2>
+  <p class="lede">index.html. Two columns: a sticky orientation column on the left, an editorial statistics column on the right. <span class="mono">Frame A·1 = first paint · Frame A·2 = right column after scrolling.</span></p>
+
+  <div class="row">
+    <div class="fscroll">
+      <div class="fw desk"><div class="dev">
+        <div class="bar">
+          <span class="brand"><span class="mark"></span>Western Cape · Municipal valuations</span>
+          <span class="fld" style="flex:1;max-width:620px;margin:0 auto">Search an address, town or municipality <span style="color:#333">⌕</span></span>
+          <span class="seg"><b class="on">Explore</b><b>Map</b><b>Satellite</b></span>
+          <span class="seg"><b class="on">EN</b><b>AF</b></span>
+        </div>
+        <!-- left sticky column -->
+        <div style="position:absolute;top:64px;left:0;width:460px;bottom:0;border-right:2px solid #ddd;padding:20px 24px">
+          <span class="pin" style="right:24px;top:22px">①</span>
+          <div style="font-size:44px;font-weight:700;line-height:1.1">Western Cape</div>
+          <div style="margin:6px 0 14px">25 municipalities · 1,459,474 valued properties</div>
+          <div style="display:flex;gap:22px;margin-bottom:16px;font-size:15px">
+            <div class="fig"><b>R2.66 tn</b><span>Total market value</span></div>
+            <div class="fig"><b>R915 k</b><span>Median valuation</span></div>
+            <div class="fig"><b>2020–2025</b><span>Valuation dates</span></div>
+          </div>
+          <div style="display:flex;gap:12px"><span class="btn pri">Find my property ▸</span><span class="btn sec">Open the map ▸</span></div>
+
+          <div style="margin-top:20px;position:relative">
+            <span class="pin" style="left:140px;top:20px">②</span>
+            <div class="xb" style="width:120px;height:80px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span style="font-size:13px">SA outline (locator only)</span></div>
+            <div class="xb" style="width:412px;height:272px;margin-top:8px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>Western Cape choropleth by municipality (clickable — drill to district/municipality)</span></div>
+            <div class="lgd" style="width:412px;margin-top:6px"><i style="background:#fff"></i><i style="background:#f4f4f4"></i><i style="background:#ddd"></i><i style="background:#999"></i><i style="background:#333"></i></div>
+            <div class="muted" style="font-size:14px;margin-top:4px">median value, low → high · map is navigation, no longer a gate</div>
+          </div>
+
+          <div class="ph" style="margin-top:30px;padding:8px 12px;font-size:14px;position:relative">
+            <span class="pin" style="right:-12px;top:-46px">③</span>
+            Rolls used: 25 GV + 9 SV · Cape Town GV2025 · Laingsburg draft 2018 · sectional units counted as properties <b>▸ details</b>
+          </div>
+        </div>
+        <!-- right editorial column -->
+        <div style="position:absolute;top:64px;left:460px;right:0;bottom:0;overflow:hidden;padding:24px 40px 24px 60px">
+          <div style="position:relative">
+            <span class="pin" style="left:-50px;top:0">④</span>
+            <div class="k">Comparison</div>
+            <div style="font-size:28px;font-weight:700">Where the value sits</div>
+            <div style="margin:2px 0 10px">Cape Town holds most of the province’s value; the median home varies more than tenfold between municipalities.</div>
+            <div style="display:grid;grid-template-columns:230px 120px 1fr 1fr 130px;gap:0 16px;font-size:16px">
+              <div style="border-bottom:2px solid #333;padding:4px 0;font-weight:600">Municipality ⇅</div>
+              <div style="border-bottom:2px solid #333;padding:4px 0;font-weight:600">Properties ⇅</div>
+              <div style="border-bottom:2px solid #333;padding:4px 0;font-weight:600">Total value · share ▾</div>
+              <div style="border-bottom:2px solid #333;padding:4px 0;font-weight:600">Median home value ⇅</div>
+              <div style="border-bottom:2px solid #333;padding:4px 0;font-weight:600">Date of valuation</div>
+            </div>
+            <div style="display:grid;grid-template-columns:230px 120px 1fr 1fr 130px;gap:0 16px;font-size:16px;align-items:center">
+              <div style="padding:4px 0;border-bottom:2px solid #ddd">City of Cape Town</div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div><div style="border-bottom:2px solid #ddd;padding:4px 0;display:flex;gap:8px;align-items:center"><span class="hbar" style="width:65%"></span>64.7%</div><div style="border-bottom:2px solid #ddd;padding:7px 0"><div class="track"><i style="left:48%"></i></div></div><div style="border-bottom:2px solid #ddd;padding:4px 0">GV2025</div>
+              <div style="padding:4px 0;border-bottom:2px solid #ddd">Stellenbosch</div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div><div style="border-bottom:2px solid #ddd;padding:4px 0;display:flex;gap:8px;align-items:center"><span class="hbar" style="width:9%"></span>···</div><div style="border-bottom:2px solid #ddd;padding:7px 0"><div class="track"><i style="left:66%"></i></div></div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div>
+              <div style="padding:4px 0;border-bottom:2px solid #ddd">Drakenstein</div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div><div style="border-bottom:2px solid #ddd;padding:4px 0;display:flex;gap:8px;align-items:center"><span class="hbar" style="width:6%"></span>···</div><div style="border-bottom:2px solid #ddd;padding:7px 0"><div class="track"><i style="left:40%"></i></div></div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div>
+              <div style="padding:4px 0;border-bottom:2px solid #ddd">George</div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div><div style="border-bottom:2px solid #ddd;padding:4px 0;display:flex;gap:8px;align-items:center"><span class="hbar" style="width:5%"></span>···</div><div style="border-bottom:2px solid #ddd;padding:7px 0"><div class="track"><i style="left:38%"></i></div></div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div>
+              <div style="padding:4px 0;border-bottom:2px solid #ddd">Overstrand</div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div><div style="border-bottom:2px solid #ddd;padding:4px 0;display:flex;gap:8px;align-items:center"><span class="hbar" style="width:4%"></span>···</div><div style="border-bottom:2px solid #ddd;padding:7px 0"><div class="track"><i style="left:58%"></i></div></div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div>
+              <div style="padding:4px 0;border-bottom:2px solid #ddd">Knysna</div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div><div style="border-bottom:2px solid #ddd;padding:4px 0;display:flex;gap:8px;align-items:center"><span class="hbar" style="width:3%"></span>···</div><div style="border-bottom:2px solid #ddd;padding:7px 0"><div class="track"><i style="left:55%"></i></div></div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div>
+              <div style="padding:4px 0;border-bottom:2px solid #ddd">Saldanha Bay</div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div><div style="border-bottom:2px solid #ddd;padding:4px 0;display:flex;gap:8px;align-items:center"><span class="hbar" style="width:3%"></span>···</div><div style="border-bottom:2px solid #ddd;padding:7px 0"><div class="track"><i style="left:36%"></i></div></div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div>
+              <div style="padding:4px 0;border-bottom:2px solid #ddd">Swartland</div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div><div style="border-bottom:2px solid #ddd;padding:4px 0;display:flex;gap:8px;align-items:center"><span class="hbar" style="width:2%"></span>···</div><div style="border-bottom:2px solid #ddd;padding:7px 0"><div class="track"><i style="left:33%"></i></div></div><div style="border-bottom:2px solid #ddd;padding:4px 0">···</div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:8px"><span>Show all 25 ▾</span><span class="disc">How this is computed ▾</span></div>
+            <span class="ann" style="right:0;top:-6px;max-width:380px">comparison bars/markers only — no time-series data exists</span>
+          </div>
+
+          <div style="position:relative;margin-top:28px">
+            <span class="pin" style="left:-50px;top:0">⑤</span>
+            <div class="k">Distribution</div>
+            <div style="font-size:28px;font-weight:700">How values are spread</div>
+            <div style="margin:2px 0 10px">Most homes are valued well below the provincial total suggests; a small share holds most of the value.</div>
+            <div style="display:flex;gap:20px;align-items:flex-start">
+              <div style="flex:1">
+                <div class="xb" style="height:140px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>log-scale histogram · middle 50% of homes R314 k – R2.14 m (band)</span></div>
+                <div style="display:flex;justify-content:space-between;font-size:14px" class="muted"><span>p10</span><span>median R915 k</span><span>p90</span></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:16px;margin-top:10px">
+              <div class="card" style="padding:8px 14px"><b>Top 10%</b> of properties hold <b>47%</b> of value</div>
+              <div class="card" style="padding:8px 14px"><b>Bottom 50%</b> hold <b>10%</b></div>
+            </div>
+          </div>
+          <div style="position:absolute;left:0;right:0;bottom:0;height:40px;background:#fff;border-top:2px dashed #999;text-align:center;padding-top:6px" class="muted">▾ ⑥–⑨ load collapsed below — see frame A·2</div>
+        </div>
+      </div></div>
+      <p class="cap">A·1 — Explore, first paint (province level)</p>
+    </div>
+
+    <div class="notes">
+      <div><h4>Callouts</h4><ul class="co">
+        <li><span class="n">①</span> Headline block: scope line, three figures, two primary actions</li>
+        <li><span class="n">②</span> Locator: SA outline + clickable choropleth; navigation, not a gate</li>
+        <li><span class="n">③</span> Data-coverage strip, always visible, “▸ details” opens roll list</li>
+        <li><span class="n">④</span> Municipality table: sortable, share bar, median marker on one scale, first 8 rows</li>
+        <li><span class="n">⑤</span> Log histogram with p10 / median / p90 and two concentration callouts</li>
+      </ul></div>
+      <div><h4>Solves</h4><ul>
+        <li>First screen answers “how much, where, how sure” without clicking the map</li>
+        <li>Two clear routes onward: find a property or open the map</li>
+        <li>Coverage caveats visible up front, not buried in footnotes</li>
+        <li>Municipalities comparable at a glance on shared scales</li>
+      </ul></div>
+      <div><h4>Interaction changes</h4><ul>
+        <li>Choropleth click drills province → district → municipality; stats update in place</li>
+        <li>Table headers sort (⇅); “Show all 25 ▾” expands in place</li>
+        <li>Progressive disclosure: sections beyond ④⑤ collapsed until scrolled into view or opened</li>
+        <li>“How this is computed ▾” per section, closed by default</li>
+        <li>Global search in the top bar replaces the in-map search on this page</li>
+      </ul></div>
+      <div><h4>Unchanged</h4><ul>
+        <li>Hash deep-link <span class="n">#m/&lt;slug&gt;</span> keeps working (opens municipality level)</li>
+        <li>Municipality level uses the same structure: choropleth zooms in, ④ lists towns/suburbs</li>
+        <li>Existing “Who sets &amp; governs these values” and rates blocks stay at municipality level</li>
+        <li>d3 choropleth, EN/AF catalogue, static muni pages</li>
+      </ul></div>
+      <div><h4>Mobile / Performance</h4><ul>
+        <li>Stats from one small explore.json (decision 5), no search DB on this page</li>
+        <li>Search-DB pre-warm deferred to after first paint (decision 4)</li>
+        <li>Collapsed sections render their charts only when opened</li>
+        <li>Mobile layout: see B</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="fscroll">
+      <div class="fw desk"><div class="dev">
+        <div class="bar">
+          <span class="brand"><span class="mark"></span>Western Cape · Municipal valuations</span>
+          <span class="fld" style="flex:1;max-width:620px;margin:0 auto">Search an address, town or municipality <span style="color:#333">⌕</span></span>
+          <span class="seg"><b class="on">Explore</b><b>Map</b><b>Satellite</b></span>
+          <span class="seg"><b class="on">EN</b><b>AF</b></span>
+        </div>
+        <div class="ph" style="position:absolute;top:84px;left:20px;width:420px;bottom:20px;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px" ><span class="muted">Left column ①②③ stays sticky<br>(as in A·1)</span></div>
+        <div style="position:absolute;top:64px;left:460px;right:0;bottom:0;overflow:hidden;padding:20px 40px 20px 60px">
+          <div style="position:relative">
+            <span class="pin" style="left:-50px;top:0">⑥</span>
+            <div class="k">Composition</div>
+            <div style="font-size:26px;font-weight:700">What the roll contains</div>
+            <div style="margin:2px 0 8px">Share of properties by rating category.</div>
+            <div style="display:flex;height:34px;border:2px solid #333">
+              <span style="flex:62;background:#333"></span><span style="flex:6;background:#999"></span><span style="flex:3;background:#ddd"></span><span style="flex:8;background:#f4f4f4;border-left:2px solid #999"></span><span style="flex:9;background:#fff;border-left:2px solid #999"></span><span style="flex:4;background:#ddd;border-left:2px solid #999"></span><span style="flex:4;background:#999"></span><span style="flex:4;background:#fff;border-left:2px solid #999"></span>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px 18px;font-size:14px;margin-top:6px">
+              <span>■ Residential</span><span>■ Business</span><span>■ Industrial</span><span>□ Agricultural</span><span>□ Vacant</span><span>■ Public &amp; infrastructure</span><span>■ Municipal &amp; state</span><span>□ Other</span>
+            </div>
+            <div style="margin-top:6px;font-size:15px">7 rolls have no vacant category — vacancy is not comparable ⓘ</div>
+            <div style="margin-top:4px"><span class="disc">How this is computed ▾</span></div>
+          </div>
+
+          <div style="position:relative;margin-top:22px">
+            <span class="pin" style="left:-50px;top:0">⑦</span>
+            <div class="k">Timing</div>
+            <div style="font-size:26px;font-weight:700">When each municipality valued</div>
+            <div style="margin:2px 0 8px">Each roll values property at its own date; compare with care.</div>
+            <div class="xb" style="width:820px;height:110px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>one dot per municipality on a single date axis</span></div>
+            <div style="width:820px;display:flex;justify-content:space-between;font-size:14px" class="muted"><span>2018</span><span>2020</span><span>2022</span><span>2024</span><span>2026</span></div>
+            <span class="ann" style="left:430px;top:96px">date of valuation, not a trend; Hessequa 2020 · Kannaland 2025 · Laingsburg draft</span>
+          </div>
+
+          <div style="position:relative;margin-top:22px">
+            <span class="pin" style="left:-50px;top:0">⑧</span>
+            <div class="k">Findings</div>
+            <div style="font-size:26px;font-weight:700">Notable findings</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:8px">
+              <div class="card" style="padding:12px 14px"><div style="font-size:30px;font-weight:700">64.7%</div><div>Cape Town holds 64.7% of provincial value.</div><div style="margin-top:6px">query ▸</div></div>
+              <div class="card" style="padding:12px 14px"><div style="font-size:30px;font-weight:700">R26.5 m</div><div>Bantry Bay has the highest median home value, R26.5 m (n ≥ 200).</div><div style="margin-top:6px">query ▸</div></div>
+              <div class="card" style="padding:12px 14px"><div style="font-size:30px;font-weight:700">R3,731/m²</div><div>Stellenbosch has the highest land value per m² among reliable rolls, R3,731/m².</div><div style="margin-top:6px">query ▸</div></div>
+            </div>
+            <span class="ann" style="right:0;top:0">only statistics with a committed query; per-m² only where extents passed the reliability rule</span>
+          </div>
+
+          <div style="position:absolute;left:60px;right:40px;bottom:14px;border-top:2px solid #333;padding-top:10px;font-size:15px">
+            <span class="pin" style="left:-50px;top:4px">⑨</span>
+            Public data under the Municipal Property Rates Act · How valuations work · Browse municipalities &amp; districts
+          </div>
+        </div>
+      </div></div>
+      <p class="cap">A·2 — right column scrolled / sections opened</p>
+    </div>
+
+    <div class="notes">
+      <div><h4>Callouts</h4><ul class="co">
+        <li><span class="n">⑥</span> One stacked category bar + legend + vacancy caveat</li>
+        <li><span class="n">⑦</span> Dot-per-municipality on one date axis 2018 → 2026</li>
+        <li><span class="n">⑧</span> Three finding cards: number, sentence, “query ▸”</li>
+        <li><span class="n">⑨</span> Footer strip: legal basis, explainer, municipality index</li>
+      </ul></div>
+      <div><h4>Solves</h4><ul>
+        <li>Category mix explained once, with the non-comparable vacancy caveat</li>
+        <li>Different valuation dates shown honestly, not implied as a trend</li>
+        <li>Every published finding traceable to a committed query</li>
+      </ul></div>
+      <div><h4>Interaction changes</h4><ul>
+        <li>Sections ⑥–⑧ open on scroll or on “▾”; state kept per visit</li>
+        <li>“query ▸” opens the SQL/source note for that figure</li>
+        <li>ⓘ on vacancy lists the 7 rolls without a vacant category</li>
+      </ul></div>
+      <div><h4>Unchanged</h4><ul>
+        <li>Footer links and legal wording</li>
+        <li>Explainer page guide/how-valuations-work.html</li>
+        <li>Static municipality/district pages + sitemap</li>
+      </ul></div>
+      <div><h4>Mobile / Performance</h4><ul>
+        <li>Charts are small SVG from explore.json; no extra libraries</li>
+        <li>Cape Town holding/allocation double-count and unreliable land fields excluded until the data fix ships (decision 6)</li>
+        <li>On mobile these become collapsed cards (B·2)</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== B =============================== -->
+<section class="s" id="B">
+  <h2>B. Explore — mobile (390×844)</h2>
+  <p class="lede">Same content as A, stacked in one column. <span class="mono">B·1 = first screen · B·2 = scrolled, ④ opened.</span></p>
+  <div class="row">
+    <div class="fscroll"><div class="frames">
+      <div>
+        <div class="fw mob"><div class="dev">
+          <div class="bar" style="height:52px;padding:0 16px;gap:10px;justify-content:space-between">
+            <span class="brand"><span class="mark"></span>Western Cape</span>
+            <span style="font-size:22px">☰</span>
+          </div>
+          <span class="pin" style="right:48px;top:10px">①</span>
+          <div style="padding:12px 16px 0">
+            <div class="fld">Search an address, town or municipality <span style="color:#333">⌕</span></div>
+            <div style="position:relative;margin-top:14px">
+              <span class="pin" style="right:-10px;top:0">②</span>
+              <div style="font-size:30px;font-weight:700;line-height:1.1">Western Cape</div>
+              <div style="font-size:14px;margin:4px 0 10px">25 municipalities · 1,459,474 valued properties</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+                <div class="fig"><b style="font-size:20px">R2.66 tn</b><span>Total market value</span></div>
+                <div class="fig"><b style="font-size:20px">R915 k</b><span>Median valuation</span></div>
+                <div class="fig"><b style="font-size:20px">2020–25</b><span>Valuation dates</span></div>
+              </div>
+              <div class="btn pri" style="display:block;text-align:center">Find my property ▸</div>
+              <div class="btn sec" style="display:block;text-align:center;margin-top:8px">Open the map ▸</div>
+            </div>
+            <div style="position:relative;margin-top:14px">
+              <span class="pin" style="right:-10px;top:-4px">③</span>
+              <div class="xb" style="width:358px;height:220px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>Choropleth by municipality (tap to drill)</span></div>
+              <div class="lgd" style="margin-top:6px"><i style="background:#fff"></i><i style="background:#f4f4f4"></i><i style="background:#ddd"></i><i style="background:#999"></i><i style="background:#333"></i></div>
+            </div>
+            <div class="ph" style="margin-top:12px;padding:8px 10px;font-size:13px">Rolls used: 25 GV + 9 SV · Cape Town GV2025 · Laingsburg draft 2018 · sectional units counted as properties <b>▸ details</b></div>
+          </div>
+        </div></div>
+        <p class="cap">B·1 — first screen</p>
+      </div>
+      <div>
+        <div class="fw mob"><div class="dev">
+          <div class="bar" style="height:52px;padding:0 16px;gap:10px;justify-content:space-between;border-bottom-color:#333">
+            <span class="brand"><span class="mark"></span>Western Cape</span>
+            <span style="font-size:22px">☰</span>
+          </div>
+          <div style="padding:10px 16px 0">
+            <div class="card" style="padding:10px 12px;position:relative">
+              <span class="pin" style="right:6px;top:6px">④</span>
+              <div class="k">Comparison</div>
+              <div style="font-size:20px;font-weight:700">Where the value sits</div>
+              <div style="display:grid;grid-template-columns:116px 1fr 1fr;gap:6px 8px;font-size:12px;margin-top:8px;align-items:center">
+                <b>Municipality</b><b>Total ▾</b><b>Median</b>
+                <span>City of Cape Town</span><span class="hbar" style="width:65%"></span><div class="track"><i style="left:48%"></i></div>
+                <span>Stellenbosch</span><span class="hbar" style="width:9%"></span><div class="track"><i style="left:66%"></i></div>
+                <span>Drakenstein</span><span class="hbar" style="width:6%"></span><div class="track"><i style="left:40%"></i></div>
+                <span>George</span><span class="hbar" style="width:5%"></span><div class="track"><i style="left:38%"></i></div>
+                <span>Overstrand</span><span class="hbar" style="width:4%"></span><div class="track"><i style="left:58%"></i></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:13px"><span>Show all 25 ▾</span><span class="disc">How this is computed ▾</span></div>
+            </div>
+            <div class="card" style="padding:10px 12px;margin-top:10px;position:relative">
+              <span class="pin" style="right:6px;top:6px">⑤</span>
+              <div class="k">Distribution</div><div style="font-size:18px;font-weight:700">How values are spread</div>
+              <div style="display:flex;justify-content:space-between;font-size:14px"><span>Middle 50%: R314 k – R2.14 m</span><span>▾ open</span></div>
+            </div>
+            <div class="card" style="padding:10px 12px;margin-top:10px">
+              <div class="k">Composition</div><div style="font-size:18px;font-weight:700">What the roll contains</div>
+              <div style="display:flex;justify-content:space-between;font-size:14px"><span>8 categories · vacancy not comparable</span><span>▾ open</span></div>
+            </div>
+            <div class="card" style="padding:10px 12px;margin-top:10px">
+              <div class="k">Timing</div><div style="font-size:18px;font-weight:700">When each municipality valued</div>
+              <div style="display:flex;justify-content:space-between;font-size:14px"><span>Dates 2018 draft – 2025</span><span>▾ open</span></div>
+            </div>
+            <div class="card" style="padding:10px 12px;margin-top:10px">
+              <div class="k">Findings</div><div style="font-size:18px;font-weight:700">Notable findings</div>
+              <div style="display:flex;justify-content:space-between;font-size:14px"><span>Cape Town holds 64.7%</span><span>▾ open</span></div>
+            </div>
+            <div style="border-top:2px solid #333;margin-top:12px;padding-top:8px;font-size:12px">Public data under the Municipal Property Rates Act · How valuations work · Browse municipalities &amp; districts</div>
+          </div>
+        </div></div>
+        <p class="cap">B·2 — scrolled; sticky compact bar</p>
+      </div>
+    </div></div>
+
+    <div class="notes">
+      <div><h4>Callouts</h4><ul class="co">
+        <li><span class="n">①</span> Compact bar: mark + “Western Cape” + ☰ (view switcher, EN/AF inside)</li>
+        <li><span class="n">②</span> Headline: title, scope, 3-up figures, two full-width buttons</li>
+        <li><span class="n">③</span> Locator choropleth 358×220 with legend, then coverage strip</li>
+        <li><span class="n">④</span> Compact list: municipality · total bar · median marker</li>
+        <li><span class="n">⑤</span> Other sections as collapsed cards: kicker, heading, key figure, “▾ open”</li>
+      </ul></div>
+      <div><h4>Solves</h4><ul>
+        <li>No truncated header: brand never competes with the switcher</li>
+        <li>Wide table replaced by a list that fits 358 px</li>
+        <li>Key figure readable without opening each section</li>
+      </ul></div>
+      <div><h4>Interaction changes</h4><ul>
+        <li>No bottom sheet on Explore</li>
+        <li>☰ holds Explore / Map / Satellite and EN | AF</li>
+        <li>Cards open in place; only one chart rendered at a time</li>
+      </ul></div>
+      <div><h4>Unchanged</h4><ul>
+        <li>Same sections, same order, same wording as desktop</li>
+        <li><span class="n">#m/&lt;slug&gt;</span> deep links</li>
+        <li>AF strings from data/i18n-af.json</li>
+      </ul></div>
+      <div><h4>Mobile / Performance</h4><ul>
+        <li>16 px gutters; no horizontal page scroll</li>
+        <li>Sticky compact bar only; search scrolls away with content</li>
+        <li>Charts drawn on open, not on load</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== C =============================== -->
+<section class="s" id="C">
+  <h2>C. Map — desktop (1440×900)</h2>
+  <p class="lede">The unified map page (replaces separate plain.html / map.html). Shown with a verified parcel selected. <span class="mono">URL: #p/…&amp;b=map</span></p>
+  <div class="row">
+    <div class="fscroll">
+      <div class="fw desk"><div class="dev">
+        <div class="xb" style="position:absolute;inset:0;border:none;align-items:flex-start;padding-top:190px;background:#f4f4f4"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>MapLibre canvas — Liberty basemap (AF labels when AF)</span></div>
+        <svg viewBox="0 0 1440 900" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+          <rect x="430" y="290" width="520" height="400" fill="url(#pg)"/>
+          <path d="M420 420 H960 M620 280 V700 M800 280 V700" stroke="#fff" stroke-width="16"/>
+          <rect x="640" y="325" width="40" height="65" fill="#1a5fb4" fill-opacity=".12" stroke="#1a5fb4" stroke-width="5"/>
+          <rect x="652" y="340" width="40" height="50" fill="none" stroke="#1a5fb4" stroke-width="3" stroke-dasharray="8 6"/>
+        </svg>
+        <span class="pin" style="left:700px;top:300px">⑧</span>
+
+        <div class="panel" style="left:16px;top:16px;width:420px;padding:14px">
+          <span class="pin" style="left:-6px;top:-6px">①</span>
+          <div class="brand" style="margin-bottom:10px"><span class="mark"></span>Western Cape · Municipal valuations</div>
+          <div class="fld">Search a town or suburb <span style="color:#333">⌕</span></div>
+          <div style="display:flex;gap:8px;margin-top:10px;position:relative">
+            <span class="chip">Wards ▾</span><span class="chip on">Labels ✓</span><span class="chip">Ward labels ○</span>
+            <span class="pin" style="right:-8px;top:4px">②</span>
+          </div>
+        </div>
+
+        <div style="position:absolute;right:16px;top:16px;display:flex;gap:10px;background:#fff">
+          <span class="seg"><b>Explore</b><b class="on">Map ●</b><b>Satellite</b></span>
+          <span class="seg"><b class="on">EN</b><b>AF</b></span>
+        </div>
+        <span class="pin" style="right:520px;top:22px">③</span>
+        <div style="position:absolute;right:16px;top:72px;display:flex;gap:0;border:2px solid #333;background:#fff"><b style="padding:4px 12px;font-weight:400">⊕</b><b style="padding:4px 12px;border-left:2px solid #333;font-weight:400">⊖</b></div>
+        <span class="pin" style="right:110px;top:76px">⑨</span>
+
+        <div class="panel" style="right:16px;top:124px;width:380px;bottom:60px;padding:14px 18px;font-size:16px" role="presentation">
+          <span class="pin" style="left:-40px;top:6px">④</span>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge">✓ Verified</span><span style="font-size:20px">✕</span></div>
+          <div style="border:2px dashed #999;background:#f4f4f4;padding:5px 8px;margin:10px 0;font-size:14px;position:relative">⇅ 2 parcels overlap here — choose<span class="pin" style="left:-44px;top:0">⑤</span></div>
+          <div class="k">Paarl · Drakenstein · Ward 14</div>
+          <div style="font-size:21px;font-weight:700">12 Voorbeeld Street</div>
+          <div style="font-size:32px;font-weight:700;margin-top:6px">R460 000</div>
+          <div class="muted" style="font-size:14px">municipal market value</div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:10px;font-size:15px">
+            <span class="muted">Erf / unit</span><span style="text-align:right">Erf 4411</span>
+            <span class="muted">Ward</span><span style="text-align:right">14</span>
+            <span class="muted">Category</span><span style="text-align:right">Residential</span>
+            <span class="muted">Extent</span><span style="text-align:right">496 m²</span>
+            <span class="muted">Value per m²</span><span style="text-align:right">R927</span>
+            <span class="muted">Rates / year</span><span style="text-align:right">R ·,···</span>
+            <span class="muted">Rates / month</span><span style="text-align:right">R ···</span>
+          </div>
+          <div style="font-size:14px;border-left:2px solid #ddd;padding-left:8px;margin-top:10px">Roll valuation as at the municipality's valuation date, set for rates — not today's sale price.</div>
+          <div style="border-top:2px solid #ddd;margin-top:10px;padding-top:6px;font-size:14px"><b>Why this result? ▾</b><br>Verified link: this roll entry is tied to this parcel by its town and erf number.</div>
+        </div>
+
+        <div style="position:absolute;left:16px;bottom:16px;background:#fff;padding:2px 6px;font-size:14px"><span style="display:inline-block;width:100px;border:2px solid #333;border-top:none;height:8px;vertical-align:middle"></span> 50 m</div>
+        <div style="position:absolute;right:16px;bottom:16px;width:32px;height:32px;border:2px solid #333;border-radius:50%;background:#fff;text-align:center;line-height:28px">ⓘ</div>
+        <span class="pin" style="right:56px;bottom:18px">⑦</span>
+        <div style="position:absolute;left:520px;bottom:24px;border:2px solid #333;border-radius:999px;background:#fff;padding:6px 18px">Tap or click an erf for its valuation</div>
+        <span class="pin" style="left:480px;bottom:26px">⑥</span>
+      </div></div>
+      <p class="cap">C — Map view, verified parcel selected, overlap present</p>
+    </div>
+
+    <div class="notes">
+      <div><h4>Callouts</h4><ul class="co">
+        <li><span class="n">①</span> Floating card: brand line + “Search a town or suburb ⌕”</li>
+        <li><span class="n">②</span> Chips: [Wards ▾] [Labels ✓] [Ward labels ○]</li>
+        <li><span class="n">③</span> View switcher + EN | AF, top right</li>
+        <li><span class="n">④</span> Result panel, 380 px, opaque, ✕ close (states in G)</li>
+        <li><span class="n">⑤</span> “⇅ 2 parcels overlap here — choose”, once, under the header</li>
+        <li><span class="n">⑥</span> Hint pill: “Zoom in to see erven” / “Tap or click an erf for its valuation”</li>
+        <li><span class="n">⑦</span> Attribution collapsed to ⓘ, expands on click · <span class="n">⑧</span> selected parcel · <span class="n">⑨</span> ⊕⊖ + scale</li>
+      </ul></div>
+      <div><h4>Solves</h4><ul>
+        <li>One map page, not two near-copies drifting apart</li>
+        <li>Parcel outlines thinner and lighter than today; the selection stands out</li>
+        <li>Verified vs unverified selection differ in dash pattern AND colour (solid vs dashed), never colour alone</li>
+        <li>POI icons/labels reduced at z ≥ 16 (custom style tweak) so erven read clearly</li>
+      </ul></div>
+      <div><h4>Interaction changes</h4><ul>
+        <li>Map ↔ Satellite switches the basemap in place: same page, camera kept, URL <span class="n">#p/…&amp;b=map|sat</span></li>
+        <li>Ward labels off by default</li>
+        <li>Language switch = setLayoutProperty on ~20 symbol layers, no reload</li>
+        <li>Overlap chooser replaces silent “top parcel wins”</li>
+      </ul></div>
+      <div><h4>Unchanged</h4><ul>
+        <li>MapLibre + OpenFreeMap Liberty basemap</li>
+        <li>Click-to-valuation lookup against the search DB on Supabase</li>
+        <li>Graaff-Reinet override, keyed on OSM id 302117011 (town label only)</li>
+        <li>Place search (places.json)</li>
+      </ul></div>
+      <div><h4>Mobile / Performance</h4><ul>
+        <li>No second MapLibre instance for Satellite</li>
+        <li>Stale-click race fixed: late responses for an earlier click are dropped (decision 1)</li>
+        <li>Mobile layout: see D</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== D =============================== -->
+<section class="s" id="D">
+  <h2>D. Map — mobile (390×844)</h2>
+  <p class="lede">Same page as C. <span class="mono">D·1 = before a parcel is chosen · D·2 = sheet peek · D·3 = sheet expanded.</span></p>
+  <div class="row">
+    <div class="fscroll"><div class="frames">
+      <div>
+        <div class="fw mob"><div class="dev">
+          <div class="xb" style="position:absolute;inset:0;border:none;background:#f4f4f4;align-items:flex-start;padding-top:330px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>MapLibre canvas — Liberty</span></div>
+          <div class="bar" style="height:56px;padding:0 10px;gap:8px">
+            <span class="mark" style="margin:0;flex:0 0 auto"></span>
+            <span class="fld" style="flex:1;height:38px;font-size:14px">Search a town or suburb <span style="color:#333">⌕</span></span>
+            <span class="seg" style="font-size:13px"><b class="on" style="padding:5px 8px">EN</b><b style="padding:5px 8px">AF</b></span>
+          </div>
+          <div style="position:absolute;top:64px;left:10px;display:flex;gap:8px;font-size:13px">
+            <span class="seg"><b class="on" style="padding:4px 10px">Map ●</b><b style="padding:4px 10px">Satellite</b></span><span class="chip" style="padding:3px 12px">Wards</span>
+          </div>
+          <span class="pin" style="right:6px;top:66px">①</span>
+          <div style="position:absolute;left:0;right:0;top:102px;border-top:2px dashed #999"></div>
+          <span class="ann" style="left:10px;top:112px">controls ≤ 25% of viewport</span>
+          <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:24px;border:2px solid #333;border-radius:999px;background:#fff;padding:5px 14px;font-size:14px;white-space:nowrap">Zoom in to see erven</div>
+          <span class="pin" style="left:20px;bottom:26px">②</span>
+          <div style="position:absolute;right:12px;bottom:74px;width:30px;height:30px;border:2px solid #333;border-radius:50%;background:#fff;text-align:center;line-height:26px">ⓘ</div>
+        </div></div>
+        <p class="cap">D·1 — idle (zoomed out)</p>
+      </div>
+      <div>
+        <div class="fw mob"><div class="dev">
+          <div class="xb" style="position:absolute;inset:0;border:none;background:#f4f4f4;align-items:flex-start;padding-top:470px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>MapLibre canvas — Liberty</span></div>
+          <svg viewBox="0 0 390 844" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+            <rect x="40" y="130" width="312" height="420" fill="url(#pgm)"/>
+            <path d="M30 340 H362 M182 120 V560" stroke="#fff" stroke-width="10"/>
+            <rect x="208" y="256" width="26" height="42" fill="#1a5fb4" fill-opacity=".12" stroke="#1a5fb4" stroke-width="4"/>
+          </svg>
+          <span class="pin" style="left:240px;top:236px">③</span>
+          <div class="bar" style="height:56px;padding:0 10px;gap:8px">
+            <span class="mark" style="margin:0;flex:0 0 auto"></span>
+            <span class="fld" style="flex:1;height:38px;font-size:14px">Search a town or suburb <span style="color:#333">⌕</span></span>
+            <span class="seg" style="font-size:13px"><b class="on" style="padding:5px 8px">EN</b><b style="padding:5px 8px">AF</b></span>
+          </div>
+          <div style="position:absolute;top:64px;left:10px;display:flex;gap:8px;font-size:13px">
+            <span class="seg"><b class="on" style="padding:4px 10px">Map ●</b><b style="padding:4px 10px">Satellite</b></span><span class="chip" style="padding:3px 12px">Wards</span>
+          </div>
+          <div style="position:absolute;left:50%;transform:translateX(-50%);bottom:176px;border:2px solid #333;border-radius:999px;background:#fff;padding:5px 14px;font-size:14px;white-space:nowrap">Tap an erf for its valuation</div>
+          <div style="position:absolute;right:12px;bottom:222px;width:30px;height:30px;border:2px solid #333;border-radius:50%;background:#fff;text-align:center;line-height:26px">ⓘ</div>
+          <div class="panel" style="left:0;right:0;bottom:0;height:160px;border-width:2px 0 0;padding:0 16px">
+            <span class="pin" style="right:8px;top:8px">④</span>
+            <div class="handle"></div>
+            <span class="badge">✓ Verified</span>
+            <div style="font-size:17px;font-weight:700;margin-top:6px">12 Voorbeeld Street</div>
+            <div style="font-size:26px;font-weight:700">R460 000</div>
+          </div>
+        </div></div>
+        <p class="cap">D·2 — peek: badge, address, value</p>
+      </div>
+      <div>
+        <div class="fw mob"><div class="dev">
+          <div class="xb" style="position:absolute;inset:0;border:none;background:#f4f4f4;align-items:flex-start;padding-top:120px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>map panned: parcel in upper half</span></div>
+          <svg viewBox="0 0 390 844" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+            <rect x="40" y="100" width="312" height="280" fill="url(#pgm)"/>
+            <path d="M30 200 H362 M182 90 V380" stroke="#fff" stroke-width="10"/>
+            <rect x="208" y="220" width="26" height="42" fill="#1a5fb4" fill-opacity=".12" stroke="#1a5fb4" stroke-width="4"/>
+          </svg>
+          <div class="bar" style="height:56px;padding:0 10px;gap:8px">
+            <span class="mark" style="margin:0;flex:0 0 auto"></span>
+            <span class="fld" style="flex:1;height:38px;font-size:14px">Search a town or suburb <span style="color:#333">⌕</span></span>
+            <span class="seg" style="font-size:13px"><b class="on" style="padding:5px 8px">EN</b><b style="padding:5px 8px">AF</b></span>
+          </div>
+          <div style="position:absolute;right:12px;top:334px;width:30px;height:30px;border:2px solid #333;border-radius:50%;background:#fff;text-align:center;line-height:26px">ⓘ</div>
+          <span class="pin" style="right:48px;top:336px">⑤</span>
+          <div class="panel" style="left:0;right:0;top:376px;bottom:0;border-width:2px 0 0;padding:0 16px;font-size:14px">
+            <div class="handle"></div>
+            <div style="display:flex;justify-content:space-between"><span class="badge">✓ Verified</span><span>✕</span></div>
+            <div style="border:2px dashed #999;background:#f4f4f4;padding:4px 8px;margin:8px 0;font-size:13px">⇅ 2 parcels overlap here — choose</div>
+            <div class="k">Paarl · Drakenstein · Ward 14</div>
+            <div style="font-size:17px;font-weight:700">12 Voorbeeld Street</div>
+            <div style="font-size:24px;font-weight:700">R460 000</div>
+            <div class="muted">municipal market value</div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin-top:6px">
+              <span class="muted">Erf / unit</span><span style="text-align:right">Erf 4411</span>
+              <span class="muted">Category</span><span style="text-align:right">Residential</span>
+              <span class="muted">Extent</span><span style="text-align:right">496 m²</span>
+              <span class="muted">Rates / month</span><span style="text-align:right">R ···</span>
+            </div>
+            <div style="border-top:2px solid #ddd;margin-top:8px;padding-top:4px"><b>Why this result? ▾</b></div>
+          </div>
+        </div></div>
+        <p class="cap">D·3 — expanded sheet</p>
+      </div>
+    </div></div>
+
+    <div class="notes">
+      <div><h4>Callouts</h4><ul class="co">
+        <li><span class="n">①</span> One compact bar (mark · search · EN|AF) + chip row (Map ● | Satellite) [Wards]</li>
+        <li><span class="n">②</span> Hint pill; sits above the sheet when one is open</li>
+        <li><span class="n">③</span> Selected parcel, kept in the upper half</li>
+        <li><span class="n">④</span> Bottom sheet with drag handle; peek = badge + address + value only</li>
+        <li><span class="n">⑤</span> ⓘ attribution button, always above the sheet edge</li>
+      </ul></div>
+      <div><h4>Solves</h4><ul>
+        <li>Controls ≤ 25% of viewport before a parcel is chosen</li>
+        <li>Sheet never covers the selected parcel (map pans it into the upper half)</li>
+        <li>Attribution never sits under the sheet</li>
+      </ul></div>
+      <div><h4>Interaction changes</h4><ul>
+        <li>Drag or tap handle: peek ↔ expanded; swipe down closes</li>
+        <li>Zoom controls hidden; pinch to zoom</li>
+        <li>Overlap chooser appears in the expanded sheet only</li>
+      </ul></div>
+      <div><h4>Unchanged</h4><ul>
+        <li>Result panel content and wording (G)</li>
+        <li>Deep links and place search</li>
+        <li>Basemap and parcel source</li>
+      </ul></div>
+      <div><h4>Mobile / Performance</h4><ul>
+        <li>No horizontal overflow at 390 px</li>
+        <li>Search DB warm-up starts after first paint</li>
+        <li>Safe-area insets respected for the sheet</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== E =============================== -->
+<section class="s" id="E">
+  <h2>E. Satellite — desktop (1440×900)</h2>
+  <p class="lede">Same page and frame as C with the imagery basemap switched in place. <span class="mono">URL: #p/…&amp;b=sat</span></p>
+  <div class="row">
+    <div class="fscroll">
+      <div class="fw desk"><div class="dev">
+        <div class="xb" style="position:absolute;inset:0;border:none;align-items:flex-start;padding-top:190px;background:#ddd"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span style="max-width:640px">Esri World Imagery raster + the SAME label/road/parcel/ward layers on top (labels with dark halo)</span></div>
+        <svg viewBox="0 0 1440 900" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+          <rect x="430" y="290" width="520" height="400" fill="url(#ps)"/>
+          <rect x="640" y="325" width="40" height="65" fill="none" stroke="#333" stroke-width="9"/>
+          <rect x="640" y="325" width="40" height="65" fill="none" stroke="#1a5fb4" stroke-width="5"/>
+        </svg>
+        <span class="pin" style="left:700px;top:300px">③</span>
+        <span class="ann" style="left:440px;top:700px">parcel lines pale with dark casing</span>
+
+        <div class="panel" style="left:16px;top:16px;width:420px;padding:14px">
+          <span class="pin" style="left:-6px;top:-6px">①</span>
+          <div class="brand" style="margin-bottom:10px"><span class="mark"></span>Western Cape · Municipal valuations</div>
+          <div class="fld">Search a town or suburb <span style="color:#333">⌕</span></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <span class="chip on">Labels ✓</span><span class="chip">Wards ○</span><span class="chip">Ward labels ○</span>
+          </div>
+        </div>
+        <div style="position:absolute;right:16px;top:16px;display:flex;gap:10px;background:#fff">
+          <span class="seg"><b>Explore</b><b>Map</b><b class="on">Satellite ●</b></span>
+          <span class="seg"><b class="on">EN</b><b>AF</b></span>
+        </div>
+        <span class="pin" style="right:530px;top:22px">②</span>
+        <div style="position:absolute;right:16px;top:72px;display:flex;border:2px solid #333;background:#fff"><b style="padding:4px 12px;font-weight:400">⊕</b><b style="padding:4px 12px;border-left:2px solid #333;font-weight:400">⊖</b></div>
+
+        <div class="panel" style="right:16px;top:124px;width:380px;padding:14px 18px;font-size:16px">
+          <span class="pin" style="left:-40px;top:6px">④</span>
+          <div style="display:flex;justify-content:space-between;align-items:center"><span class="badge">✓ Verified</span><span style="font-size:20px">✕</span></div>
+          <div class="k" style="margin-top:10px">Paarl · Drakenstein · Ward 14</div>
+          <div style="font-size:21px;font-weight:700">12 Voorbeeld Street</div>
+          <div style="font-size:32px;font-weight:700;margin-top:6px">R460 000</div>
+          <div class="muted" style="font-size:14px">municipal market value</div>
+          <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin-top:10px;font-size:15px">
+            <span class="muted">Erf / unit</span><span style="text-align:right">Erf 4411</span>
+            <span class="muted">Extent (parcel)</span><span style="text-align:right"><b>496 m²</b></span>
+            <span class="muted">Category</span><span style="text-align:right">Residential</span>
+          </div>
+          <div style="margin-top:10px;position:relative">Compare on Map ▸<span class="pin" style="left:-58px;top:-2px">⑤</span></div>
+          <div style="border-top:2px solid #ddd;margin-top:10px;padding-top:6px;font-size:14px"><b>Why this result? ▾</b></div>
+        </div>
+
+        <div style="position:absolute;left:16px;bottom:16px;background:#fff;padding:2px 6px;font-size:14px"><span style="display:inline-block;width:100px;border:2px solid #333;border-top:none;height:8px;vertical-align:middle"></span> 50 m</div>
+        <div style="position:absolute;right:16px;bottom:16px;width:32px;height:32px;border:2px solid #333;border-radius:50%;background:#fff;text-align:center;line-height:28px">ⓘ</div>
+        <div style="position:absolute;left:520px;bottom:24px;border:2px solid #333;border-radius:999px;background:#fff;padding:6px 18px">Tap or click an erf for its valuation</div>
+      </div></div>
+      <p class="cap">E — Satellite view, same selection as C</p>
+    </div>
+
+    <div class="notes">
+      <div><h4>Callouts</h4><ul class="co">
+        <li><span class="n">①</span> Chips: [Labels ✓] [Wards ○] [Ward labels ○]</li>
+        <li><span class="n">②</span> Satellite ● in the same switcher; camera kept</li>
+        <li><span class="n">③</span> Selected parcel: accent over a dark casing</li>
+        <li><span class="n">④</span> Panel fully opaque, no translucency over imagery</li>
+        <li><span class="n">⑤</span> “Compare on Map ▸” flips basemap, keeps selection</li>
+      </ul></div>
+      <div><h4>Solves</h4><ul>
+        <li>Satellite is for checking what stands on the erf, so the panel leads with parcel extent</li>
+        <li>Parcel lines pale with dark casing read on light and dark ground</li>
+        <li>Labels legible over imagery (dark halo)</li>
+      </ul></div>
+      <div><h4>Interaction changes</h4><ul>
+        <li>Basemap swap in place; no page navigation</li>
+        <li>“Compare on Map ▸” link in the panel</li>
+        <li>Same label/road/parcel/ward layers as Map, restyled for imagery</li>
+      </ul></div>
+      <div><h4>Unchanged</h4><ul>
+        <li>Esri World Imagery source and attribution text</li>
+        <li>Result panel states (G)</li>
+        <li>Deep links (map.html redirects to <span class="n">#…&amp;b=sat</span>)</li>
+      </ul></div>
+      <div><h4>Mobile / Performance</h4><ul>
+        <li>Imagery tiles lazy-loaded only when Satellite is chosen</li>
+        <li>No second MapLibre instance</li>
+        <li>Mobile layout: see F</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== F =============================== -->
+<section class="s" id="F">
+  <h2>F. Satellite — mobile (390×844)</h2>
+  <p class="lede">As D, with imagery. <span class="mono">F·1 = sheet peek · F·2 = sheet expanded.</span></p>
+  <div class="row">
+    <div class="fscroll"><div class="frames">
+      <div>
+        <div class="fw mob"><div class="dev">
+          <div class="xb" style="position:absolute;inset:0;border:none;background:#ddd;align-items:flex-start;padding-top:470px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>Esri World Imagery + same layers</span></div>
+          <svg viewBox="0 0 390 844" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+            <rect x="40" y="130" width="312" height="420" fill="url(#psm)"/>
+            <rect x="208" y="256" width="26" height="42" fill="none" stroke="#333" stroke-width="8"/>
+            <rect x="208" y="256" width="26" height="42" fill="none" stroke="#1a5fb4" stroke-width="4"/>
+          </svg>
+          <div class="bar" style="height:56px;padding:0 10px;gap:8px">
+            <span class="mark" style="margin:0;flex:0 0 auto"></span>
+            <span class="fld" style="flex:1;height:38px;font-size:14px">Search a town or suburb <span style="color:#333">⌕</span></span>
+            <span class="seg" style="font-size:13px"><b class="on" style="padding:5px 8px">EN</b><b style="padding:5px 8px">AF</b></span>
+          </div>
+          <div style="position:absolute;top:64px;left:10px;display:flex;gap:8px;font-size:13px">
+            <span class="seg" style="background:#fff"><b style="padding:4px 10px">Map</b><b class="on" style="padding:4px 10px">Satellite ●</b></span><span class="chip" style="padding:3px 12px">Wards</span>
+          </div>
+          <span class="pin" style="right:6px;top:66px">①</span>
+          <div style="position:absolute;right:12px;bottom:176px;width:30px;height:30px;border:2px solid #333;border-radius:50%;background:#fff;text-align:center;line-height:26px">ⓘ</div>
+          <span class="pin" style="right:48px;bottom:178px">②</span>
+          <div class="panel" style="left:0;right:0;bottom:0;height:160px;border-width:2px 0 0;padding:0 16px">
+            <span class="pin" style="right:8px;top:8px">③</span>
+            <div class="handle"></div>
+            <span class="badge">✓ Verified</span>
+            <div style="font-size:17px;font-weight:700;margin-top:6px">12 Voorbeeld Street</div>
+            <div style="font-size:26px;font-weight:700">R460 000</div>
+          </div>
+        </div></div>
+        <p class="cap">F·1 — peek over imagery</p>
+      </div>
+      <div>
+        <div class="fw mob"><div class="dev">
+          <div class="xb" style="position:absolute;inset:0;border:none;background:#ddd;align-items:flex-start;padding-top:120px"><svg viewBox="0 0 10 10" preserveAspectRatio="none"><path d="M0 0L10 10M10 0L0 10"/></svg><span>imagery, panned</span></div>
+          <svg viewBox="0 0 390 844" style="position:absolute;inset:0;width:100%;height:100%" aria-hidden="true">
+            <rect x="40" y="100" width="312" height="280" fill="url(#psm)"/>
+            <rect x="208" y="220" width="26" height="42" fill="none" stroke="#333" stroke-width="8"/>
+            <rect x="208" y="220" width="26" height="42" fill="none" stroke="#1a5fb4" stroke-width="4"/>
+          </svg>
+          <div class="bar" style="height:56px;padding:0 10px;gap:8px">
+            <span class="mark" style="margin:0;flex:0 0 auto"></span>
+            <span class="fld" style="flex:1;height:38px;font-size:14px">Search a town or suburb <span style="color:#333">⌕</span></span>
+            <span class="seg" style="font-size:13px"><b class="on" style="padding:5px 8px">EN</b><b style="padding:5px 8px">AF</b></span>
+          </div>
+          <div style="position:absolute;right:12px;top:334px;width:30px;height:30px;border:2px solid #333;border-radius:50%;background:#fff;text-align:center;line-height:26px">ⓘ</div>
+          <div class="panel" style="left:0;right:0;top:376px;bottom:0;border-width:2px 0 0;padding:0 16px;font-size:14px">
+            <span class="pin" style="right:8px;top:8px">④</span>
+            <div class="handle"></div>
+            <div style="display:flex;justify-content:space-between"><span class="badge">✓ Verified</span><span style="margin-right:36px">✕</span></div>
+            <div class="k" style="margin-top:8px">Paarl · Drakenstein · Ward 14</div>
+            <div style="font-size:17px;font-weight:700">12 Voorbeeld Street</div>
+            <div style="font-size:24px;font-weight:700">R460 000</div>
+            <div class="muted">municipal market value</div>
+            <div style="display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin-top:6px">
+              <span class="muted">Erf / unit</span><span style="text-align:right">Erf 4411</span>
+              <span class="muted">Extent (parcel)</span><span style="text-align:right"><b>496 m²</b></span>
+            </div>
+            <div style="margin-top:8px">Compare on Map ▸</div>
+            <div style="border-top:2px solid #ddd;margin-top:8px;padding-top:4px"><b>Why this result? ▾</b></div>
+          </div>
+        </div></div>
+        <p class="cap">F·2 — expanded, opaque sheet</p>
+      </div>
+    </div></div>
+
+    <div class="notes">
+      <div><h4>Callouts</h4><ul class="co">
+        <li><span class="n">①</span> Chip row shows Satellite ● selected</li>
+        <li><span class="n">②</span> ⓘ attribution above the sheet (today it overlaps)</li>
+        <li><span class="n">③</span> Peek sheet: badge, address, value</li>
+        <li><span class="n">④</span> Expanded sheet: extent first, “Compare on Map ▸”</li>
+      </ul></div>
+      <div><h4>Solves</h4><ul>
+        <li>Sheet is opaque: text never sits on imagery</li>
+        <li>Attribution never overlaps the sheet or controls</li>
+        <li>Casing keeps the selection visible on any ground</li>
+      </ul></div>
+      <div><h4>Interaction changes</h4><ul>
+        <li>Same sheet behaviour as D</li>
+        <li>Map ↔ Satellite in the chip row keeps selection and camera</li>
+        <li>Pinch to zoom; no ⊕⊖</li>
+      </ul></div>
+      <div><h4>Unchanged</h4><ul>
+        <li>Imagery source and attribution wording</li>
+        <li>Panel content (G)</li>
+        <li>EN/AF catalogue</li>
+      </ul></div>
+      <div><h4>Mobile / Performance</h4><ul>
+        <li>Imagery requested only after Satellite is chosen</li>
+        <li>Raster tiles at device pixel ratio capped at 2</li>
+        <li>No horizontal overflow at 390 px</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- =============================== G =============================== -->
+<section class="s" id="G">
+  <h2>G. Result panel states</h2>
+  <p class="lede">Nine states of the same 380 px panel (shown at 75%). Headings and sub-lines are verbatim: smoke tests assert them. <span class="mono">Evidence codes are illustrative.</span></p>
+  <div class="gtools">
+    <button type="button" id="tgWhy">Open all “Why this result?”</button>
+    <button type="button" id="tgRow">Row ⇄ grid</button>
+  </div>
+  <div class="cards rowmode" id="cards">
+
+    <div class="pc"><p class="lbl">1 · accepted_high</p>
+      <div class="pcard"><span class="x">✕</span>
+        <span class="badge">✓ Verified</span>
+        <div class="overlap">⇅ 2 parcels overlap here — choose</div>
+        <p class="kick">Paarl · Drakenstein · Ward 14</p>
+        <h5>12 Voorbeeld Street</h5>
+        <div class="val">R460 000</div>
+        <div class="sub">municipal market value</div>
+        <dl><dt>Erf / unit</dt><dd>Erf 4411</dd><dt>Ward</dt><dd>14</dd><dt>Category</dt><dd>Residential</dd><dt>Extent</dt><dd>496 m²</dd><dt>Value per m²</dt><dd>R927</dd><dt>Rates / year</dt><dd>R ·,···</dd><dt>Rates / month</dt><dd>R ···</dd></dl>
+        <p class="note">Roll valuation as at the municipality's valuation date, set for rates — not today's sale price.</p>
+        <details><summary><b>Why this result? ▾</b><span class="why">Verified link: this roll entry is tied to this parcel by its town and erf number.</span></summary>
+          <pre>status=accepted_high
+evidence=[sg_town_match, erf_exact]
+sg_town=PAARL roll_locality=PAARL erf=4411
+build=b-2b502178f94f</pre></details>
+      </div></div>
+
+    <div class="pc"><p class="lbl">2 · accepted_group (sectional scheme)</p>
+      <div class="pcard"><span class="x">✕</span>
+        <span class="badge">✓ Verified property group · sectional scheme</span>
+        <p class="kick">Stellenbosch Central · Stellenbosch · Ward 10</p>
+        <h5>Erf 1212 — 24 valuations</h5>
+        <div class="sub">24 sectional-title units on this parcel</div>
+        <div class="sum">R38.4 m — sum of the 24 unit valuations on the roll for scheme X — not the erf's official valuation, which is R0</div>
+        <div class="lst">
+          <div><span>Unit 12 · 3 Voorbeeld Lane</span><span>R2.45 m ▸</span></div>
+          <div><span>Unit 4 · 3 Voorbeeld Lane</span><span>R2.10 m ▸</span></div>
+          <div><span>Unit 7 · 3 Voorbeeld Lane</span><span>R1.98 m ▸</span></div>
+          <div><span class="muted">… 21 more</span><span class="muted">▾</span></div>
+        </div>
+        <p class="note muted">(when long) Showing the 40 highest of n</p>
+        <details><summary><b>Why this result? ▾</b><span class="why">Verified group: every unit of this scheme is linked to this parent erf.</span></summary>
+          <pre>status=accepted_group
+parent_erf=1212 scheme=X units=24/24 complete=true
+parent_value=R0</pre></details>
+      </div></div>
+
+    <div class="pc"><p class="lbl">3 · review</p>
+      <div class="pcard"><span class="x">✕</span>
+        <span class="badge">? Possible match</span>
+        <p class="kick">Riebeek West · Swartland · Ward 3</p>
+        <h5>Erf 206 — 1 valuation</h5>
+        <div class="sub">possible match — town not confirmed</div>
+        <div class="lst"><div><span>Erf 206 · Residential</span><span>R ··· ▸</span></div></div>
+        <p class="note">Likely but unconfirmed: the roll entry fits the erf number, but its locality could not be tied to this SG town with certainty.</p>
+        <details><summary><b>Why this result? ▾</b><span class="why">The erf number matches; the town does not confirm it.</span></summary>
+          <pre>status=review
+evidence=[erf_exact]
+roll_locality=unresolved sg_town=RIEBEEK WEST</pre></details>
+      </div></div>
+
+    <div class="pc"><p class="lbl">4 · ambiguous</p>
+      <div class="pcard"><span class="x">✕</span>
+        <span class="badge">≡ Several entries fit</span>
+        <p class="kick">Riversdale · Hessequa · Ward 2</p>
+        <h5>Erf 111 — several entries fit</h5>
+        <div class="sub">unverified — same erf number, with some locality or area evidence</div>
+        <div class="lst">
+          <div><span>Erf 111 · Residential · 812 m²</span><span>R ··· ▸</span></div>
+          <div><span>Erf 111 · Vacant · 790 m²</span><span>R ··· ▸</span></div>
+        </div>
+        <p class="note">Several roll entries fit this erf number and cannot be told apart.</p>
+        <p class="note">3 roll entries with this erf number were found but rejected: their locality refers to other towns.</p>
+        <details><summary><b>Why this result? ▾</b><span class="why">Two entries fit equally well; three others point to other towns.</span></summary>
+          <pre>status=ambiguous
+candidates=2 rejected=3 (locality_other_town)</pre></details>
+      </div></div>
+
+    <div class="pc"><p class="lbl">5 · not_in_roll</p>
+      <div class="pcard"><span class="x">✕</span>
+        <span class="badge">⊘ No valuation found</span>
+        <p class="kick">Beaufort West · Beaufort West · Ward 5</p>
+        <h5>Erf 88</h5>
+        <p>No valuation found for this erf in the current roll.</p>
+        <details><summary><b>Why this result? ▾</b><span class="why">The roll for this town has no entry with this erf number.</span></summary>
+          <pre>status=not_in_roll
+erf=88 roll=GV (current)</pre></details>
+      </div></div>
+
+    <div class="pc"><p class="lbl">6 · abstain</p>
+      <div class="pcard"><span class="x">✕</span>
+        <span class="badge">⚠ Could not link</span>
+        <p class="kick">Beaufort West · Beaufort West · Ward 1</p>
+        <h5>Erf 1385</h5>
+        <p>Could not link this parcel to the roll</p>
+        <p class="note">The evidence is insufficient or conflicting; no entry can be shown as a possible match.</p>
+        <details><summary><b>Why this result? ▾</b><span class="why">Candidate entries contradict each other.</span></summary>
+          <pre>status=abstain
+reason=conflicting_evidence</pre></details>
+      </div></div>
+
+    <div class="pc"><p class="lbl">7 · missing</p>
+      <div class="pcard"><span class="x">✕</span>
+        <span class="badge">⊘ Not in this data build</span>
+        <p class="kick">Suburb · Municipality · Ward n</p>
+        <h5>Erf 5021</h5>
+        <p class="note">This parcel has no entry in the current link table.</p>
+        <details><summary><b>Why this result? ▾</b><span class="why">The parcel id is absent from this build’s link table.</span></summary>
+          <pre>status=missing
+build=b-2b502178f94f</pre></details>
+      </div></div>
+
+    <div class="pc"><p class="lbl">8 · integrity error</p>
+      <div class="pcard"><span class="x">✕</span>
+        <span class="badge">⚠ Data build could not be verified</span>
+        <p>The valuation data failed its integrity check and is not shown. Try again later.</p>
+        <p class="note mono" style="font-size:12px">Build b-2b502178f94f</p>
+        <details><summary><b>Why this result? ▾</b><span class="why">The link table did not match its published checksum, so nothing is shown (fail closed).</span></summary>
+          <pre>integrity=fail
+check=link_table_sha256</pre></details>
+      </div></div>
+
+    <div class="pc"><p class="lbl">9 · loading</p>
+      <div class="pcard"><span class="x">✕</span>
+        <span class="badge">… Loading</span>
+        <p class="kick">Looking up valuation…</p>
+        <div class="skel" style="width:70%;height:18px"></div>
+        <div class="skel" style="width:45%;height:28px"></div>
+        <div class="skel" style="width:90%"></div>
+        <div class="skel" style="width:80%"></div>
+        <div class="skel" style="width:60%"></div>
+      </div></div>
+  </div>
+
+  <div class="notes" style="margin-top:16px">
+    <div><h4>Badges &amp; disclosure</h4><ul>
+      <li>Badges restrained: text + glyph, 11 px caps, 1 px border</li>
+      <li>Never colour alone: each state has its own glyph and words</li>
+      <li>Raw codes only inside “Why this result? ▾”; the plain line is always readable</li>
+    </ul></div>
+    <div><h4>Interaction</h4><ul>
+      <li>Overlap chooser “⇅ 2 parcels overlap here — choose” appears once, under the header</li>
+      <li>Unit picker rows are buttons (▸)</li>
+      <li>Escape / ✕ closes and returns focus to the map</li>
+    </ul></div>
+    <div><h4>Accessibility</h4><ul>
+      <li>Panel is <span class="n">role=dialog</span></li>
+      <li><span class="n">aria-live</span> on the status line</li>
+      <li>Loading state announced, then replaced</li>
+    </ul></div>
+    <div><h4>Language / data</h4><ul>
+      <li>EN/AF strings identical in structure</li>
+      <li>Integrity failure fails closed (decision 1)</li>
+      <li>Stale responses discarded before render (decision 1)</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- =============================== H =============================== -->
+<section class="decide" id="H">
+  <h2>H. Decisions requiring approval</h2>
+  <ol>
+    <li>Fix the fail-open link-table check and the stale-click race as part of this project. <span class="ap">[ ] approve [ ] reject</span></li>
+    <li>Unify map.html / plain.html into one page with entry-point redirects. <span class="ap">[ ] approve [ ] reject</span></li>
+    <li>Self-host two font families (IBM Plex Sans + Source Serif 4 subsets). <span class="ap">[ ] approve [ ] reject</span></li>
+    <li>Defer search-DB pre-warm to after first paint. <span class="ap">[ ] approve [ ] reject</span></li>
+    <li>Add explore.json export from export_site.py. <span class="ap">[ ] approve [ ] reject</span></li>
+    <li>Exclude Cape Town holding/allocation double-count and unreliable land fields from displayed statistics until the data fix ships. <span class="ap">[ ] approve [ ] reject</span></li>
+    <li>Graaff-Reinet override scope = town label only (station POI and airport left as OSM has them). <span class="ap">[ ] approve [ ] reject</span></li>
+  </ol>
+</section>
+
+</div>
+<script>
+(function(){
+  var why=document.getElementById('tgWhy'),row=document.getElementById('tgRow'),cards=document.getElementById('cards');
+  if(why)why.addEventListener('click',function(){
+    var d=cards.querySelectorAll('details'),open=!d[0].open;
+    for(var i=0;i<d.length;i++)d[i].open=open;
+    why.textContent=open?'Close all “Why this result?”':'Open all “Why this result?”';
+  });
+  if(row)row.addEventListener('click',function(){cards.classList.toggle('rowmode');});
+})();
+</script>
+</body>
+</html>

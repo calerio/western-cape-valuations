@@ -1,10 +1,9 @@
 # Design & performance refresh — audit (2026-09-23)
 
-Scope: the live site at https://calerio.github.io/western-cape-valuations/ as of commit `9d9302a`
-(search DB build **D `b-2b502178f94f`**, `map.js?v=34`, `atlas.js?v=36`). Note: the project brief names
-`b-9dadc03c7f1f` (build C) as production; the repo, `extract/match/STATUS.md` and the live JS all point at
-build D since the evening of 2026-09-22. Neither build, the linker, nor any disposition semantics are touched
-by this project.
+**Production baseline: immutable valuation build `b-2b502178f94f` (build D) — current and untouched.**
+The live site (commit `9d9302a`, `map.js?v=34`, `atlas.js?v=36`) reads it; the project brief's
+`b-9dadc03c7f1f` is the previous build C, kept as a rollback target. Neither build, the linker, the Supabase
+namespaces nor any disposition semantics are touched by this project.
 
 Work is isolated on the website-repo branch `design-2026-09`. GitHub Pages deploys `main` only.
 
@@ -198,3 +197,36 @@ string; the Supabase `configUrl` literal in both JS files (rollback regex); `ver
 link-table-first, "missing key ⇒ Not in this data build"; `?db=` and `?nolink=1`; the disposition wording rules;
 the smoke-test ids/strings; `WSTATUS='C'`; attribution strings; the six `--map-*` tokens on `[data-theme]`
 pins; `?v=` bump pattern; SEO files; no Claude authorship in commits.
+
+## 8. Data audit — summary (full report: `01-data-audit.md`)
+
+Read-only audit of `wc-valuations.db` (1,459,474 properties, 196 roll files, 25 municipalities). Headline
+figures on the live site match the database exactly (R2.66 tn, median R915 k, Gini 0.62). Findings that are
+outside the design scope but need the owner's decision:
+
+1. **Personal data on the live site (POPIA) — verified.** 864 Matzikama rows with `suburb='0'` are
+   column-shifted: `site_address` holds the registered owner's name (819 of the 864 contain no digit; 16 name
+   a trust or family) and `category` holds the town. `site_address` is exported as `prop.address` in the
+   search DB, so the names are public now. Fix belongs in the Matzikama parser + a new build; until then the
+   Explore redesign never displays `site_address` for these rows.
+2. **Cape Town double count.** Multi-use properties appear as a parent "HOLDING / MULTIPLE PURPOSES" row and
+   again as erf-less allocation rows: R15.1 bn certain, up to ~R36 bn (1.4% of the province). The current
+   "most valuable property" on the site is one of these parents.
+3. `vacant_land_share` in `stats.json` is broken (0.0001): farm extents (1,533 Oudtshoorn farms > 100 km²,
+   Knysna farm numbers glued to extents) swamp the denominator.
+4. Witzenberg's provenance note still says "valued as at 2 July 2012"; the roll is GV2023 (1 Jul 2022).
+5. Bitou labels 4,775 farm portions as sectional units (41% shown, ~19% real).
+
+Usable for Explore now: 25 candidate statistics with tested SQL (percentiles incl. p99, log histogram,
+median freehold residential value per municipality, Cape Town share 64.7% of value, top-10% share 47.4%,
+places by median with n ≥ 200, value per m² only under the reliability rule: full-title residential, value
+≥ R10 k, extent 20–50,000 m², rolls that passed the extent check), an 8-group category rule covering 98% of
+rows and value, dates of valuation per municipality (1 Jul 2020 Hessequa → 1 Sep 2025 Kannaland; Laingsburg
+2018 draft; 9 municipalities state no date). Proposed `explore.json` ≈ 41 KB (13 KB gzipped). There is no
+multi-period series, so no sparklines or growth figures.
+
+## 9. P0 prerequisites — done 2026-09-23 (branch `p0-integrity-guards`)
+
+The fail-open gate (B1) and the stale-click race (B2) are fixed, unit-tested (`tests/selection.test.mjs`)
+and covered by two Playwright/WebKit browser regressions that failed on `9d9302a` and pass after the fix;
+DATA_CONTRACT §9b documents the semantics. The smoke matrix is run unchanged against the fixed tree.
