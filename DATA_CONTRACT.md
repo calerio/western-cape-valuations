@@ -581,7 +581,7 @@ The boundary GeoJSON is simplified by `extract/geo/simplify_geo.py` (per feature
 
 | file | before | after | tolerance | budget |
 |---|---:|---:|---:|---:|
-| `za-provinces` → `za-outline` (SA + WC dissolved) | 801,916 B | 16,627 B | 0.02° | 17 KB (12 KB target unreachable; achieved size recorded) |
+| `za-provinces` → `za-outline` (SA + WC dissolved) | 801,916 B | 28,198 B | 0.02° SA / 0.004° WC | 28 KB (12 KB target unreachable; achieved size recorded) |
 | `wc-districts` | 531,072 B | 49,991 B | 0.002° | 60 KB |
 | `wc-municipalities` | 703,958 B | 88,918 B | 0.002° | 90 KB |
 | `wc-wards` | 972,656 B | 224,425 B | 0.004° | 230 KB |

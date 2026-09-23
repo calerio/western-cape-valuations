@@ -127,8 +127,10 @@ Evaluation per target: pending.
 | **Map boot GeoJSON (munis + wards)** | **1,676,614** | **463,418** | **928,383** | **256,582** | |
 
 - **Size budgets.** `wc-districts` (60 KB) and `wc-municipalities` (90 KB) fit at tolerance 0.002°.
-  The outline may go up to 0.02° because it is only a backdrop and a 96 px locator. Even at 0.02° it is
-  16.6 KB, so the achieved size is recorded as its budget (17 KB) instead of the 12 KB target.
+  The outline uses fixed per-feature tolerances: the "South Africa" backdrop at 0.02° (a fill and a 96 px
+  locator) and the "Western Cape" feature at 0.004° (it is stroked and cuts the backdrop at every Atlas
+  zoom; at 0.02° the coast showed straight ~2 km segments at municipality zoom). That gives 28.2 KB, so the
+  achieved size is recorded as its budget (28 KB) instead of the 12 KB target.
   `wc-wards` stays at 0.004° so wards still read at municipality scale, and its budget is revised to
   230 KB. Wards load only on a municipality drill (Explore) or with the map's ward layer, **never at
   Explore first usable**, so they do not count against the Explore first-usable target.
