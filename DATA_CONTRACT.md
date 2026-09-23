@@ -221,6 +221,15 @@ So a partial data update = a quieter page, not a broken one.
 
 ---
 
+### 7b. Privacy hotfix — Matzikama addresses suppressed (2026-09-23)
+864 Matzikama rows (`suburb='0'`) are column-shifted in the parsed roll: `site_address` holds the registered
+owner's name and `category` the town. The hosted search DB (build `b-2b502178f94f`) therefore carries those
+names in `prop.address`. Until a corrected immutable build ships, **the site displays no address for ANY
+Matzikama row**: `atlas.js`/`map.js` render the i18n string "Address unavailable" (`ADDRESS_HIDDEN_MUNIS`), with
+no heuristic detection of names. Remove the rule only when the new build (Matzikama parser fixed, reparsed,
+re-adjudicated, verified) is the one referenced by `configUrl`. Static pages and `stats.json` `hi`/`lo` for
+Matzikama carry only street/town strings today and are regenerated with the same rule at the next export.
+
 ## 8. Why the search DB is hosted on Supabase Storage (NOT GitHub Pages)
 
 `sql.js-httpvfs` reads `search.db` with HTTP **Range requests** (it fetches only the few KB of pages a
