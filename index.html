@@ -43,261 +43,9 @@
 </script>
 <link href="assets/tokens.css?v=5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
-<style>
-  *{box-sizing:border-box}
-  html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);color:var(--ink);
-    font-family:var(--font-ui);-webkit-font-smoothing:antialiased}
-  ::selection{background:var(--accent);color:var(--accent-ink)}
-  @keyframes ohintpulse{0%,100%{opacity:.45}50%{opacity:1}}
-  a{color:inherit}
-  input,button{font-family:inherit}
-
-  /* ---- full-bleed map, Apple-Maps style: panels float over it ---- */
-  #map{position:fixed;inset:0}
-  #map svg{display:block;width:100%;height:100%}
-  #map path{cursor:default}
-  #map .o-clickable{cursor:pointer}
-  /* real Apple-Maps type: --font-map resolves to San Francisco on Apple devices
-     (falls back to Inter elsewhere). Labels are placed at each region's pole of
-     inaccessibility in atlas.js, so they never straddle a border. */
-  #map text{font-family:var(--font-map);pointer-events:none;-webkit-user-select:none;user-select:none}
-
-  /* ---- the place panel: left rail on desktop, bottom sheet on phones ---- */
-  #panel{position:fixed;top:16px;left:16px;bottom:16px;width:400px;z-index:40;
-    display:flex;flex-direction:column;overflow:hidden;
-    background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-    border:1px solid var(--sep);border-radius:var(--r-panel);box-shadow:var(--shadow-platter)}
-  #panel[hidden]{display:none}
-  #grab{display:none}
-  #pHead{position:relative;flex:0 0 auto;padding:14px 16px 12px;border-bottom:1px solid var(--sep)}
-  #pHead svg{position:absolute;left:30px;top:26px;opacity:.4;pointer-events:none}
-  #search{width:100%;padding:11px 14px 11px 40px;border:1px solid transparent;border-radius:var(--r-chip);
-    background:var(--bg3);font-size:14px;color:var(--ink);outline:none;
-    transition:border-color .2s ease-out,background .2s ease-out}
-  #search:focus{border-color:var(--accent);background:var(--bg2)}
-  #results{position:absolute;top:calc(100% - 6px);left:16px;right:16px;z-index:5;background:var(--bg2);
-    border:1px solid var(--sep);border-radius:12px;box-shadow:var(--shadow-overlay);
-    overflow:hidden auto;max-height:50vh}
-  #results[hidden]{display:none}
-  #pBody{flex:1;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 20px calc(env(safe-area-inset-bottom,0px) + 22px)}
-
-  /* panel header block */
-  #crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px}
-  #crumbs[hidden]{display:none}
-  #panelKick{font-size:11px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--label2);margin-bottom:10px}
-  #panelKick[hidden]{display:none}
-  #scopeLabel{margin:0 0 5px;font-weight:800;font-size:30px;line-height:1.05;letter-spacing:-.02em;text-wrap:balance}
-  #scopeSub{font-size:14px;line-height:1.5;color:var(--ink2);margin-bottom:6px}
-  #hint0{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:12px;letter-spacing:.02em;
-    font-weight:600;color:var(--accent)}
-  #hint0[hidden]{display:none}
-  #siteFooter{margin-top:28px;padding-top:16px;border-top:1px solid var(--sep);font-size:11.5px;line-height:1.6;color:var(--label2)}
-  #siteFooter a{color:inherit;text-decoration:underline;text-decoration-color:var(--sep)}
-
-  /* ---- dashboard content (inside the panel) ---- */
-  #dash[hidden]{display:none}
-  .kpis{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--sep);border-bottom:1px solid var(--sep);margin-top:16px}
-  .kpis>div{padding:14px 14px 16px}
-  .kpis>div:nth-child(odd){border-right:1px solid var(--sep)}
-  .kpis>div:nth-child(-n+2){border-bottom:1px solid var(--sep)}
-  .kpilab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:9px}
-  .kpinum{font-weight:800;letter-spacing:-.02em;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
-  .dsec{margin-top:34px}
-  .dh{margin:0 0 16px;font-weight:600;letter-spacing:-.02em;font-size:19px;text-wrap:balance}
-
-  /* stat tiles + property-mix bars */
-  .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .stile{border:1px solid var(--hairline);border-radius:14px;padding:14px 14px 15px;background:var(--bg2);box-shadow:var(--shadow-card)}
-  .stl{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--label2);margin-bottom:8px;line-height:1.3}
-  .stv{font-weight:600;letter-spacing:-.01em;font-size:20px;line-height:1.05;font-variant-numeric:tabular-nums;margin-bottom:6px}
-  .stn{font-size:11px;line-height:1.4;color:var(--ink2)}
-  .cmrow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
-  .cmlab{flex:0 0 86px;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--label2);text-align:right}
-  .cmbar{flex:1;display:flex;height:20px;border-radius:3px;overflow:hidden;background:var(--bg3)}
-  .cmbar>div{height:100%}
-  .cmleg{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:14px}
-  .clg{font-size:11.5px;color:var(--ink);display:flex;align-items:center;gap:6px}
-  .csw{width:10px;height:10px;border-radius:2px;display:inline-block;flex:0 0 auto}
-  .cpct{color:var(--label2);font-variant-numeric:tabular-nums}
-
-  /* clickable extreme-property cards */
-  .propcard{position:relative;cursor:pointer;transition:border-color .2s ease-out,box-shadow .2s ease-out,transform .12s ease-out;outline:none}
-  .propcard::after{content:"›";position:absolute;top:16px;right:18px;font-size:20px;line-height:1;color:var(--label3)}
-  .propcard:hover{border-color:var(--accent);box-shadow:var(--shadow-card)}
-  .propcard:active{transform:scale(.992)}
-  .propcard:focus-visible{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent)}
-
-  /* ---- floating chrome over the map ---- */
-  .platter{background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-    border:1px solid var(--sep);border-radius:var(--r-panel);box-shadow:var(--shadow-platter)}
-
-  /* iOS-style segmented view switcher — identical on Atlas and Satellite */
-  #viewsegWrap{position:fixed;top:16px;right:16px;z-index:30;padding:4px;border-radius:12px}
-  .viewseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
-  .viewseg a,.viewseg button{appearance:none;border:0;background:none;margin:0;font-family:inherit;text-decoration:none;font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
-    padding:11px 15px;border-radius:7px;cursor:pointer;transition:color .15s ease-out}
-  .viewseg a:hover,.viewseg button:hover{color:var(--ink)}
-  .viewseg a[aria-current="page"],.viewseg button[aria-pressed="true"]{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
-  /* reset-to-overview control — a quiet glass pill under the view switcher */
-  #resetBtn{min-height:44px;position:fixed;top:70px;right:16px;z-index:30;display:inline-flex;align-items:center;gap:6px;
-    padding:8px 14px 8px 11px;border:1px solid var(--sep);border-radius:var(--r-pill);
-    font-family:var(--font-ui);font-size:12.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink2);
-    cursor:pointer;opacity:0;transform:translateY(-4px);pointer-events:none;
-    transition:opacity .25s ease-out,transform .25s ease-out,color .15s ease-out}
-  #resetBtn:hover{color:var(--ink)}
-  #resetBtn:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent)}
-  #resetBtn.on{opacity:1;transform:none;pointer-events:auto}
-  #resetBtn svg{opacity:.75}
-  #legendBox{position:fixed;right:16px;bottom:16px;z-index:20;padding:13px 15px 14px;min-width:220px}
-  #legendTitle{font-size:11px;letter-spacing:.12em;font-weight:600;color:var(--label2);text-transform:uppercase;margin-bottom:9px}
-  #legendBar{height:8px;border-radius:4px}
-  #legendScale{display:flex;justify-content:space-between;margin-top:7px;font-size:11px;color:var(--ink);font-variant-numeric:tabular-nums}
-  #tip{position:fixed;z-index:50;pointer-events:none;opacity:0;transition:opacity .12s;background:var(--ink);color:var(--bg);
-    padding:10px 13px;border-radius:10px;box-shadow:var(--shadow-overlay);max-width:240px}
-
-  /* "how was this valued?" — provenance trigger on the municipality roll date + its popover */
-  .rollprov{cursor:help;border-bottom:1px dotted var(--label3);padding-bottom:1px;outline:none;white-space:nowrap}
-  .rollprov:hover,.rollprov:focus-visible{border-bottom-color:var(--accent);color:var(--ink)}
-  .provi{font-size:11px;margin-left:4px;color:var(--label2);vertical-align:baseline}
-  .rollprov:hover .provi,.rollprov:focus-visible .provi{color:var(--accent)}
-  #provPop{position:fixed;z-index:55;max-width:302px;padding:14px 16px 15px;
-    opacity:0;visibility:hidden;transform:translateY(-4px);
-    transition:opacity .18s ease-out,transform .18s ease-out,visibility .18s}
-  #provPop.on{opacity:1;visibility:visible;transform:none}
-  #provPop .ppTitle{font-weight:600;font-size:13.5px;letter-spacing:-.01em;margin-bottom:11px}
-  #provPop .ppGrid{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;font-size:12px}
-  #provPop .ppK{color:var(--label2)}
-  #provPop .ppV{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
-  #provPop .ppNote{margin-top:12px;padding-top:11px;border-top:1px solid var(--sep);
-    font-size:11.5px;line-height:1.55;color:var(--ink2)}
-  #provPop .ppSrc{margin-top:10px;font-size:11px}
-  #provPop .ppSrc a{color:var(--accent);text-decoration:none}
-  #provPop .ppSrc a:hover{text-decoration:underline}
-
-  /* loading */
-  #loading{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:var(--bg)}
-  #loadingMsg{font-size:15px;color:var(--ink2)}
-  #loadingBar{width:160px;height:2px;background:var(--sep);margin:16px auto 0;overflow:hidden;border-radius:1px}
-  #loadingBar>div{width:40%;height:100%;background:var(--accent);animation:ohintpulse 1.2s infinite}
-
-  /* ---- top-N properties overlay ---- */
-  #toplist{position:fixed;inset:0;z-index:60;display:none}
-  #toplist.open{display:block}
-  #tlScrim{position:absolute;inset:0;background:var(--scrim);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-  #tlPanel{position:absolute;background:var(--bg2);display:flex;flex-direction:column;overflow:hidden;
-    box-shadow:var(--shadow-overlay);opacity:0;transition:opacity .22s ease-out,transform .22s ease-out;border:1px solid var(--sep)}
-  #toplist.open #tlPanel{opacity:1}
-  #tlHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 14px;border-bottom:1px solid var(--sep)}
-  #tlKicker{font-size:11px;letter-spacing:.14em;font-weight:600;text-transform:uppercase;color:var(--accent);margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  #tlTitle{font-weight:600;letter-spacing:-.02em;font-size:24px;line-height:1.05}
-  #tlClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:44px;height:44px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
-  #tlControls{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 24px;border-bottom:1px solid var(--sep)}
-  #tlSeg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:3px}
-  #tlSeg button{appearance:none;-webkit-appearance:none;border:none;background:transparent;color:var(--ink2);font-size:13px;font-weight:600;padding:9px 15px;border-radius:7px;cursor:pointer}
-  #tlSeg button.on{background:var(--seg-on);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.18)}
-  #tlCount{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--label2);white-space:nowrap}
-  #tlBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:4px 24px 6px;flex:1}
-  #tlNote{padding:12px 24px calc(env(safe-area-inset-bottom,0px) + 16px);font-size:12px;line-height:1.5;color:var(--label2);border-top:1px solid var(--sep)}
-  .tlRow{display:flex;align-items:flex-start;gap:13px;padding:14px 0;border-bottom:1px solid var(--sep)}
-  .tlRank{flex:0 0 24px;font-size:15px;color:var(--label2);font-variant-numeric:tabular-nums;text-align:right;padding-top:2px}
-  .tlMain{flex:1;min-width:0}
-  .tlAddr{font-weight:600;font-size:16.5px;line-height:1.2}
-  .tlSub{font-size:12px;color:var(--label2);margin-top:3px}
-  .tlRight{flex:0 0 auto;text-align:right;padding-left:6px}
-  .tlVal{font-weight:600;font-size:16.5px;font-variant-numeric:tabular-nums}
-  .tlMeta{font-size:11.5px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px}
-  .tlCat{display:inline-block;font-size:11px;letter-spacing:.06em;font-weight:600;text-transform:uppercase;color:var(--ink2);border:1px solid var(--sep);border-radius:4px;padding:1px 5px;margin-left:7px;vertical-align:middle;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
-  @media (min-width:721px){
-    #tlPanel{top:50%;left:50%;transform:translate(-50%,-46%);width:min(720px,92vw);max-height:86vh;border-radius:var(--r-panel)}
-    #toplist.open #tlPanel{transform:translate(-50%,-50%)}
-  }
-
-  /* ---- property detail + rates estimator ---- */
-  #propdetail{position:fixed;inset:0;z-index:70;display:none}
-  #propdetail.open{display:block}
-  #pdScrim{position:absolute;inset:0;background:var(--scrim);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
-  #pdPanel{position:absolute;background:var(--bg2);display:flex;flex-direction:column;overflow:hidden;box-shadow:var(--shadow-overlay);opacity:0;transition:opacity .2s ease-out,transform .2s ease-out;border:1px solid var(--sep)}
-  #propdetail.open #pdPanel{opacity:1}
-  #pdHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 24px 16px;border-bottom:1px solid var(--sep)}
-  #pdKicker{font-size:11px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent);margin-bottom:5px}
-  #pdAddr{font-weight:600;letter-spacing:-.02em;font-size:23px;line-height:1.12}
-  #pdClose{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);width:44px;height:44px;border-radius:9px;font-size:23px;line-height:1;color:var(--ink);flex:0 0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;padding-bottom:3px}
-  #pdBody{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:18px 24px calc(env(safe-area-inset-bottom,0px) + 22px)}
-  .pdVal{font-weight:800;letter-spacing:-.02em;font-size:34px;line-height:1;font-variant-numeric:tabular-nums;margin:2px 0 2px}
-  .pdStat{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--sep);font-size:14px}
-  .pdStat .k{color:var(--ink2)}
-  .pdStat .v{font-variant-numeric:tabular-nums;text-align:right}
-  .pdTax{margin-top:20px;background:var(--bg3);border:1px solid var(--hairline);border-radius:12px;padding:16px 18px}
-  #pdGo{margin-top:18px;font-size:12.5px;font-weight:600;letter-spacing:.04em;color:var(--accent);cursor:pointer}
-  @media (min-width:721px){
-    #pdPanel{top:50%;left:50%;transform:translate(-50%,-46%);width:min(560px,92vw);max-height:88vh;border-radius:var(--r-panel)}
-    #propdetail.open #pdPanel{transform:translate(-50%,-50%)}
-  }
-  @media (max-width:720px){
-    #pdPanel{inset:0;transform:translateY(16px)}
-    #propdetail.open #pdPanel{transform:translateY(0)}
-    #pdHead{padding-top:calc(env(safe-area-inset-top,0px) + 16px)}
-  }
-
-  /* ---- mobile header (hidden on desktop) ---- */
-  #mbar{display:none}
-
-  /* ============================ MOBILE ============================ */
-  @media (max-width:720px){
-    .desk{display:none !important}
-
-    /* persistent top bar: always shows where you are + search */
-    #mbar{display:block;position:fixed;top:0;left:0;right:0;z-index:45;
-      background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
-      border-bottom:1px solid var(--sep);
-      padding:calc(env(safe-area-inset-top,0px) + 10px) 14px 11px}
-    #mbar .mrow{display:flex;align-items:center;gap:11px}
-    #mback{appearance:none;-webkit-appearance:none;border:1px solid var(--sep);background:var(--bg2);
-      width:40px;height:40px;border-radius:9px;font-size:22px;line-height:1;color:var(--ink);
-      display:flex;align-items:center;justify-content:center;flex:0 0 auto;padding-bottom:2px}
-    #mback[hidden]{display:none}
-    #mtext{min-width:0;flex:1}
-    #mkicker{font-size:11px;letter-spacing:.16em;font-weight:600;color:var(--label2);text-transform:uppercase;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px}
-    #mloc{font-weight:600;letter-spacing:-.02em;font-size:22px;line-height:1.04;
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    #msearchWrap{position:relative;margin-top:11px}
-    #msearchWrap svg{position:absolute;left:13px;top:13px;opacity:.4}
-    #msearch{width:100%;padding:12px 14px 12px 40px;border:1px solid transparent;border-radius:11px;
-      background:var(--bg3);font-size:16px;color:var(--ink);outline:none}     /* 16px = no iOS auto-zoom */
-    #msearch:focus{border-color:var(--accent);background:var(--bg2)}
-    #mresults{margin-top:9px;background:var(--bg2);border:1px solid var(--sep);border-radius:11px;
-      overflow:hidden auto;box-shadow:0 18px 40px -20px var(--scrim);max-height:54vh}
-    #mresults[hidden]{display:none}
-
-    /* the place panel becomes a draggable bottom sheet */
-    #panel{top:auto;left:8px;right:8px;bottom:8px;width:auto;
-      max-height:calc(100dvh - env(safe-area-inset-top,0px) - 132px);
-      transform:translateY(calc(100% - 134px));
-      transition:transform .32s cubic-bezier(.32,.72,.28,1)}
-    #panel.full{transform:translateY(0);background:var(--bg)}   /* opaque when expanded — charts stay readable */
-    #panel.dragging{transition:none}
-    #pHead{display:none}                     /* the top bar owns search on phones */
-    #crumbs{display:none !important}         /* the top bar already shows the hierarchy */
-    #grab{display:flex;flex:0 0 auto;justify-content:center;padding:14px 0 8px;cursor:grab;touch-action:none}
-    #grab::before{content:"";width:36px;height:5px;border-radius:3px;background:var(--label3)}
-    #pBody{overflow-y:hidden;padding:6px 18px calc(env(safe-area-inset-bottom,0px) + 18px)}
-    #panel.full #pBody{overflow-y:auto}
-    #scopeLabel{font-size:24px}
-    #scopeSub{font-size:13px}
-    .kpinum{font-size:23px}
-
-    /* legend gives way to the sheet once drilled (JS toggles it) */
-    #legendBox{left:14px;right:14px;min-width:0}
-    .viewseg a,.viewseg button{font-size:11.5px;padding:12px 12px}
-  }
-
-  @media (prefers-reduced-motion:reduce){
-    *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important;animation-iteration-count:1 !important}
-  }
-</style>
+<link href="assets/explore.css?v=1" rel="stylesheet" />
 </head>
-<body>
+<body class="explore">
 <noscript>
   <p>The Western Cape Property Valuation Atlas is an interactive map of official municipal
   property valuations across the Western Cape, South Africa — the Cape Town metro and all
@@ -308,151 +56,107 @@
   project on GitHub</a>.</p>
 </noscript>
 
-<div id="map"></div>
-
-<!-- ===== Mobile-only top bar: persistent location + search ===== -->
-<header id="mbar">
-  <div class="mrow">
-    <button id="mback" aria-label="Go up one level" hidden>‹</button>
-    <div id="mtext">
-      <div id="mkicker" data-i18n="Property valuations">Property valuations</div>
-      <div id="mloc">South Africa</div>
-    </div>
-    <div style="margin-left:auto;flex:0 0 auto;display:flex;gap:8px">
-      <nav class="viewseg" aria-label="Map view">
-        <a href="index.html" aria-current="page" data-i18n="Explore">Explore</a>
-        <a href="plain.html" data-i18n="Map">Map</a>
-        <a href="map.html" data-i18n="Satellite">Satellite</a>
-      </nav>
-      <nav class="viewseg" aria-label="Language / Taal">
-        <button type="button" data-lang="en" aria-pressed="true">EN</button>
-        <button type="button" data-lang="af" aria-pressed="false">AF</button>
-      </nav>
-    </div>
-  </div>
-  <div id="msearchWrap">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-    <input id="msearch" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search a town or municipality" placeholder="Search a town or municipality" aria-label="Search a town or municipality" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-autocomplete="list" aria-controls="mresults" />
-  </div>
-  <div id="mresults" role="listbox" aria-live="polite" hidden></div>
-</header>
-
-<!-- ===== The place panel: left rail (desktop) / bottom sheet (mobile) ===== -->
-<aside id="panel" aria-label="Valuation breakdown">
-  <div id="grab" role="button" tabindex="0" aria-label="Expand or collapse the panel"></div>
-  <div id="pHead">
-    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--ink)" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
-    <input id="search" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search a town, municipality or address" placeholder="Search a town, municipality or address" aria-label="Search a town, municipality or address" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-autocomplete="list" aria-controls="results" />
+<header class="bar">
+  <a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span><span data-i18n="Western Cape municipal valuations">Western Cape municipal valuations</span></a>
+  <div id="pHead" class="searchbox" role="search">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
+    <input id="search" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search an address, town or municipality" placeholder="Search an address, town or municipality" aria-label="Search an address, town or municipality" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-autocomplete="list" aria-controls="results" />
     <div id="results" role="listbox" aria-live="polite" hidden></div>
   </div>
-  <div id="pBody">
-    <div id="crumbs" hidden></div>
-    <div id="panelKick" data-i18n="Municipal property valuations">Municipal property valuations</div>
+  <div id="viewsegWrap">
+    <nav class="viewseg" aria-label="Map view">
+      <a href="index.html" aria-current="page" data-i18n="Explore">Explore</a>
+      <a href="plain.html" data-maplink="plain.html" data-i18n="Map">Map</a>
+      <a href="map.html" data-maplink="map.html" data-i18n="Satellite">Satellite</a>
+    </nav>
+    <nav class="viewseg" aria-label="Language / Taal">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="af" aria-pressed="false">AF</button>
+    </nav>
+  </div>
+</header>
+
+<main class="layout">
+  <!-- orientation rail: where you are, the headline figures, the locator + choropleth, coverage -->
+  <aside id="panel" class="rail" aria-label="Valuation overview">
+    <nav id="crumbs" aria-label="Breadcrumb" hidden></nav>
     <h1 id="scopeLabel">Western Cape</h1>
-    <div id="scopeSub"></div>
-    <div id="hint0"><span style="display:inline-block;animation:ohintpulse 1.8s infinite">◉</span><span data-i18n="Select the Western Cape on the map to begin">Select the Western Cape on the map to begin</span></div>
-
-    <div id="dash" hidden>
-      <div class="kpis">
-        <div><div class="kpilab" data-i18n="Median valuation">Median valuation</div><div id="statMedian" class="kpinum"></div></div>
-        <div><div class="kpilab" data-i18n="Average valuation">Average valuation</div><div id="statAvg" class="kpinum"></div></div>
-        <div><div class="kpilab" data-i18n="Total roll value">Total roll value</div><div id="statTotal" class="kpinum"></div></div>
-        <div><div class="kpilab" data-i18n="Registered parcels">Registered parcels</div><div id="statParcels" class="kpinum"></div></div>
-      </div>
-
-      <!-- price distribution -->
-      <div class="dsec">
-        <h3 class="dh" data-i18n="Price distribution">Price distribution</h3>
-        <div id="distChart"></div>
-      </div>
-
-      <!-- richer distribution statistics -->
-      <div class="dsec" id="closer">
-        <div class="statgrid" id="statTiles"></div>
-        <div id="catMix" style="margin-top:26px"></div>
-      </div>
-
-      <!-- value distribution (M5) -->
-      <div class="dsec" id="secValueDist"><h3 class="dh" data-i18n="Value distribution">Value distribution</h3><div id="secValueDistBody"></div></div>
-      <!-- composition: category medians, vacant land, outliers (M5) -->
-      <div class="dsec" id="secComposition"><h3 class="dh" data-i18n="Composition">Composition</h3><div id="secCompositionBody"></div></div>
-      <!-- standing: rank within district (M5) -->
-      <div class="dsec" id="secStanding"><h3 class="dh" data-i18n="Standing">Standing</h3><div id="secStandingBody"></div></div>
-      <!-- change over time (M5) — hidden until a second roll exists -->
-      <div class="dsec" id="secGrowth"><h3 class="dh" data-i18n="Change since the previous roll">Change since the previous roll</h3><div id="secGrowthBody"></div></div>
-      <!-- affordability estimate (M5) -->
-      <div class="dsec" id="secAfford"><h3 class="dh" data-i18n="Affordability estimate">Affordability estimate</h3><div id="secAffordBody"></div></div>
-      <!-- data quality: gaps in the published roll (counts from the export's dq_* fields) -->
-      <div class="dsec" id="secQuality"><h3 class="dh" data-i18n="Data quality">Data quality</h3><div id="secQualityBody"></div></div>
-      <!-- who sets & governs these values: valuer + authorities/role-players (from authorities.py) -->
-      <div class="dsec" id="secAuthorities"><h3 class="dh" data-i18n="Who sets & governs these values">Who sets &amp; governs these values</h3><div id="secAuthoritiesBody"></div></div>
-      <!-- who represents this municipality: governing party + seat bar (from politics.py); links out to the full council/ward list on the muni page -->
-      <div class="dsec" id="secPolitics"><h3 class="dh" data-i18n="Who represents this municipality">Who represents this municipality</h3><div id="secPoliticsBody"></div></div>
-
-      <!-- ranked children -->
-      <div class="dsec">
-        <h3 id="rankTitle" class="dh"></h3>
-        <div id="ranked"></div>
-      </div>
-
-      <!-- extreme properties -->
-      <div class="dsec" style="display:flex;flex-direction:column;gap:16px">
-        <div id="hiCard" class="propcard" role="button" tabindex="0" aria-label="View the most valuable properties" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:18px 20px">
-          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:10px" data-i18n="Most valuable property">Most valuable property</div>
-          <div id="hiAddr" style="font-weight:600;letter-spacing:-.01em;font-size:18px;line-height:1.15;margin-bottom:3px"></div>
-          <div id="hiSub" style="font-size:12px;color:var(--label2);margin-bottom:10px"></div>
-          <div id="hiVal" style="font-weight:800;letter-spacing:-.01em;font-size:23px;font-variant-numeric:tabular-nums"></div>
-          <div id="hiMeta" style="font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
-        </div>
-        <div id="loCard" class="propcard" role="button" tabindex="0" aria-label="View the most affordable homes" style="background:var(--bg2);border:1px solid var(--hairline);border-radius:var(--r-card);box-shadow:var(--shadow-card);padding:18px 20px">
-          <div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ok);margin-bottom:10px" data-i18n="Most affordable home">Most affordable home</div>
-          <div id="loAddr" style="font-weight:600;letter-spacing:-.01em;font-size:18px;line-height:1.15;margin-bottom:3px"></div>
-          <div id="loSub" style="font-size:12px;color:var(--label2);margin-bottom:10px"></div>
-          <div id="loVal" style="font-weight:800;letter-spacing:-.01em;font-size:23px;font-variant-numeric:tabular-nums"></div>
-          <div id="loMeta" style="font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums;margin-top:3px"></div>
-        </div>
-        <div id="dashNote" style="font-size:12px;line-height:1.6;color:var(--label2);padding:0 2px"></div>
+    <p id="scopeSub" class="lede"></p>
+    <dl class="figures">
+      <div class="fig-main"><dt data-i18n="Total market value">Total market value</dt><dd id="statTotal"></dd></div>
+      <div><dt data-i18n="Median valuation">Median valuation</dt><dd id="statMedian"></dd></div>
+      <div><dt data-i18n="Average valuation">Average valuation</dt><dd id="statAvg"></dd></div>
+      <div><dt data-i18n="Properties on the roll">Properties on the roll</dt><dd id="statParcels"></dd></div>
+      <div><dt id="statDatesLab" data-i18n="Dates of valuation">Dates of valuation</dt><dd id="statDates"></dd></div>
+    </dl>
+    <div class="actions">
+      <button type="button" id="findBtn" class="btn pri" data-i18n="Find my property">Find my property</button>
+      <a class="btn alt" href="plain.html" data-maplink="plain.html" data-i18n="Open the map">Open the map</a>
+    </div>
+    <div class="locator">
+      <div id="map"></div>
+      <svg id="saLocator" viewBox="0 0 120 90" width="120" height="90" aria-hidden="true" focusable="false"></svg>
+      <div id="legendBox">
+        <div id="legendTitle"></div>
+        <div id="legendBar" aria-hidden="true"></div>
+        <div id="legendScale"><span id="legendMin"></span><span id="legendMax"></span></div>
       </div>
     </div>
+    <div id="coverage" class="coverage" hidden></div>
+  </aside>
+
+  <!-- reading column: the ledger table first, then spread, contents, dates, findings -->
+  <div id="column" class="column">
+    <section id="secValue" class="sec"></section>
+    <section id="secSpread" class="sec"></section>
+    <section id="secMix" class="sec"></section>
+    <section id="secDates" class="sec"></section>
+    <section id="secFindings" class="sec"></section>
+
+    <section id="secProps" class="sec">
+      <h2 data-i18n="Individual properties">Individual properties</h2>
+      <p class="lede" data-i18n="The most valuable property and the most affordable home on the roll; open either for a ranked list.">The most valuable property and the most affordable home on the roll; open either for a ranked list.</p>
+      <div class="props">
+        <div id="hiCard" class="propcard" role="button" tabindex="0" data-i18n-aria="View the most valuable properties" aria-label="View the most valuable properties">
+          <p class="pc-k" data-i18n="Most valuable property">Most valuable property</p>
+          <p id="hiAddr" class="pc-addr"></p>
+          <p id="hiSub" class="pc-sub"></p>
+          <p id="hiVal" class="pc-val"></p>
+          <p id="hiMeta" class="pc-meta"></p>
+        </div>
+        <div id="loCard" class="propcard" role="button" tabindex="0" data-i18n-aria="View the most affordable homes" aria-label="View the most affordable homes">
+          <p class="pc-k" data-i18n="Most affordable home">Most affordable home</p>
+          <p id="loAddr" class="pc-addr"></p>
+          <p id="loSub" class="pc-sub"></p>
+          <p id="loVal" class="pc-val"></p>
+          <p id="loMeta" class="pc-meta"></p>
+        </div>
+      </div>
+      <p id="dashNote" class="note"></p>
+    </section>
+
+    <!-- the municipality's own blocks (each hides itself when its data is absent) -->
+    <section class="sec dsec" id="secStanding"><h2 data-i18n="Standing">Standing</h2><div id="secStandingBody"></div></section>
+    <section class="sec dsec" id="secGrowth"><h2 data-i18n="Change since the previous roll">Change since the previous roll</h2><div id="secGrowthBody"></div></section>
+    <section class="sec dsec" id="secAfford"><h2 data-i18n="Affordability estimate">Affordability estimate</h2><div id="secAffordBody"></div></section>
+    <section class="sec dsec" id="secQuality"><h2 data-i18n="Data quality">Data quality</h2><div id="secQualityBody"></div></section>
+    <section class="sec dsec" id="secAuthorities"><h2 data-i18n="Who sets & governs these values">Who sets &amp; governs these values</h2><div id="secAuthoritiesBody"></div></section>
+    <section class="sec dsec" id="secPolitics"><h2 data-i18n="Who represents this municipality">Who represents this municipality</h2><div id="secPoliticsBody"></div></section>
 
     <!-- static, crawlable without JS: the link path into the generated /m/ + /d/ pages -->
-    <div id="siteFooter">
-      Browse every <a href="m/index.html">municipality &amp; district</a> ·
-      Public data under the Municipal Property Rates Act ·
-      <a href="map.html">Satellite map</a>
-    </div>
+    <footer id="siteFooter">
+      <p>Public data under the Municipal Property Rates Act.
+      <a href="guide/how-valuations-work.html">How valuations work</a>.
+      <a href="m/index.html">Browse municipalities and districts</a>.
+      <a href="map.html">Satellite map</a>.</p>
+    </footer>
   </div>
-</aside>
+</main>
 
-<!-- ===== floating chrome ===== -->
-<div id="viewsegWrap" class="desk platter" style="display:flex;gap:8px">
-  <nav class="viewseg" aria-label="Map view">
-    <a href="index.html" aria-current="page" data-i18n="Explore">Explore</a>
-    <a href="plain.html" data-i18n="Map">Map</a>
-    <a href="map.html" data-i18n="Satellite">Satellite</a>
-  </nav>
-  <nav class="viewseg" aria-label="Language / Taal">
-    <button type="button" data-lang="en" aria-pressed="true">EN</button>
-    <button type="button" data-lang="af" aria-pressed="false">AF</button>
-  </nav>
-</div>
-
-<!-- Reset: back to the full-map overview. Fades in once drilled in (JS toggles .on). -->
-<button id="resetBtn" class="desk platter" aria-label="Reset the map to the full Western Cape view" title="Back to the full map">
-  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4.5V8H7.5"/></svg>
-  <span data-i18n="Reset">Reset</span>
-</button>
-
-<div id="legendBox" class="platter">
-  <div id="legendTitle">Median value · district</div>
-  <div id="legendBar"></div>
-  <div id="legendScale"><span id="legendMin"></span><span id="legendMax"></span></div>
-</div>
-
-<div id="tip"></div>
+<div id="tip" role="tooltip"></div>
 
 <div id="loading">
-  <div style="text-align:center">
+  <div class="loading-in">
     <div id="loadingMsg" data-i18n="Loading the atlas…">Loading the atlas…</div>
     <div id="loadingBar"><div></div></div>
   </div>
@@ -463,17 +167,17 @@
   <div id="tlScrim"></div>
   <div id="tlPanel" role="dialog" aria-modal="true" aria-labelledby="tlTitle">
     <div id="tlHead">
-      <div style="min-width:0">
+      <div class="tl-headtext">
         <div id="tlKicker"></div>
         <div id="tlTitle"></div>
       </div>
-      <button id="tlClose" aria-label="Close">×</button>
+      <button id="tlClose" aria-label="Close" data-i18n-aria="Close">×</button>
     </div>
     <div id="tlControls">
-      <div id="tlSeg" role="tablist" aria-label="How many to show">
-        <button data-n="10" class="on" role="tab" aria-selected="true">Top 10</button>
-        <button data-n="20" role="tab" aria-selected="false">Top 20</button>
-        <button data-n="30" role="tab" aria-selected="false">Top 30</button>
+      <div id="tlSeg" role="tablist" aria-label="How many to show" data-i18n-aria="How many to show">
+        <button data-n="10" class="on" role="tab" aria-selected="true" data-i18n="Top 10">Top 10</button>
+        <button data-n="20" role="tab" aria-selected="false" data-i18n="Top 20">Top 20</button>
+        <button data-n="30" role="tab" aria-selected="false" data-i18n="Top 30">Top 30</button>
       </div>
       <div id="tlCount"></div>
     </div>
@@ -487,16 +191,16 @@
   <div id="pdScrim"></div>
   <div id="pdPanel" role="dialog" aria-modal="true" aria-labelledby="pdAddr">
     <div id="pdHead">
-      <div style="min-width:0">
+      <div class="pd-headtext">
         <div id="pdKicker"></div>
         <div id="pdAddr"></div>
       </div>
-      <button id="pdClose" aria-label="Close">×</button>
+      <button id="pdClose" aria-label="Close" data-i18n-aria="Close">×</button>
     </div>
     <div id="pdBody"></div>
   </div>
 </div>
 
-<script type="module" src="assets/atlas.js?v=37"></script>
+<script type="module" src="assets/atlas.js?v=38"></script>
 </body>
 </html>

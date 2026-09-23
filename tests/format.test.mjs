@@ -16,3 +16,12 @@ test('short form for tiles', () => { assert.equal(fmtR(915000, 'en', { short: tr
 test('numbers, percentages, m²', () => {
   assert.equal(fmtN(1459474), '1 459 474'); assert.equal(fmtPct(0.647), '64.7%'); assert.equal(fmtPct(0.647, 'af'), '64,7%'); assert.equal(fmtM2(358), '358 m²');
 });
+test('tier boundaries promote when rounding would reach the next tier', () => {
+  assert.equal(fmtR(999999.6), 'R1 m');
+  assert.equal(fmtR(999995000), 'R1 bn');
+  assert.equal(fmtR(999995000000), 'R1 tn');
+  assert.equal(fmtR(999600, 'en', { short: true }), 'R1 m');
+  assert.equal(fmtR(994000), 'R994 000');
+  assert.equal(fmtR(999499, 'en', { short: true }), 'R999 k');
+  assert.equal(fmtR(-999999.6), '-R1 m');
+});

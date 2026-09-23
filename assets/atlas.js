@@ -1,5 +1,8 @@
 import { getRates, computeRates } from "./rates.js?v=1";
 import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } from "./i18n.js?v=1";
+import { fmtR, fmtN } from "./format.js?v=2";
+import { dur } from "./motion.js?v=1";
+import { renderSections, renderCoverage } from "./explore-sections.js?v=1";
 
 // d3 comes from the UMD bundle loaded in <head> — importing the jsdelivr +esm build
 // as well would fetch the whole ~30-module d3 graph a second time (and trigger a wall
@@ -7,13 +10,13 @@ import { t, tf, tn, loadCatalog, applyDom, setLang, onLangChange, currentLang } 
 const d3 = window.d3;
 
 /* ============================ config / tokens ============================ */
-const W = 1000, H = 760, MAXK = 46;
+// The choropleth lives in the Explore rail (≈ 410 px wide), so the viewBox is rail-sized: label
+// sizes in viewBox units are close to CSS px.
+const W = 460, H = 360, MAXK = 46;
 // design tokens (assets/tokens.css) — read once at boot
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const RAMP = [1, 2, 3, 4, 5].map(i => cssVar(`--ramp-${i}`));
-const ACCENT = cssVar("--accent");
 const LAND = cssVar("--land"), NODATA = cssVar("--nodata");
-const YEAR = "2024 / 25";
 const $ = s => document.getElementById(s);
 
 // Make a clickable element keyboard-operable — tabbable, role, Enter/Space (audit 2026-07-19).
@@ -38,9 +41,10 @@ function applyStaticI18n() {
   if (md) md.content = t("Free interactive atlas of official municipal property valuations across the Western Cape. Search any address or erf, explore districts and municipalities, see price distributions.");
   applyDom();
   const sf = $("siteFooter");
-  if (sf) sf.innerHTML = `${t("Browse every")} <a href="m/index.html">${t("municipality & district")}</a> ·
-      ${t("Public data under the Municipal Property Rates Act")} ·
-      <a href="map.html">${t("Satellite map")}</a>`;
+  if (sf) sf.innerHTML = `<p>${t("Public data under the Municipal Property Rates Act.")}
+      <a href="${GUIDE()}">${t("How valuations work")}</a>.
+      <a href="m/index.html">${t("Browse municipalities and districts")}</a>.
+      <a href="map.html">${t("Satellite map")}</a>.</p>`;
   document.querySelectorAll("button[data-lang]").forEach(b =>
     b.setAttribute("aria-pressed", String(b.dataset.lang === currentLang())));
 }
@@ -54,21 +58,14 @@ function wireLangToggle() {
     applyStaticI18n();
     // Lighter than navigate(): re-render the text only (labels + chrome, which renders the dash),
     // so a manual pan/zoom, open search results and the panel scroll position all survive.
-    if (STATS) { labels(statePath.length, statePath); renderChrome(statePath); }
+    if (STATS) { labels(statePath.length, statePath); renderChrome(statePath); renderCoverage(EXPLORE); }
   });
 }
 
-/* Language-aware compact Rand: Afrikaans large-number words differ from English
- * (10⁹ = miljard, 10¹² = biljoen — NOT "billion"), so af uses mn./mjd./bilj.
- * suffixes and the Afrikaans decimal comma. Mirrored in map.js + export_pages.py. */
-const dsep = s => isAF() ? s.replace(".", ",") : s;
-const R = v => { v = +v; if (!isFinite(v)) return "—"; const AF_R = isAF();
-  if (v >= 1e12) return "R" + dsep((v / 1e12).toFixed(2)) + (AF_R ? " bilj." : "tn");
-  if (v >= 1e9) return "R" + dsep((v / 1e9).toFixed(v >= 1e10 ? 0 : 1)) + (AF_R ? " mjd." : "bn");
-  if (v >= 1e6) return "R" + dsep((v / 1e6).toFixed(2)) + (AF_R ? " mn." : "m");
-  if (v >= 1e3) return "R" + Math.round(v / 1e3) + "k";
-  return "R" + Math.round(v); };
-const N = v => v == null ? "—" : (+v).toLocaleString("en-ZA").replace(/,/g, " ");
+/* Money + counts: the shared EN/AF formatter (assets/format.js) — "R850 000", "R1.25 m",
+ * "R2.66 tn"; Afrikaans uses the decimal comma and mn./mjd./bilj. (same as the map page). */
+const R = (v, o) => fmtR(v, currentLang(), o);
+const N = v => fmtN(v, currentLang());
 const norm = s => (s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 const esc = s => String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const clAddr = s => (s || "").replace(/\s+/g, " ").trim();                 // collapse OCR padding
@@ -81,7 +78,7 @@ const dispAddr = r => addrHidden(r && r.muni) ? t("Address unavailable") : (clAd
 const clSub = s => clAddr(s).replace(/(\s+\d{3,})+$/, "");                 // strip trailing data codes
 
 /* ============================ state ============================ */
-let STATS, TOWNS, PROV, DISTF, MUNIF;
+let STATS, TOWNS, PROV, DISTF, MUNIF, EXPLORE = null;
 let proj, path, gNode, gProv, gDist, gMuni, gWard, gLabel, defs, svg;
 let DISTRICTS = {};            // name -> {feature, munis:[name]}
 let muniByName = {};           // name -> feature
@@ -102,12 +99,14 @@ let dbw = null, dbwPromise = null, areaIndex = null;
   await loadCatalog(currentLang());                    // EN: no fetch (the key is the text)
   applyStaticI18n();
   try {
-    [STATS, TOWNS, PROV, DISTF, MUNIF] = await Promise.all([
+    const exploreP = loadExplore();                    // optional: null → the page degrades to stats.json
+    [STATS, TOWNS, PROV, DISTF, MUNIF, EXPLORE] = await Promise.all([
       fetch("data/stats.json").then(r => r.json()),
       fetch("data/towns.json").then(r => r.json()),
       fetch("data/geo/za-provinces.geojson").then(r => r.json()),
       fetch("data/geo/wc-districts.geojson").then(r => r.json()),
       fetch("data/geo/wc-municipalities.geojson").then(r => r.json()),
+      exploreP,
     ]);
   } catch (e) {
     $("loadingMsg").textContent = t("Could not load the atlas data. Try reloading the page.");
@@ -115,14 +114,15 @@ let dbw = null, dbwPromise = null, areaIndex = null;
   }
   clipMainland(); toPlanar(); buildHierarchy(); initMap();
   $("loading").style.display = "none";
-  navigate(parseHash(), false);                        // deep-link boot (#m/<slug> / #d/<slug>)
+  renderCoverage(EXPLORE);
+  navigate(parseHash(), false);                        // deep-link boot (#m/<slug> / #d/<slug>); no hash = province
+  reveal();
   addEventListener("hashchange", () => {               // manual address-bar edits; our own
     const p = parseHash();                             // replaceState updates never fire this
     if (JSON.stringify(p) !== JSON.stringify(statePath)) navigate(p);
   });
-  wireSearch(); wireSheet();
-  $("mback").onclick = () => { if (statePath.length) navigate(statePath.slice(0, -1)); };
-  $("resetBtn").onclick = () => { if (statePath.length) navigate([]); };
+  wireSearch();
+  $("findBtn").onclick = () => { const s = $("search"); scrollTo({ top: 0, behavior: dur(1) ? "smooth" : "auto" }); s.focus(); };
   let rzT; addEventListener("resize", () => { clearTimeout(rzT); rzT = setTimeout(() => navigate(statePath, false), 200); });
 
   // top-N properties overlay
@@ -136,12 +136,38 @@ let dbw = null, dbwPromise = null, areaIndex = null;
   $("tlScrim").onclick = closeTop;
   $("tlSeg").addEventListener("click", e => { const b = e.target.closest("button"); if (!b) return; tlN = +b.dataset.n;
     [...$("tlSeg").children].forEach(x => { x.classList.toggle("on", x === b); x.setAttribute("aria-selected", String(x === b)); }); loadTop(); });
+  wireTopRows();
   $("pdClose").onclick = closeProp;
   $("pdScrim").onclick = closeProp;
   trapTab($("toplist")); trapTab($("propdetail"));
   addEventListener("keydown", e => { if (e.key !== "Escape") return; if ($("propdetail").classList.contains("open")) closeProp(); else if ($("toplist").classList.contains("open")) closeTop(); });
-  ensureDB().catch(() => {});   // pre-warm the SQLite worker so the first search / top-N is instant
+  // The search DB is only for address search / top-N lists (never for aggregates): start it when
+  // the browser is idle after first paint, or on the first search focus, whichever comes first.
+  const warm = () => ensureDB().catch(() => {});
+  if (typeof requestIdleCallback === "function") requestIdleCallback(warm, { timeout: 4000 }); else setTimeout(warm, 2500);
 })();
+
+/* data/explore.json: province/district/municipality statistics for the reading column.
+ * Resolves null on any failure — the headline + table still render from stats.json. */
+async function loadExplore() {
+  try {
+    const r = await fetch("data/explore.json?v=1");
+    if (!r.ok) return null;
+    const j = await r.json();
+    return j && j.meta && j.nodes ? j : null;
+  } catch (_) { return null; }
+}
+
+/* One staged reveal on first paint (rail, then the column's sections), ≤ 8 items, 60 ms apart;
+ * nothing under prefers-reduced-motion (dur() → 0). */
+function reveal() {
+  if (!dur(1)) return;
+  const items = [...document.querySelectorAll(".rail > *:not([hidden]), .column > .sec:not([hidden])")].slice(0, 8);
+  items.forEach((el, i) => {
+    if (el.animate) el.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }],
+      { duration: dur(320), delay: i * dur(60), easing: "ease-out", fill: "backwards" });
+  });
+}
 
 const name = f => f.properties.name;
 
@@ -157,17 +183,18 @@ function buildHierarchy() {
 }
 
 /* Deep links: #m/<slug> (municipality) and #d/<slug> (district) — the contract the static
- * /m/ and /d/ pages link with. Unknown or malformed hashes fall back to the province view. */
+ * /m/ and /d/ pages link with. No hash, or an unknown/malformed one, lands on the province
+ * (Explore has no "South Africa" level any more: province stats show without a click). */
 function parseHash() {
   const m = /^#(m|d)\/(.+)$/.exec(decodeURIComponent(location.hash || ""));
-  if (!m) return [];
+  if (!m) return [wcCrumb()];
   if (m[1] === "d") {
     const d = distSlugs[m[2]];
-    return d ? [wcCrumb(), { type: "district", name: d }] : [];
+    return d ? [wcCrumb(), { type: "district", name: d }] : [wcCrumb()];
   }
   const mu = muniSlugs[m[2]];
   const d = mu && muniByName[mu].properties.district;
-  return DISTRICTS[d] ? [wcCrumb(), { type: "district", name: d }, { type: "municipality", name: mu }] : [];
+  return DISTRICTS[d] ? [wcCrumb(), { type: "district", name: d }, { type: "municipality", name: mu }] : [wcCrumb()];
 }
 function syncHash(p) {
   // replaceState, never pushState: navigate() also fires on resize/search/breadcrumbs, and
@@ -215,10 +242,9 @@ function initMap() {
   gWard.style("pointer-events", "none");   // orientation only — hover/click stays on the municipality
   [gDist, gMuni].forEach(l => l.node().style.transition = "opacity .5s ease");
 
-  const provExt = ext(Object.keys(DISTRICTS).map(d => med(distStat(d))));
   gProv.selectAll("path").data(PROV.features).join("path")
     .attr("d", path)
-    .attr("fill", d => name(d) === "Western Cape" ? color(med(provStat()), provExt) : LAND)
+    .attr("fill", d => name(d) === "Western Cape" ? "none" : LAND)
     .attr("stroke", d => name(d) === "Western Cape" ? cssVar("--map-outline") : "none")
     .attr("stroke-width", 1.1).attr("vector-effect", "non-scaling-stroke")
     .attr("class", d => name(d) === "Western Cape" ? "o-clickable o-wc" : "o-other")
@@ -226,7 +252,15 @@ function initMap() {
       .on("click", () => navigate([wcCrumb()]))
       .on("mouseenter mousemove", e => tip(e, tn("Western Cape"), provStat(), true))
       .on("mouseleave", tipHide); });
-  $("legendBar").style.background = `linear-gradient(90deg,${RAMP.join(",")})`;
+  $("legendBar").innerHTML = RAMP.map(c => `<i style="background:${c}"></i>`).join("");
+  drawLocator();
+}
+/* South Africa locator (decorative, aria-hidden): the provinces at 120×90 with the Western Cape
+ * inked. Reuses the already-loaded provinces GeoJSON (Task 12 swaps in a simplified outline). */
+function drawLocator() {
+  const el = $("saLocator"); if (!el) return;
+  const lp = d3.geoPath(d3.geoIdentity().reflectY(true).fitExtent([[2, 2], [118, 88]], PROV));
+  el.innerHTML = PROV.features.map(f => `<path class="${name(f) === "Western Cape" ? "loc-wc" : "loc-za"}" d="${lp(f)}"/>`).join("");
 }
 const wcCrumb = () => ({ type: "province", name: "Western Cape" });
 
@@ -245,16 +279,20 @@ function drawDistricts() {
     .on("mouseenter mousemove", (ev, d) => tip(ev, tn(name(d)), distStat(name(d)), true))
     .on("mouseleave", tipHide);
 }
+// Municipalities of one district, or (district = null) all 25 for the province-level choropleth.
+const ALL = "__all__";
+const scopeMunis = district => district ? DISTRICTS[district].munis : Object.values(DISTRICTS).flatMap(d => d.munis);
 function drawMunis(district) {
-  if (muniDistrict === district) return; muniDistrict = district;
-  const munis = DISTRICTS[district].munis;
+  const key = district || ALL;
+  if (muniDistrict === key) return; muniDistrict = key;
+  const munis = scopeMunis(district);
   const e = ext(munis.map(m => med(muniStat(m))));
   gMuni.selectAll("path").data(munis.map(m => muniByName[m]).filter(Boolean), d => name(d)).join("path")
     .attr("d", path)
     .attr("fill", d => color(med(muniStat(name(d))), e))
     .attr("stroke", cssVar("--map-stroke")).attr("stroke-width", 1).attr("vector-effect", "non-scaling-stroke")
     .attr("class", "o-clickable")
-    .on("click", (ev, d) => navigate([wcCrumb(), { type: "district", name: district }, { type: "municipality", name: name(d) }]))
+    .on("click", (ev, d) => navigate([wcCrumb(), { type: "district", name: d.properties.district }, { type: "municipality", name: name(d) }]))
     .on("mouseenter mousemove", (ev, d) => tip(ev, tn(name(d)), muniStat(name(d)), true))
     .on("mouseleave", tipHide);
 }
@@ -292,26 +330,17 @@ async function drawWards(muni) {
 const clearWards = () => gWard.selectAll("*").remove();
 
 function setLayers(len) {
-  gProv.style("opacity", len === 0 ? 1 : 0.5).style("pointer-events", len === 0 ? "auto" : "none");
-  gProv.selectAll(".o-wc").attr("fill", len === 0 ? color(med(provStat()), ext(Object.keys(DISTRICTS).map(d => med(distStat(d))))) : "none");
+  gProv.style("opacity", 0.5).style("pointer-events", "none");
   const set = (g, on, dim) => g.style("display", dim ? "block" : "none").style("opacity", on ? 1 : 0.16).style("pointer-events", on ? "auto" : "none");
-  set(gDist, len === 1, len >= 1);
-  if (muniDistrict) set(gMuni, len >= 2, len >= 2);   // municipalities clickable at district + terminal at municipality
+  set(gDist, false, len >= 2);                        // other districts stay as faint context once drilled
+  set(gMuni, true, true);                             // province: all 25; district/municipality: the district's
 }
 
 /* ============================ zoom (CSS transform) ============================ */
-// The left rail (desktop) covers part of the map, so features are fitted to and
-// centred in the VISIBLE area right of it. Converts the rail's CSS px into
-// viewBox units via the meet-scale factor.
-function railVB() {
-  if (innerWidth <= 720) return 0;
-  const railPx = Math.min(432, innerWidth * 0.38);          // 16px gutter + 400px rail
-  return railPx / Math.min(innerWidth / W, innerHeight / H);
-}
 function zoom(feats, animate) {
   let b = null; feats.forEach(f => { const bb = path.bounds(f); b = b ? [[Math.min(b[0][0], bb[0][0]), Math.min(b[0][1], bb[0][1])], [Math.max(b[1][0], bb[1][0]), Math.max(b[1][1], bb[1][1])]] : bb; });
   const dx = b[1][0] - b[0][0], dy = b[1][1] - b[0][1], cx = (b[0][0] + b[1][0]) / 2, cy = (b[0][1] + b[1][1]) / 2;
-  const rv = railVB();
+  const rv = 0;                                            // the map has its own box in the rail now
   const k = Math.min(MAXK, 0.84 / Math.max(dx / (W - rv), dy / H));
   curK = k;
   gNode.style.transition = animate ? "transform .95s cubic-bezier(.4,0,.2,1)" : "none";
@@ -390,11 +419,9 @@ function labels(len, p) {
   gLabel.selectAll("*").remove();
   let items = [];
   const mk = (t, f, extra) => { const c = labelPoint(f); return Object.assign({ t, x: c[0], y: c[1], f }, extra || {}); };
-  if (len === 0) { const f = PROV.features.find(f => name(f) === "Western Cape"); items = [mk(tn("Western Cape").toUpperCase(), f, { wc: true })]; }
-  else if (len === 1) items = DISTF.features.map(f => mk(tn(name(f)), f));
-  else if (len === 2) items = DISTRICTS[p[1].name].munis.map(m => muniByName[m]).filter(Boolean).map(f => mk(tn(name(f)), f));
+  if (len <= 2) items = scopeMunis(len === 2 ? p[1].name : null).map(m => muniByName[m]).filter(Boolean).map(f => mk(tn(name(f)), f));
   else { const f = muniByName[p[2].name]; if (f) items = [mk(tn(name(f)), f)]; }
-  const k = curK, baseFs = (len === 0 ? 13.5 : 11.5) / k;
+  const k = curK, baseFs = (len <= 1 ? 9.5 : 11) / k;
   // Apple-map cartographic type: SF Pro (via --font-map), lighter weights, a soft
   // white halo carrying legibility over the dark end of the choropleth.
   const sel = gLabel.selectAll("text").data(items).join("text")
@@ -406,27 +433,32 @@ function labels(len, p) {
     .style("opacity", d => d.wc ? .92 : .88).text(d => d.t);
   // Fit-to-region: shrink any name wider than its own shape so it never spills across a
   // border (region width and text length are both in viewBox units → directly comparable).
-  // Floored at 68% so a long name on a tiny metro stays legible rather than vanishing.
+  // Floored at 68%; on the crowded province view a name that still does not fit is left out
+  // (the tooltip and the table carry every name).
   sel.each(function (d) {
     const b = path.bounds(d.f), regionW = (b[1][0] - b[0][0]) * (d.wc ? 1 : 0.92), tl = this.getComputedTextLength();
-    if (regionW > 0 && tl > regionW) this.style.fontSize = Math.max(baseFs * 0.68, baseFs * regionW / tl) + "px";
+    if (regionW > 0 && tl > regionW) {
+      if (len <= 1 && baseFs * regionW / tl < baseFs * 0.68) { this.style.display = "none"; return; }
+      this.style.fontSize = Math.max(baseFs * 0.68, baseFs * regionW / tl) + "px";
+    }
   });
 }
 
 /* ============================ tooltip ============================ */
+// B3 fix: the element is tipEl — naming it `t` shadowed the i18n t() and threw on every hover.
 function tip(e, nm, st, drill) { if (innerWidth <= 720) return;   // phones: tap drills in, no off-screen tooltip
-  const t = $("tip");
-  t.innerHTML = `<div style="font-family:var(--font-ui);font-size:16px;margin-bottom:7px">${nm}</div>` +
-    (st ? `<div style="display:grid;grid-template-columns:auto auto;gap:2px 16px;font-size:12px">` +
-      `<span style="opacity:.6">${t("Median")}</span><span style="text-align:right;font-variant-numeric:tabular-nums">${R(st.median)}</span>` +
-      `<span style="opacity:.6">${t("Total roll")}</span><span style="text-align:right;font-variant-numeric:tabular-nums">${R(st.total)}</span>` +
-      `<span style="opacity:.6">${t("Parcels")}</span><span style="text-align:right;font-variant-numeric:tabular-nums">${N(st.parcels || st.valued)}</span></div>`
-      : `<div style="font-size:12px;opacity:.7">${t("No public roll (search-only)")}</div>`) +
-    (drill && st ? `<div style="margin-top:8px;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:${ACCENT}">${t("Click to explore →")}</div>` : "");
-  t.style.opacity = 1;
+  const tipEl = $("tip");
+  tipEl.innerHTML = `<div class="tip-name">${esc(nm)}</div>` +
+    (st ? `<dl class="tip-grid">` +
+      `<dt>${t("Median")}</dt><dd>${R(st.median)}</dd>` +
+      `<dt>${t("Total roll")}</dt><dd>${R(st.total)}</dd>` +
+      `<dt>${t("Properties")}</dt><dd>${N(st.properties || st.valued)}</dd></dl>`
+      : `<div class="tip-none">${t("No public roll (search-only)")}</div>`) +
+    (drill && st ? `<div class="tip-go">${t("Click to open")}</div>` : "");
+  tipEl.style.opacity = 1;
   let x = e.clientX + 16, y = e.clientY + 16;
   if (x + 250 > innerWidth) x = e.clientX - 250; if (y + 130 > innerHeight) y = e.clientY - 130;
-  t.style.left = x + "px"; t.style.top = y + "px";
+  tipEl.style.left = x + "px"; tipEl.style.top = y + "px";
 }
 const tipHide = () => $("tip").style.opacity = 0;
 
@@ -483,172 +515,109 @@ function wireProv(trigger, p) {
 
 /* ============================ navigation ============================ */
 function navigate(p, animate = true) {
+  if (!p || !p.length) p = [wcCrumb()];                 // no level 0: the province is the landing view
   statePath = p; const len = p.length;
-  if (len >= 2) drawMunis(p[1].name);
+  drawMunis(len >= 2 ? p[1].name : null);
   drawDistricts();
   setLayers(len);
-  let feats = len === 0 ? PROV.features : len === 1 ? [PROV.features.find(f => name(f) === "Western Cape")]
+  let feats = len === 1 ? [PROV.features.find(f => name(f) === "Western Cape")]
     : len === 2 ? [DISTRICTS[p[1].name].feature] : [muniByName[p[2].name]].filter(Boolean);
   if (!feats.length) feats = [PROV.features.find(f => name(f) === "Western Cape")];
-  zoom(feats, animate);
+  zoom(feats, animate && dur(1) > 0);
   if (len === 3) drawWards(p[2].name); else clearWards();
   labels(len, p);
-  updatePanel(len);
-  hideResults();
+  hideResults(); tipHide();
   renderChrome(p);
   syncHash(p);
-}
-
-/* The place panel: desktop left rail is always up; the phone bottom sheet only
- * exists once an area is selected, and re-opens at its peek height per drill. */
-let prevLen = -1;
-function updatePanel(len) {
-  const panel = $("panel"), phone = innerWidth <= 720;
-  $("dash").hidden = !len;
-  panel.hidden = phone && !len;
-  if (phone && prevLen <= 0 && len > 0) panel.classList.remove("full");
-  if (!phone) panel.classList.remove("full");
-  $("pBody").scrollTop = 0;
-  prevLen = len;
-}
-
-/* ---- phone bottom-sheet drag: peek <-> full, snap on release ---- */
-function wireSheet() {
-  const p = $("panel"), g = $("grab");
-  let y0 = null, open0 = false, moved = false;
-  g.addEventListener("pointerdown", e => { y0 = e.clientY; open0 = p.classList.contains("full");
-    moved = false; p.classList.add("dragging");
-    try { g.setPointerCapture(e.pointerId); } catch (_) {} });
-  g.addEventListener("pointermove", e => { if (y0 == null) return;
-    const dy = e.clientY - y0; if (Math.abs(dy) > 4) moved = true;
-    const closedY = p.offsetHeight - 134;
-    const ty = Math.max(0, Math.min(closedY, (open0 ? 0 : closedY) + dy));
-    p.style.transform = `translateY(${ty}px)`; });
-  const end = e => { if (y0 == null) return;
-    const dy = e.clientY - y0; p.classList.remove("dragging"); p.style.transform = "";
-    p.classList.toggle("full", moved ? (open0 ? dy < 60 : dy < -60) : !open0);
-    y0 = null; };
-  g.addEventListener("pointerup", end); g.addEventListener("pointercancel", end);
-  g.addEventListener("keydown", e => {
-    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); p.classList.toggle("full"); }
-  });
+  if (animate && scrollY > 0) scrollTo({ top: 0, behavior: dur(1) ? "smooth" : "auto" });   // a drill starts at the top
 }
 
 /* ============================ chrome + dashboard ============================ */
+const cycleLabel = c => String(c || "").replace("-draft", " " + t("draft")).replace(/(\d{4})-(\d{4})/, "$1–$2");
 function renderChrome(p) {
   const len = p.length;
-
-  // panel header: product kicker + intro at rest, breadcrumb once drilled
-  $("panelKick").hidden = len !== 0;
-  $("crumbs").hidden = len === 0;
-  $("hint0").hidden = len !== 0;
-  if (len === 0) {
-    $("scopeLabel").textContent = tn("Western Cape");
-    $("scopeSub").textContent = t("Official municipal property valuations across the Cape Town metro and 24 local municipalities — mapped, searchable, free.");
-  }
-
-  // reset-to-overview control (desktop): only meaningful once drilled in
-  $("resetBtn").classList.toggle("on", len > 0);
-
-  // mobile top bar — always shows where you are, with a back step up the hierarchy
-  $("mloc").textContent = len === 0 ? tn("South Africa") : len === 1 ? tn("Western Cape") : tn(p[len - 1].name);
-  $("mkicker").textContent = len === 0 ? t("Property valuations") : len === 1 ? tn("South Africa")
-    : len === 2 ? tn("Western Cape") : tn(p[1].name) + " · " + tn("Western Cape");
-  $("mback").hidden = len === 0;
-
-  // breadcrumb
-  const steps = [{ label: tn("South Africa"), go: () => navigate([]) }];
-  if (len >= 1) steps.push({ label: tn("Western Cape"), go: () => navigate([wcCrumb()]) });
-  if (len >= 2) steps.push({ label: tn(p[1].name), go: () => navigate([wcCrumb(), p[1]]) });
-  if (len >= 3) {
-    if (p[2].name === p[1].name) steps.pop();   // metro: district and muni share a name
-    steps.push({ label: tn(p[2].name), go: () => navigate(p) });
-  }
-  $("crumbs").innerHTML = "";
+  // breadcrumb: Western Cape › district › municipality (metro: the district and municipality share a name)
+  const steps = [{ label: tn("Western Cape"), path: [wcCrumb()] }];
+  if (len >= 2) steps.push({ label: tn(p[1].name), path: [wcCrumb(), p[1]] });
+  if (len >= 3) { if (p[2].name === p[1].name) steps.pop(); steps.push({ label: tn(p[2].name), path: p }); }
+  const cr = $("crumbs"); cr.hidden = len === 1; cr.innerHTML = "";
   steps.forEach((s, i) => {
-    if (i) { const sep = document.createElement("span"); sep.textContent = "›"; sep.style.cssText = "font-size:13px;color:var(--label3)"; $("crumbs").appendChild(sep); }
-    const a = document.createElement("span"); a.textContent = s.label; a.className = "o-clickable";
-    a.style.cssText = "font-size:13px;font-weight:500;color:var(--ink);cursor:pointer"; a.onclick = s.go;
-    wireAct(a, s.go, "link"); $("crumbs").appendChild(a);
+    const last = i === steps.length - 1;
+    const a = document.createElement(last ? "span" : "a");
+    a.textContent = s.label;
+    if (last) a.setAttribute("aria-current", "page");
+    else { a.href = s.path.length === 1 ? "#" : "#d/" + slugOf(s.path[1].name); a.onclick = e => { e.preventDefault(); navigate(s.path); }; }
+    cr.appendChild(a);
   });
 
-  // The legend describes ONLY the value choropleth currently shaded on the map — nothing else:
-  //   len 1 → the Western Cape's districts are shaded  → district scale
-  //   len 2 → a district's municipalities are shaded   → municipality scale
-  // len 0 (South Africa — WC not yet opened) and len 3 (a single municipality + ward outlines,
-  // which carry no value shading) have no choropleth, so the legend is hidden entirely.
-  let e = null, lt = null;
-  if (len === 1) { e = ext(Object.keys(DISTRICTS).map(d => med(distStat(d)))); lt = t("Median value · district"); }
-  else if (len === 2) { e = ext(DISTRICTS[p[1].name].munis.map(m => med(muniStat(m)))); lt = t("Median value · municipality"); }
-  const showLegend = !!e && innerWidth > 720;   // on phones the bottom sheet takes the legend's spot
-  $("legendBox").style.display = showLegend ? "" : "none";
-  if (showLegend) { $("legendTitle").textContent = lt; $("legendMin").textContent = R(e[0]); $("legendMax").textContent = R(e[1]); }
+  // legend: the choropleth shades municipalities at province + district level; a single
+  // municipality (ward outlines only) has no value shading, so no legend.
+  const lb = $("legendBox");
+  lb.hidden = len >= 3;
+  if (len < 3) { const e = ext(scopeMunis(len === 2 ? p[1].name : null).map(m => med(muniStat(m))));
+    $("legendTitle").textContent = t("Median value by municipality");
+    $("legendMin").textContent = R(e[0], { short: true }); $("legendMax").textContent = R(e[1], { short: true }); }
 
-  if (len >= 1) renderDash(p);
+  // Explore → map carries the municipality (#m/<slug>; the map page fits its camera to it)
+  const frag = len >= 3 ? "#m/" + slugOf(p[2].name) : "";
+  document.querySelectorAll('a[data-maplink]').forEach(a => { a.href = a.dataset.maplink + frag; });
+
+  renderDash(p);
 }
+
+// The municipalities' dates of valuation (explore.json dates, else the roll provenance).
+function datesFor(munis) {
+  const iso = s => { const d = EXPLORE && (EXPLORE.dates || []).find(x => x.slug === s); return d ? d.valued_as_at : null; };
+  return munis.map(m => { const i = iso(slugOf(m)), pv = (muniStat(m) || {}).provenance;
+    return { iso: i, year: i ? +i.slice(0, 4) : (pv && /\d{4}/.test(pv.valued_as_at || "") ? +/\d{4}/.exec(pv.valued_as_at)[0] : null), text: pv && pv.valued_as_at }; });
+}
+const fmtIso = iso => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); if (!m) return "";
+  const MON = isAF() ? ["Januarie", "Februarie", "Maart", "April", "Mei", "Junie", "Julie", "Augustus", "September", "Oktober", "November", "Desember"]
+    : ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  return `${+m[3]} ${MON[+m[2] - 1]} ${m[1]}`; };
 
 function renderDash(p) {
   const len = p.length, isMuni = len >= 3;
-  let scope, children = [], kindP, scopeName;
-  if (len === 1) { scope = provStat(); scopeName = "Western Cape"; kindP = "Districts";  // kindP/scopeName stay English keys; translated at display
-    children = DISTF.features.map(f => ({ name: name(f), s: distStat(name(f)), go: () => navigate([wcCrumb(), { type: "district", name: name(f) }]) })); }
-  else if (len === 2) { const dl = p[1].name; scope = distStat(dl); scopeName = dl; kindP = "Municipalities";
-    children = DISTRICTS[dl].munis.map(m => ({ name: m, s: muniStat(m), go: () => navigate([wcCrumb(), { type: "district", name: dl }, { type: "municipality", name: m }]) })); }
-  else { const m = p[2].name; scope = muniStat(m); scopeName = m; }
+  let scope, scopeName, level, munis;
+  if (len === 1) { scope = provStat(); scopeName = "Western Cape"; level = "province"; munis = scopeMunis(null); }
+  else if (len === 2) { scope = distStat(p[1].name); scopeName = p[1].name; level = "district"; munis = DISTRICTS[p[1].name].munis; }
+  else { scope = muniStat(p[2].name); scopeName = p[2].name; level = "municipality"; munis = [p[2].name]; }
+  const node = level === "province" ? "province" : (level === "district" ? "d:" : "m:") + slugOf(scopeName);
+  const children = isMuni ? [] : munis.map(m => ({ name: m, slug: slugOf(m), stat: muniStat(m) }));
 
   $("scopeLabel").textContent = tn(scopeName);
   provOff();   // dismiss any open provenance popover from the previous view
   const sub = $("scopeSub");
   if (!scope) sub.textContent = t("No public valuation roll");
   else if (isMuni) {
-    const cyc = String(scope.cycle || YEAR).replace("-draft", t(" · draft"));
-    if (scope.provenance) {
-      sub.innerHTML = `${t("Valuation roll · ")}<span class="rollprov" tabindex="0" role="button" aria-label="${t("How this municipality's values were determined")}">${esc(cyc)}<span class="provi" aria-hidden="true">ⓘ</span></span>`;
+    // one plain sentence; the cycle opens "how was this valued?" when the roll has provenance
+    const cyc = cycleLabel(scope.cycle), [a, b] = t("Valued for the {cycle} rating cycle, on the municipality’s own roll.").split("{cycle}");
+    if (scope.provenance && b != null) {
+      sub.innerHTML = `${esc(a)}<span class="rollprov" tabindex="0" role="button" aria-label="${esc(t("How this municipality's values were determined"))}">${esc(cyc)}<span class="provi" aria-hidden="true">ⓘ</span></span>${esc(b)}`;
       wireProv(sub.querySelector(".rollprov"), scope.provenance);
-    } else sub.textContent = t("Valuation roll · ") + cyc;
-  } else { const nk = children.filter(c => c.s).length;
-    const kw = nk === 1 ? (isAF() ? t(kindP === "Districts" ? "district (singular)" : "municipality (singular)")
-                                : (kindP === "Districts" ? "district" : "municipality"))
-                        : t(kindP).toLowerCase();
-    sub.textContent = nk + " " + kw + " · " + t("current valuation rolls"); }
-  $("statMedian").textContent = scope ? R(scope.median) : "—";
-  $("statAvg").textContent = scope ? R(scope.mean ?? scope.avg) : "—";
-  $("statTotal").textContent = scope ? R(scope.total) : "—";
-  $("statParcels").textContent = scope ? N(scope.properties || scope.valued) : "—";
-
-  renderHist(scope && scope.hist, scope ? (scope.properties || scope.valued) : 0);
-  renderCloser(scope);
-
-  const rk = $("ranked"); rk.innerHTML = "";
-  if (!isMuni && scope) {
-    $("rankTitle").textContent = tf("{kind} ranked", { kind: t(kindP) });
-    const sorted = children.filter(c => c.s && c.s.median != null).sort((a, b) => b.s.median - a.s.median);
-    const maxMed = sorted.length ? sorted[0].s.median : 1, minMed = sorted.length ? sorted[sorted.length - 1].s.median : 0;
-    sorted.forEach(c => {
-      const row = document.createElement("div"); row.className = "o-clickable";
-      row.style.cssText = "padding:13px 0;border-bottom:1px solid var(--sep);cursor:pointer";
-      row.innerHTML = `<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
-          <span style="font-size:15px">${tn(c.name)}</span><span style="font-size:14px;font-variant-numeric:tabular-nums">${R(c.s.median)}</span></div>
-        <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${Math.max(8, Math.round(c.s.median / maxMed * 100))}%;background:${color(c.s.median, [minMed, maxMed])};border-radius:3px"></div></div>`;
-      row.onclick = c.go;
-      wireAct(row, c.go);
-      rk.appendChild(row);
-    });
+    } else sub.textContent = tf("Valued for the {cycle} rating cycle, on the municipality’s own roll.", { cycle: cyc });
   } else {
-    $("rankTitle").textContent = t("Valuation spread");
-    if (scope) [[t("Lower quartile (Q1)"), R(scope.q1)], [t("Median"), R(scope.median)], [t("Upper quartile (Q3)"), R(scope.q3)],
-      [t("Average residential"), R(scope.residential_avg)]]
-      .forEach(([k, v]) => { const d = document.createElement("div");
-        d.style.cssText = "display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--sep);font-size:15px";
-        d.innerHTML = `<span>${k}</span><span style="font-variant-numeric:tabular-nums">${v}</span>`; rk.appendChild(d); });
-    else rk.innerHTML = `<div style="color:var(--label2);font-size:14px;padding-top:6px">${t("City of Cape Town publishes valuations only via per-property online search.")}</div>`;
+    const nk = children.filter(c => c.stat).length;
+    sub.textContent = tf(nk === 1 ? "{n} municipality and {p} properties on its valuation roll." : "{n} municipalities and {p} properties on their valuation rolls.",
+      { n: nk, p: N(scope.properties) });
   }
+  $("statTotal").textContent = scope ? R(scope.total) : "—";
+  $("statMedian").textContent = scope ? R(scope.median, { short: true }) : "—";
+  $("statAvg").textContent = scope ? R(scope.mean ?? scope.avg, { short: true }) : "—";
+  $("statParcels").textContent = scope ? N(scope.properties || scope.valued) : "—";
+  const ds = datesFor(munis), years = ds.map(d => d.year).filter(Boolean);
+  $("statDates").textContent = isMuni
+    ? (ds[0].iso ? fmtIso(ds[0].iso) : ds[0].text || t("Not stated"))
+    : years.length ? (Math.min(...years) === Math.max(...years) ? String(years[0]) : `${Math.min(...years)}–${Math.max(...years)}`) : "—";
+  $("statDatesLab").textContent = t(isMuni ? "Date of valuation" : "Dates of valuation");
+
+  renderSections({ level, node, name: scopeName, slug: slugOf(scopeName), stat: scope, children,
+    towns: isMuni ? townsOf(scopeName) : null, muniSlugs: munis.map(slugOf), explore: EXPLORE });
 
   fillProp("hi", scope && scope.hi);
   fillProp("lo", scope && scope.lo);
   tlEnabled = !!scope;
-  ["hiCard", "loCard"].forEach(id => { const el = $(id); if (el) { el.style.cursor = scope ? "pointer" : "default"; el.style.pointerEvents = scope ? "auto" : "none"; } });
+  ["hiCard", "loCard"].forEach(id => { const el = $(id); if (el) el.classList.toggle("off", !scope); });
   // roll ≠ market price: rolls state "market value" as at the valuation date, for rating purposes —
   // an area's values can sit well off today's sale prices. Said once, wherever values are shown.
   const CAVEAT = t(" Values are municipal valuations as at each roll’s date — set for rates, not today’s sale prices.");
@@ -658,9 +627,7 @@ function renderDash(p) {
     ? t("Dashed lines on the map are ward boundaries (Municipal Demarcation Board), for orientation.")
     : t("Recomputed from each area's latest published valuation roll.")) + CAVEAT;
 
-  // richer stat sections (each auto-hides when its data is absent)
-  renderValueDist(scope);
-  renderComposition(scope);
+  // the municipality's own blocks (each auto-hides when its data is absent)
   renderStanding(p, scope, isMuni);
   renderGrowth(scope);
   renderAfford(scope);
@@ -672,78 +639,19 @@ function renderDash(p) {
 function fillProp(id, pr) {
   if (!pr) { $(id + "Addr").textContent = "—"; $(id + "Sub").textContent = ""; $(id + "Val").textContent = ""; $(id + "Meta").textContent = ""; return; }
   $(id + "Addr").textContent = dispAddr(pr);
-  $(id + "Sub").textContent = [pr.suburb, tn(pr.muni)].filter(Boolean).join(" · ");
+  $(id + "Sub").textContent = [pr.suburb && clSub(pr.suburb), tn(pr.muni)].filter(Boolean).join(", ");
   $(id + "Val").textContent = R(pr.value);
-  const ppm = pr.extent ? " · R" + N(Math.round(pr.value / pr.extent)) + "/m²" : "";
-  $(id + "Meta").textContent = (pr.extent ? N(pr.extent) + " m²" : t("extent n/a")) + ppm;
+  $(id + "Meta").textContent = pr.extent ? tf("{m2} m², R{ppm} per m²", { m2: N(pr.extent), ppm: N(Math.round(pr.value / pr.extent)) }) : t("extent n/a");
 }
 
-/* ============================ "a closer look" — richer stats ============================ */
-const CATCOL = { res: cssVar("--cat-res"), com: cssVar("--cat-com"), agri: cssVar("--cat-agri"), state: cssVar("--cat-state"), vacant: cssVar("--cat-vacant"), other: cssVar("--cat-other") };
 const CATLAB = { res: "Residential", com: "Business", agri: "Agricultural", state: "State / municipal", vacant: "Vacant", other: "Other" };
 const CATORDER = ["res", "com", "agri", "state", "vacant", "other"];
-function renderCloser(s) {
-  const sec = $("closer");
-  if (!s || s.gini == null) { sec.style.display = "none"; return; }   // hide where the roll lacks the data
-  sec.style.display = "block";
-  const prov = STATS.province, tiles = [];
-  if (s.q1 != null && s.q3 != null) tiles.push([t("Typical home · middle 50%"), R(s.q1) + " – " + R(s.q3), t("the central half, ignoring extremes")]);
-  if (s.median) { const mm = s.mean / s.median; tiles.push([t("Average ÷ median"), mm.toFixed(1) + "×", t(mm >= 1.3 ? "a few pricey properties lift the average" : "the average tracks the typical home")]); }
-  if (s.std != null) tiles.push([t("Standard deviation"), R(s.std), s.cv ? tf("σ is {x}× the average", { x: s.cv.toFixed(1) }) : t("spread of values")]);
-  // Gini = concentration of ASSESSED VALUE across parcels (not household wealth). Prefer the
-  // residential-only figure: the pooled one also absorbs the property-type mix (farms vs homes).
-  const g = s.res_gini != null ? s.res_gini : s.gini;
-  tiles.push([t(s.res_gini != null ? "Home-value concentration · Gini" : "Value concentration · Gini"),
-    g.toFixed(2), t(g >= .6 ? "very concentrated" : g >= .45 ? "concentrated" : "relatively even")
-    + t(s.res_gini != null ? " · homes only, not household wealth" : " · all property types pooled")]);
-  if (s.top1_share != null) tiles.push([t("Top 1% of parcels hold"), Math.round(s.top1_share * 100) + "%", t("of the area's total value")]);
-  if (s.ppm_median) tiles.push([t("Median home · per m²"), "R" + N(s.ppm_median) + "/m²", t("value per square metre")]);
-  if (s.erf_median) tiles.push([t("Median home erf"), N(s.erf_median) + " m²", t("typical plot size")]);
-  if (s.dwext_median) tiles.push([t("Median dwelling size"), N(s.dwext_median) + " m²", t("building floor area")]);
-  if (s.dw_ppm_median) tiles.push([t("Median home · per floor m²"), "R" + N(s.dw_ppm_median) + "/m²", t("value per m² of building")]);
-  if (s.vacant_share != null) tiles.push([t("Vacant parcels"), Math.round(s.vacant_share * 100) + "%", t("undeveloped land")]);
-  if (s !== prov && s.median && prov.median) { const r = s.median / prov.median; tiles.push([t("vs Western Cape median"), r.toFixed(1) + "×", t(r >= 1 ? "pricier than the province" : "cheaper than the province")]); }
-  $("statTiles").innerHTML = tiles.map(([l, v, n]) => `<div class="stile"><div class="stl">${esc(l)}</div><div class="stv">${esc(v)}</div><div class="stn">${esc(n)}</div></div>`).join("");
-  renderCatMix(s);
-}
-function renderCatMix(s) {
-  const el = $("catMix"), mix = s.cat_mix;
-  if (!mix) { el.innerHTML = ""; return; }
-  const totC = CATORDER.reduce((a, k) => a + (mix[k] ? mix[k].count : 0), 0);
-  const totV = CATORDER.reduce((a, k) => a + (mix[k] ? mix[k].value : 0), 0);
-  if (!totC) { el.innerHTML = ""; return; }
-  const seg = (metric, tot) => CATORDER.filter(k => mix[k] && mix[k][metric] > 0)
-    .map(k => `<div style="width:${(mix[k][metric] / tot * 100).toFixed(2)}%;background:${CATCOL[k]}" title="${t(CATLAB[k])}"></div>`).join("");
-  const legend = CATORDER.filter(k => mix[k] && mix[k].count > 0).map(k =>
-    `<div class="clg"><span class="csw" style="background:${CATCOL[k]}"></span>${t(CATLAB[k])} <span class="cpct">${totC ? Math.round(mix[k].count / totC * 100) : 0}${t("% parcels")} · ${totV ? Math.round(mix[k].value / totV * 100) : 0}${t("% value")}</span></div>`).join("");
-  el.innerHTML = `<div style="font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--label2);margin-bottom:14px">${t("Property mix")}</div>` +
-    `<div class="cmrow"><div class="cmlab">${t("Share of parcels")}</div><div class="cmbar">${seg("count", totC)}</div></div>` +
-    `<div class="cmrow"><div class="cmlab">${t("Share of value")}</div><div class="cmbar">${seg("value", totV)}</div></div>` +
-    `<div class="cmleg">${legend}</div>`;
-}
-
-function renderHist(hist, total) {
-  const el = $("distChart"); el.innerHTML = "";
-  if (!hist) { el.innerHTML = `<div style="color:var(--label2);font-size:14px;padding:24px 0">${t("No distribution data for this area.")}</div>`; return; }
-  const labels = STATS.buckets, n = hist.length, max = Math.max(...hist, 1);
-  // horizontal bars read top-to-bottom — the natural fit for the narrow place panel
-  el.innerHTML = hist.map((cnt, i) => {
-    const w = Math.max(cnt ? 3 : 0, Math.round(cnt / max * 100));
-    const col = d3.interpolateRgbBasis(RAMP)(n > 1 ? i / (n - 1) : .5);
-    return `<div style="display:flex;align-items:center;gap:11px;padding:4px 0">
-      <div style="flex:0 0 76px;font-size:11.5px;color:var(--ink2);text-align:right;font-variant-numeric:tabular-nums">${esc(labels[i])}</div>
-      <div style="flex:1;height:20px;background:var(--bg3);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${w}%;background:${col};border-radius:3px"></div></div>
-      <div style="flex:0 0 48px;font-size:11.5px;color:var(--ink);text-align:right;font-variant-numeric:tabular-nums">${N(cnt)}</div>
-    </div>`;
-  }).join("");
-}
 
 /* ============================ richer place-panel sections (M5) ============================ */
-// Each reuses the existing design system (.stile tiles, hairline rows, .kpinum hero, one accent)
-// and auto-hides its whole .dsec wrapper when the data is absent — modelled on renderCloser.
+// The municipality's own blocks below the Explore sections: .stile tiles and hairline rows
+// (restyled flat in explore.css); each auto-hides its whole section when the data is absent.
 function showSec(id, on) { const el = $(id); if (el) el.style.display = on ? "block" : "none"; return on; }
-// value `v` is escaped, exactly like renderCloser's tiles (safe by default)
+// value `v` is escaped (safe by default)
 const tilesHTML = tiles => `<div class="statgrid">` + tiles.map(([l, v, n]) =>
   `<div class="stile"><div class="stl">${esc(l)}</div><div class="stv">${esc(v)}</div><div class="stn">${esc(n || "")}</div></div>`).join("") + `</div>`;
 // hairline label→value row; `v` is raw HTML (caller escapes any user-derived text)
@@ -752,33 +660,6 @@ const hairRow = (l, v) => `<div style="display:flex;justify-content:space-betwee
 // left-aligned label→value row for PROSE (authorities); label fixed-width, value wraps left
 const aRow = (l, v) => `<div style="display:flex;gap:14px;padding:11px 0;border-bottom:1px solid var(--sep);font-size:14px">` +
   `<span style="flex:0 0 132px;color:var(--ink2)">${esc(l)}</span><span style="flex:1;min-width:0">${v}</span></div>`;
-
-// Value distribution — P10–P90 spread hero + residential R/m² & land-size middle-50%
-function renderValueDist(s) {
-  if (!showSec("secValueDist", !!(s && s.p10 != null && s.p90 != null))) return;
-  const ratio = s.p90_p10_ratio ? tf(" · the 90th percentile is {x}× the 10th", { x: s.p90_p10_ratio }) : "";
-  const hero = `<div style="margin-bottom:16px"><div class="kpinum" style="font-size:24px">${R(s.p10)} – ${R(s.p90)}</div>` +
-    `<div style="font-size:12px;color:var(--label2);margin-top:8px;line-height:1.5">${t("the middle 80% of valuations (10th–90th percentile)")}${ratio}</div></div>`;
-  const tiles = [];
-  if (s.ppm_q1 != null && s.ppm_q3 != null) tiles.push([t("Home R/m² · middle 50%"), "R" + N(s.ppm_q1) + " – R" + N(s.ppm_q3),
-    s.ppm_p90 ? tf("top-decile homes ≈ R{x}/m²", { x: N(s.ppm_p90) }) : t("residential price per m²")]);
-  if (s.erf_q1 != null && s.erf_q3 != null) tiles.push([t("Home erf · middle 50%"), N(s.erf_q1) + " – " + N(s.erf_q3) + " m²", t("typical residential plot range")]);
-  $("secValueDistBody").innerHTML = hero + (tiles.length ? tilesHTML(tiles) : "");
-}
-
-// Composition — per-category medians, vacant-land value, outlier counts
-function renderComposition(s) {
-  const tiles = [], mix = s && s.cat_mix;
-  if (mix) ["res", "com", "agri", "state"].forEach(k => {
-    const c = mix[k]; if (c && c.count > 0 && c.median != null) tiles.push([t(CATLAB[k]) + t(" · median"), R(c.median), N(c.count) + t(" parcels")]);
-  });
-  if (s && s.vacant_median != null) tiles.push([t("Vacant land · median"), R(s.vacant_median),
-    s.vacant_ppm_median ? tf("R{x}/m² undeveloped", { x: N(s.vacant_ppm_median) }) : t("undeveloped stands")]);
-  if (s && s.n_under_250k != null) tiles.push([t("Parcels under R250k"), N(s.n_under_250k), t("lowest-value band")]);
-  if (s && s.n_over_10m != null) tiles.push([t("Parcels over R10m"), N(s.n_over_10m), s.n_over_50m != null ? tf("{n} over R50m", { n: N(s.n_over_50m) }) : t("high-value band")]);
-  if (!showSec("secComposition", tiles.length > 0)) return;
-  $("secCompositionBody").innerHTML = tilesHTML(tiles);
-}
 
 // Standing — this municipality's rank within its district + biggest suburb / category by value
 function renderStanding(p, s, isMuni) {
@@ -859,7 +740,7 @@ function renderQuality(s) {
 // province/national role-players. Hidden for scopes with no primary data (districts, CoCT-absent).
 function renderAuthorities(s) {
   const a = s && s.authorities, p = (a && a.primary) || {};
-  const link = `<div style="margin-top:16px;font-size:12.5px"><a href="${GUIDE()}">${t("How valuations work")} →</a></div>`;
+  const link = `<div style="margin-top:16px;font-size:12.5px"><a href="${GUIDE()}">${t("How valuations work")}</a></div>`;
   const rows = [];
   const valuer = p.valuer || (p.valuer_note ? t(p.valuer_note) : null);
   if (valuer) rows.push(aRow(t("Municipal valuer"), esc(valuer) + (p.cycle ? ` <span style="color:var(--label2)">· ${esc(p.cycle)}</span>` : "")));
@@ -919,12 +800,19 @@ function renderPolitics(s) {
   }
   const muni = s && s.name;
   if (muni) html += `<div style="margin-top:14px;font-size:12.5px">`
-    + `<a href="${isAF() ? "af/" : ""}m/${slugOf(muni)}.html">${t("Full council &amp; ward councillors →")}</a></div>`;
+    + `<a href="${isAF() ? "af/" : ""}m/${slugOf(muni)}.html">${t("Full council and ward councillors")}</a></div>`;
   $("secPoliticsBody").innerHTML = html;
 }
 
 /* ============================ top-N properties (live DB query) ============================ */
-let tlKind = "hi", tlN = 10, tlEnabled = false, tlReq = 0;
+let tlKind = "hi", tlN = 10, tlEnabled = false, tlReq = 0, tlRows = [];
+// a ranked row opens that property's detail (value, extent, rates) over the list
+function wireTopRows() {
+  const open = e => { const row = e.target.closest(".tlRow[data-i]"); if (!row) return;
+    if (e.type === "keydown" && e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault(); const r = tlRows[+row.dataset.i]; if (r) openProp(r); };
+  $("tlBody").addEventListener("click", open); $("tlBody").addEventListener("keydown", open);
+}
 function scopeFilter() {
   const p = statePath, len = p.length;
   if (len >= 3) return { where: "muni = ?", args: [p[2].name], name: p[2].name };
@@ -981,12 +869,13 @@ async function loadTop() {
   if (req !== tlReq) return;   // a newer request superseded this one
   if (!rows.length) { body.innerHTML = `<div style="padding:34px 0;color:var(--label2);font-size:14px">${t("No properties found for this area.")}</div>`; return; }
   const muniScope = statePath.length >= 3;
+  tlRows = rows;
   body.innerHTML = rows.map((r, i) => {
     const addr = esc(dispAddr(r));
     const sub = esc((muniScope ? [clSub(r.suburb)] : [clSub(r.suburb), tn(r.muni)]).filter(Boolean).join(" · "));
     const cat = r.category ? `<span class="tlCat">${esc(r.category)}</span>` : "";
     const meta = (r.extent ? N(Math.round(r.extent)) + " m²" : t("extent n/a")) + (r.extent ? " · R" + N(Math.round(r.value / r.extent)) + "/m²" : "");
-    return `<div class="tlRow"><div class="tlRank">${i + 1}</div>` +
+    return `<div class="tlRow o-clickable" data-i="${i}" role="button" tabindex="0"><div class="tlRank">${i + 1}</div>` +
       `<div class="tlMain"><div class="tlAddr">${addr}${cat}</div><div class="tlSub">${sub}</div></div>` +
       `<div class="tlRight"><div class="tlVal">${R(r.value)}</div><div class="tlMeta">${meta}</div></div></div>`;
   }).join("");
@@ -1017,7 +906,8 @@ function wireSearch() {
     });
     inp.addEventListener("input", () => { clearTimeout(timer); active = -1; inp.removeAttribute("aria-activedescendant");
       const q = inp.value.trim(); if (q.length < 2) return hideResults(); timer = setTimeout(() => runSearch(q, inId, resId), 150); });
-    inp.addEventListener("focus", () => { if (inp.value.trim().length >= 2) runSearch(inp.value.trim(), inId, resId); });
+    inp.addEventListener("focus", () => { ensureDB().catch(() => {});      // start the search DB on first focus
+      if (inp.value.trim().length >= 2) runSearch(inp.value.trim(), inId, resId); });
     inp.addEventListener("keydown", e => {
       if (e.key === "Escape") { hideResults(); inp.blur(); return; }
       const rs = options();
@@ -1081,7 +971,7 @@ async function runSearch(q, inId = "search", resId = "results") {
     return;
   }
   rows.forEach(r => searchRow(box, inId, dispAddr(r),
-    [clSub(r.suburb), tn(r.muni)].filter(Boolean).join(" · "), () => openProp(r), R(r.value)));
+    [clSub(r.suburb), tn(r.muni)].filter(Boolean).join(", "), () => openProp(r), R(r.value)));
   if (!box.children.length) searchNote(box, t("No matches"));
 }
 /* ============================ property detail + verified rates ============================ */
@@ -1103,8 +993,13 @@ function ratesBlock(r) {
       <div style="font-size:11px;line-height:1.55;color:var(--label2);margin-top:10px">${esc(cents)}c/R${rr.reduction ? tf(" on value above {v}", { v: RZA(rr.reduction) }) : ""}${rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">${t("Official tariff")} ↗</a>` : ""}</div>
     </div>`;
 }
+// B4: the roll's own rating cycle (stats.json provenance / cycle), never a hard-coded year
+function propCycle(muni) {
+  const s = muniStat(muni), c = s && ((s.provenance && s.provenance.cycle) || s.cycle);
+  return c ? tf("Municipal market value on the {cycle} valuation roll", { cycle: cycleLabel(c) }) : t("Municipal market value");
+}
 function openProp(r) {
-  $("pdKicker").textContent = [clSub(r.suburb), tn(r.muni)].filter(Boolean).join(" · ");
+  $("pdKicker").textContent = [clSub(r.suburb), tn(r.muni)].filter(Boolean).join(", ");
   $("pdAddr").textContent = dispAddr(r);
   const ppm = r.extent ? "R" + N(Math.round(r.value / r.extent)) + " / m²" : "—";
   const stats = [
@@ -1117,10 +1012,10 @@ function openProp(r) {
   ];
   $("pdBody").innerHTML =
     `<div class="pdVal">${R(r.value)}</div>` +
-    `<div style="font-size:12px;color:var(--label2);margin-bottom:14px">${tf("municipal market value · {year}", { year: YEAR })}</div>` +
+    `<div class="pdCycle">${esc(propCycle(r.muni))}</div>` +
     stats.map(([k, v]) => `<div class="pdStat"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join("") +
     ratesBlock(r) +
-    `<div id="pdGo" class="o-clickable">${tf("View {muni} on the map →", { muni: esc(tn(r.muni) || t("area")) })}</div>`;
+    `<div id="pdGo" class="o-clickable">${tf("Explore {muni}", { muni: esc(tn(r.muni) || t("area")) })}</div>`;
   const goMuni = () => { const f = muniByName[r.muni]; closeProp();
     if (f) navigate([wcCrumb(), { type: "district", name: f.properties.district }, { type: "municipality", name: r.muni }]); };
   $("pdGo").onclick = goMuni;
@@ -1132,7 +1027,7 @@ function openProp(r) {
 }
 function closeProp() {
   $("propdetail").classList.remove("open"); $("propdetail").setAttribute("aria-hidden", "true");
-  document.documentElement.style.overflow = "";
+  document.documentElement.style.overflow = $("toplist").classList.contains("open") ? "hidden" : "";
   if (pdPrevFocus && pdPrevFocus.focus) pdPrevFocus.focus();
 }
 

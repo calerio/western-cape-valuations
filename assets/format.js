@@ -17,13 +17,17 @@ export function fmtN(n, lang = 'en') {
   return (+n < 0 ? '-' : '') + group(i) + (f ? (lang === 'af' ? ',' : '.') + f : '');
 }
 
+// A value takes the larger word as soon as its figure in the smaller unit would ROUND to 1000
+// or more: 999 999.6 reads "R1 m" (never "R1 000 000"), 999 995 000 reads "R1 bn" (never
+// "R1000 m"), and the short form's 999 600 reads "R1 m" (never "R1000 k").
 export function fmtR(value, lang = 'en', opts = {}) {
   if (bad(value)) return '—';
   const v = +value, w = WORDS[lang] || WORDS.en, a = Math.abs(v), sign = v < 0 ? '-' : '';
   const f = (x, d) => dec(fixed(x, d), lang);
-  if (a >= 1e12) return `${sign}R${f(a / 1e12, 2)}${w.tn}`;
-  if (a >= 1e9) return `${sign}R${f(a / 1e9, 2)}${w.bn}`;
-  if (a >= 1e6) return `${sign}R${f(a / 1e6, 2)}${w.m}`;
+  const reaches = (x, d) => +x.toFixed(d) >= 1000;
+  if (reaches(a / 1e9, 2)) return `${sign}R${f(a / 1e12, 2)}${w.tn}`;
+  if (reaches(a / 1e6, 2)) return `${sign}R${f(a / 1e9, 2)}${w.bn}`;
+  if (opts.short ? reaches(a / 1e3, 0) : Math.round(a) >= 1e6) return `${sign}R${f(a / 1e6, 2)}${w.m}`;
   if (opts.short && a >= 1e3) return `${sign}R${f(a / 1e3, 0)}${w.k}`;
   return `${sign}R${fmtN(Math.round(a), lang)}`;
 }
