@@ -1,0 +1,153 @@
+/* Map page (map.html + plain.html — one page, two basemap defaults).
+ * Moved out of the inline <style> of map.html/plain.html (2026-09 design refresh) and
+ * re-tokenised on assets/tokens.css: type --t-*, spacing --s-*, --font-ui, surfaces.
+ * Quiet chrome: the result panel is the single opaque, elevated surface; chips and the
+ * search field are platters that lose their blur on phones and over satellite imagery.
+ * Sentence case throughout (no tracked-out capitals). */
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%;background:var(--map-bg);color:var(--ink);
+  font-family:var(--font-ui);font-size:100%;-webkit-font-smoothing:antialiased}
+#map{position:fixed;inset:0}
+
+/* floating platters over the full-bleed map */
+.ovl{position:fixed;z-index:10}
+.platter{background:var(--platter-bg);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);
+  border:1px solid var(--sep);border-radius:var(--r-panel);box-shadow:var(--shadow-platter)}
+/* no glass on phones (cost + legibility) or over imagery (busy backdrop): opaque surface instead */
+@media (max-width:640px){
+  .platter{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none}
+}
+body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none}
+
+#brand{top:calc(env(safe-area-inset-top,0px) + var(--s-4));left:var(--s-4);max-width:70vw;
+  padding:var(--s-3) var(--s-4)}
+#brandKick{font-size:var(--t-12);font-weight:500;color:var(--label2);margin-bottom:2px}
+#brandTitle{font-size:var(--t-20);font-weight:600;letter-spacing:-.01em;line-height:1.15;color:var(--ink)}
+
+/* top bar: view switcher (Explore link + Map/Satellite basemap buttons) and language */
+#topbar{top:calc(env(safe-area-inset-top,0px) + var(--s-4));right:var(--s-4);
+  display:flex;gap:var(--s-2);padding:var(--s-1);border-radius:12px}
+.viewseg,.langseg{display:inline-flex;background:var(--bg3);border-radius:9px;padding:2px}
+.viewseg a,.viewseg button,.langseg button{appearance:none;border:0;background:none;margin:0;
+  font:inherit;font-size:var(--t-13);font-weight:600;color:var(--ink2);text-decoration:none;
+  padding:var(--s-3) var(--s-4);border-radius:7px;cursor:pointer;line-height:1;
+  transition:color .15s ease-out,background-color .15s ease-out}
+.viewseg a:hover,.viewseg button:hover,.langseg button:hover{color:var(--ink)}
+.viewseg button[aria-pressed="true"],.langseg button[aria-pressed="true"]{background:var(--seg-on);color:var(--ink);
+  box-shadow:0 1px 4px rgba(0,0,0,.18)}
+@media (max-width:640px){
+  .viewseg a,.viewseg button,.langseg button{font-size:var(--t-12);padding:var(--s-3)}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition-duration:.01ms !important;animation-duration:.01ms !important;animation-iteration-count:1 !important}
+}
+
+/* place search — combobox platter */
+#searchWrap{top:calc(env(safe-area-inset-top,0px) + 86px);left:var(--s-4);
+  width:300px;max-width:calc(100vw - 2 * var(--s-4));
+  display:flex;align-items:center;gap:9px;padding:10px 14px;cursor:text}
+#searchWrap svg{flex:none;width:15px;height:15px;color:var(--label2)}
+#placeSearch{flex:1;min-width:0;border:0;background:none;outline:none;color:var(--ink);
+  font-family:inherit;font-size:var(--t-14)}
+#placeSearch::placeholder{color:var(--label2)}
+#placeSearch::-webkit-search-cancel-button{display:none}
+#placeClear{flex:none;border:0;background:var(--bg3);color:var(--label2);cursor:pointer;
+  width:20px;height:20px;border-radius:50%;font-size:var(--t-14);line-height:1;padding:0;position:relative}
+#placeClear::after{content:"";position:absolute;inset:-12px}   /* 44px hit area, same glyph */
+#placeClear:hover{color:var(--ink)}
+#placeResults{position:absolute;top:calc(100% + var(--s-2));left:0;right:0;
+  max-height:min(320px, 50dvh);overflow:auto;padding:6px;background:var(--bg);
+  backdrop-filter:none;-webkit-backdrop-filter:none}
+.sRow{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:9px 10px;border-radius:var(--r-ctl);cursor:pointer}
+.sRow[aria-selected="true"],.sRow:hover{background:color-mix(in srgb, var(--accent) 12%, transparent)}
+.sName{font-weight:600;font-size:var(--t-14);color:var(--ink)}
+.sCtx{font-size:var(--t-12);color:var(--label2);white-space:nowrap;overflow:hidden;
+  text-overflow:ellipsis;max-width:55%}
+.sEmpty{padding:var(--s-3) 10px;font-size:var(--t-13);color:var(--label2)}
+
+/* chip row: Wards · Labels · Ward labels (each a role="switch") */
+#chips{top:calc(env(safe-area-inset-top,0px) + 142px);left:var(--s-4);
+  display:flex;flex-wrap:wrap;gap:var(--s-2);max-width:calc(100vw - 2 * var(--s-4))}
+.chip{position:static;display:inline-flex;align-items:center;gap:var(--s-2);cursor:pointer;user-select:none;
+  padding:9px 14px;font-size:var(--t-12);font-weight:600;color:var(--label2);border-radius:var(--r-pill);
+  transition:color .2s ease-out,border-color .2s ease-out}
+.chip[hidden]{display:none}
+.chip:hover{border-color:var(--accent)}
+.chip .sw{width:16px;height:0;border-top:2px solid var(--label2);opacity:.35}
+#wardchip .sw,#wardlabelchip .sw{border-top:2px dashed var(--map-ward)}
+.chip.on{color:var(--ink)}
+.chip.on .sw{opacity:1}
+
+/* phones: the top bar no longer fits beside the brand — stack: bar, brand, search, chips.
+   (Must come after the base #brand/#searchWrap/#chips rules to win.) */
+@media (max-width:640px){
+  #brand{top:calc(env(safe-area-inset-top,0px) + 64px)}
+  #searchWrap{top:calc(env(safe-area-inset-top,0px) + 134px)}
+  #chips{top:calc(env(safe-area-inset-top,0px) + 190px)}
+}
+
+#mapfail{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
+  background:var(--bg);text-align:center;padding:var(--s-5)}
+#mapfail[hidden]{display:none}
+#mapfail a{color:var(--accent);font-weight:600}
+.mfTitle{font-size:var(--t-20);font-weight:600;color:var(--ink);margin-bottom:10px}
+.mfSub{font-size:var(--t-14);color:var(--label2)}
+
+/* zoom/loading hint chip */
+#maphint{bottom:calc(env(safe-area-inset-bottom,0px) + 34px);left:50%;transform:translateX(-50%);
+  background:var(--bg);border:1px solid var(--sep);color:var(--label2);border-radius:var(--r-pill);
+  box-shadow:var(--shadow-platter);
+  padding:var(--s-2) var(--s-4);font-size:var(--t-13);white-space:nowrap;pointer-events:none}
+#maphint[hidden]{display:none}
+
+/* attribution: an ⓘ button bottom-right toggling a small popover (MapLibre's attribution
+   control is mounted inside #attrib, so source credits stay live and complete) */
+#attribBtn{bottom:calc(env(safe-area-inset-bottom,0px) + var(--s-2));right:var(--s-2);
+  width:32px;height:32px;border-radius:50%;border:1px solid var(--sep);background:var(--bg);color:var(--label2);
+  font:inherit;font-size:var(--t-16);line-height:1;cursor:pointer;padding:0}
+#attribBtn::after{content:"";position:absolute;inset:-6px}   /* 44px hit area */
+#attribBtn:hover,#attribBtn[aria-expanded="true"]{color:var(--ink)}
+#attrib{bottom:calc(env(safe-area-inset-bottom,0px) + 48px);right:var(--s-2);
+  max-width:min(360px, calc(100vw - 2 * var(--s-2)));padding:var(--s-2) var(--s-3);
+  background:var(--bg);border:1px solid var(--sep);border-radius:var(--r-ctl);box-shadow:var(--shadow-platter);
+  font-size:var(--t-11);line-height:1.5;color:var(--label2)}
+#attrib[hidden]{display:none}
+#attrib .maplibregl-ctrl-attrib{background:none;margin:0;padding:0;position:static}
+#attrib .maplibregl-ctrl-attrib-button{display:none}
+#attrib .maplibregl-ctrl-attrib-inner{display:block}
+#attrib a{color:var(--label2)}
+
+/* parcel valuation panel — opaque; right rail on desktop, bottom sheet on phones */
+#ppanel{top:calc(env(safe-area-inset-top,0px) + 78px);right:var(--s-4);width:380px;max-width:calc(100vw - 2 * var(--s-4));
+  max-height:calc(100dvh - 140px);overflow:auto;padding:18px 20px var(--s-4);
+  background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;border-radius:10px}
+#ppanel[hidden]{display:none}
+@media (max-width:640px){
+  #ppanel{top:auto;right:var(--s-2);left:var(--s-2);width:auto;bottom:calc(env(safe-area-inset-bottom,0px) + var(--s-2));
+    max-height:55dvh;border-radius:10px 10px var(--s-3) var(--s-3)}
+}
+#pclose{position:absolute;top:10px;right:var(--s-3);border:0;background:none;font-size:var(--t-20);line-height:1;
+  color:var(--label2);cursor:pointer;padding:var(--s-1)}
+#pclose::after{content:"";position:absolute;inset:-8px}   /* 44px hit area */
+.pKick{font-size:var(--t-12);font-weight:500;color:var(--label2);margin:0 20px var(--s-1) 0}
+.pAddr{font-size:var(--t-20);font-weight:600;letter-spacing:-.01em;line-height:1.2;color:var(--ink);margin-bottom:2px}
+.pVal{font-size:var(--t-34);font-weight:600;letter-spacing:-.01em;color:var(--ink);margin-top:10px;
+  font-variant-numeric:tabular-nums}
+.pSub{font-size:var(--t-12);color:var(--label2);margin-bottom:10px}
+.pRow{display:flex;justify-content:space-between;gap:var(--s-3);padding:var(--s-2) 0;
+  border-bottom:1px solid var(--rule);font-size:var(--t-13)}
+.pRow .k{color:var(--label2)}
+.pRow .v{color:var(--ink);text-align:right;font-variant-numeric:tabular-nums}
+.pPick{cursor:pointer;border-radius:6px;transition:background .15s ease-out}
+.pPick:hover{background:color-mix(in srgb, var(--accent) 12%, transparent)}
+.pNote{font-size:var(--t-11);line-height:1.55;color:var(--label2);margin-top:10px}
+.pNote a{color:var(--accent)}
+.pLink{font-size:var(--t-13);font-weight:600;color:var(--accent);cursor:pointer;margin-bottom:10px}
+
+/* MapLibre controls, toned to the chrome */
+.maplibregl-ctrl-top-right{top:calc(env(safe-area-inset-top,0px) + 56px)}   /* clear the top bar */
+.maplibregl-ctrl-group{border-radius:var(--r-chip);overflow:hidden;box-shadow:var(--shadow-platter);
+  background:var(--bg)}
+.maplibregl-ctrl button{background:transparent;min-width:44px;min-height:44px}
+:root[data-theme="dark"] .maplibregl-ctrl button .maplibregl-ctrl-icon{filter:invert(1) hue-rotate(180deg)}

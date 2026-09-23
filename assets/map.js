@@ -13,23 +13,48 @@
  * no valuation match → an honest "no match" card.
  * Design: docs/superpowers/specs/2026-06-22-map-view-design.md (+ 2026-07-02 parcels spec)
  *
- * This module now serves TWO pages: map.html (satellite, pins dark theme) and
- * plain.html (OpenFreeMap vector basemap, pins light theme) — selected by
- * <body data-basemap="plain">. Same parcels/valuation/wards/search on both.
+ * ONE page, two entry points: map.html (<body data-basemap="sat">) and plain.html
+ * (<body data-basemap="map">) are the same shell with a different default basemap
+ * (DATA_CONTRACT §15/§16). The OpenFreeMap Liberty style is fetched once and transformed
+ * (assets/map/style.js: Esri imagery layer above `background`, satellite layer set, AF labels);
+ * the Map/Satellite buttons switch IN PLACE (layer visibility/paint only — no setStyle, no
+ * reload), so the camera, the open panel and the selected erf survive the switch. The URL hash
+ * carries place/muni, basemap, camera and selected parcel (assets/map/hash.js).
  * Place search + boundary highlight live in places.js.
- * Design: docs/superpowers/specs/2026-07-19-place-search-and-plain-map-design.md
+ * Design: docs/design-2026-09/03-design-plan.md §3, §5
  */
-const maplibregl = window.maplibregl;
-// design tokens (assets/tokens.css) — read once at boot; map.html pins dark,
-// plain.html pins light, so the same --map-* names resolve per page.
+let maplibregl = null;          // window.maplibregl — the deferred CDN script; read in boot()
+// design tokens (assets/tokens.css). The --map-* overlay inks live on the [data-theme] pins;
+// setBasemap() flips the pin (sat → dark, map → light) and re-reads them (applyOverlayTokens).
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 import { getRates, computeRates } from "./rates.js?v=1";
-import { initPlaceSearch } from "./places.js?v=2";
+import { initPlaceSearch } from "./places.js?v=3";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
 import { hatchImageData } from "./map/hatch.js?v=1";
+import { parseMapHash, buildMapHash } from "./map/hash.js?v=1";
+import { transformStyle, applyBasemap } from "./map/style.js?v=1";
+import { currentLang } from "./i18n.js?v=1";
 
-// Which basemap this page wants (plain.html sets <body data-basemap="plain">).
-const MODE = document.body.dataset.basemap === 'plain' ? 'plain' : 'satellite';
+// The shell's default basemap (map.html: sat, plain.html: map) — omitted from the hash when current.
+const PAGE_B = document.body.dataset.basemap === 'sat' ? 'sat' : 'map';
+const readHash = () => parseMapHash(location.hash, { b: PAGE_B });
+// Basemap on load: the hash's b= wins over the shell default.
+const MODE0 = parseMapHash(location.hash, { b: document.body.dataset.basemap }).b;
+let basemap = MODE0;
+const themeFor = b => (b === 'sat' ? 'dark' : 'light');
+// Theme pin + body flag BEFORE any cssVar() read, so the overlay inks match the basemap.
+document.documentElement.dataset.theme = themeFor(MODE0);
+document.body.dataset.basemap = MODE0;
+
+// Merge a patch into the map hash (replaceState — no history entries, no hashchange).
+// undefined/null removes a key; the shell's default basemap is left implicit.
+function writeHash(patch) {
+  const st = { ...readHash(), ...patch };
+  for (const k of Object.keys(st)) if (st[k] == null) delete st[k];
+  if (st.b === PAGE_B) delete st.b;
+  history.replaceState(null, '', location.pathname + location.search + buildMapHash(st));
+}
+const round = (v, dp) => Math.round(v * 10 ** dp) / 10 ** dp;
 
 // Western Cape framing extent — the map is FIT to this on load (with padding) so the
 // whole province frames itself on any screen/aspect, phone or desktop. [lng, lat]: SW, NE.
@@ -39,21 +64,14 @@ const WC_FIT = [[17.2, -34.95], [24.3, -30.55]];
 // This box only stops you wandering off across the country; load-fit does the framing.
 const WC_PAN = [[13.0, -41.5], [28.0, -24.5]];
 
-// Satellite/aerial basemap. Esri World Imagery: free, no API key, ~z19+ detail.
-// To change basemap (e.g. SA NGI aerial, Sentinel-2) swap this one object — see spec §4.
-// NB: the Esri tile path is {z}/{y}/{x} (y before x), not the usual {z}/{x}/{y}.
-const BASEMAP = {
-  id: 'esri-world-imagery',
-  tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-  tileSize: 256,
-  maxzoom: 19,
-  attribution: 'Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community',
-};
+// Satellite imagery (Esri World Imagery: free, keyless, ~z19 detail) is added to the Liberty
+// style by transformStyle() (assets/map/style.js: ESRI_TILES / ESRI_ATTRIB) — swap it there.
+const MAX_ZOOM = 19;
 
-// Plain (non-satellite) basemap — OpenFreeMap: free, keyless OSM vector tiles,
-// crisp at parcel zoom (overzoomed vectors, unlike raster). To change the look
-// swap this one URL — '/bright' and '/positron' are drop-in alternates, or
-// self-host PMTiles if the community service ever becomes unreliable.
+// Base style for BOTH basemaps — OpenFreeMap Liberty: free, keyless OSM vector tiles,
+// crisp at parcel zoom (overzoomed vectors, unlike raster). Fetched ONCE as JSON and
+// transformed; '/bright' and '/positron' are drop-in alternates, or self-host PMTiles
+// if the community service ever becomes unreliable.
 const PLAIN_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
 
 // WC SG planning cadastre, layer 1 "Erven (Surveyor General)" — the join fields
@@ -68,42 +86,37 @@ const CADASTRE = {
   attribution: 'Parcels: Surveyor-General / Western Cape Government (as-is)',
 };
 
-function initMap() {
+function initMap(style, cam) {
   const map = new maplibregl.Map({
     container: 'map',
-    // satellite: raster imagery added onto a bare inline style; plain: the
-    // OpenFreeMap style URL brings its own basemap + label layers.
-    style: MODE === 'plain' ? PLAIN_STYLE : {
-      version: 8,
-      sources: {},
-      // neutral backdrop shown wherever imagery tiles are missing (degrade quietly)
-      layers: [{ id: 'bg', type: 'background', paint: { 'background-color': cssVar('--map-bg') || '#0b0b0d' } }],
-    },
-    bounds: WC_FIT,                 // fit the province on load — responsive to viewport aspect
-    fitBoundsOptions: { padding: 30 },
+    style,                          // the transformed Liberty style object (both basemaps)
+    // a camera in the hash (c=) wins; otherwise fit the province — responsive to viewport aspect
+    ...(cam ? { center: [cam.lng, cam.lat], zoom: cam.z } : { bounds: WC_FIT, fitBoundsOptions: { padding: 30 } }),
     minZoom: 4.8,
-    maxZoom: BASEMAP.maxzoom,
+    maxZoom: MAX_ZOOM,
     maxBounds: WC_PAN,              // clamp panning near the province
-    attributionControl: false,      // we add our own (compact) below
+    attributionControl: false,      // ours lives in the ⓘ popover (initAttribution)
     dragRotate: false,              // a flat aerial map — no rotation/pitch
     pitchWithRotate: false,
   });
   map.touchZoomRotate.disableRotation();
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }), 'bottom-left');
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right');
+  initAttribution(map);
   return map;
 }
 
-function addBasemap(map) {
-  map.addSource(BASEMAP.id, {
-    type: 'raster',
-    tiles: BASEMAP.tiles,
-    tileSize: BASEMAP.tileSize,
-    maxzoom: BASEMAP.maxzoom,
-    attribution: BASEMAP.attribution,
-  });
-  map.addLayer({ id: BASEMAP.id, type: 'raster', source: BASEMAP.id });
+// Attribution: MapLibre's own control (so credits follow the sources actually in use — Esri
+// appears only while imagery is shown) mounted inside the #attrib popover behind the ⓘ button.
+function initAttribution(map) {
+  const btn = $('attribBtn'), box = $('attrib');
+  if (!btn || !box) { map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-right'); return; }
+  const ctrl = new maplibregl.AttributionControl({ compact: false });
+  box.appendChild(ctrl.onAdd(map));
+  const set = open => { box.hidden = !open; btn.setAttribute('aria-expanded', String(open)); };
+  btn.addEventListener('click', e => { e.stopPropagation(); set(box.hidden); });
+  document.addEventListener('click', e => { if (!box.hidden && !box.contains(e.target)) set(false); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !box.hidden) set(false); });
 }
 
 // Municipality polygons: drawn as outlines below, and used by muniAt() to scope every erf
@@ -158,7 +171,8 @@ async function addBoundaries(map, beforeId) {
 // fill so a parcel click can name the ward it falls in. One committed GeoJSON
 // (data/geo/wc-wards.geojson, 406 wards) serves this map and the Atlas.
 // Failure to load degrades quietly: no wards, everything else keeps working.
-const WARD_LAYERS = ['ward-fill', 'ward-lines', 'ward-labels'];
+// Chip state. Ward labels are OFF by default (quiet map); they draw only while Wards is also on.
+const chipState = { wards: true, wardLabels: false, labels: true };
 
 async function addWards(map, beforeId) {
   try {
@@ -187,14 +201,12 @@ async function addWards(map, beforeId) {
       id: 'ward-labels', type: 'symbol', source: 'wards',
       minzoom: 10.5,
       layout: {
-        'text-field': ['concat', 'Ward ', ['get', 'ward']],
+        'text-field': ['concat', t('Ward') + ' ', ['get', 'ward']],
         'text-size': ['interpolate', ['linear'], ['zoom'], 10.5, 10, 16, 13],
-        'text-letter-spacing': 0.08,
-        'text-transform': 'uppercase',
-        // satellite's inline style has no glyphs URL → MapLibre draws the default
-        // font locally; the OpenFreeMap style serves glyphs but not that default
-        // font (404s), so plain mode must name a font its endpoint actually has.
-        ...(MODE === 'plain' ? { 'text-font': ['Noto Sans Regular'] } : {}),
+        // the OpenFreeMap glyph endpoint serves its own fonts, not MapLibre's default
+        // (404s), so name one it actually has
+        'text-font': ['Noto Sans Regular'],
+        visibility: chipState.wards && chipState.wardLabels ? 'visible' : 'none',
       },
       paint: {
         'text-color': cssVar('--map-ward-label'),
@@ -212,19 +224,40 @@ function firstSymbolLayerId(map) {
   return l && l.id;
 }
 
-function initWardChip(map) {
-  const chip = $('wardchip');
+// One role="switch" chip: flips chipState[key], mirrors it on the element, then re-applies.
+function wireChip(id, key, apply) {
+  const chip = $(id);
   if (!chip) return;
   chip.hidden = false;
-  const toggle = () => {
-    const on = !chip.classList.contains('on');
-    chip.classList.toggle('on', on);
-    chip.setAttribute('aria-checked', String(on));
-    WARD_LAYERS.forEach(id =>
-      map.setLayoutProperty(id, 'visibility', on ? 'visible' : 'none'));
-  };
+  const sync = () => { chip.classList.toggle('on', chipState[key]); chip.setAttribute('aria-checked', String(chipState[key])); };
+  const toggle = () => { chipState[key] = !chipState[key]; sync(); apply(); };
+  sync();
   chip.addEventListener('click', toggle);
   chip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+}
+
+function applyWardVisibility(map) {
+  const vis = on => (on ? 'visible' : 'none');
+  for (const id of ['ward-fill', 'ward-lines'])
+    if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis(chipState.wards));
+  if (map.getLayer('ward-labels'))
+    map.setLayoutProperty('ward-labels', 'visibility', vis(chipState.wards && chipState.wardLabels));
+}
+
+function initWardChip(map) {
+  wireChip('wardchip', 'wards', () => applyWardVisibility(map));
+  wireChip('wardlabelchip', 'wardLabels', () => applyWardVisibility(map));
+}
+
+// Basemap labels (the Liberty style's own symbol layers — place, road, POI names) on/off.
+// Only the style's layers carry metadata.wcv_paint (set by transformStyle), so our overlays and
+// the ward labels are untouched; applyBasemap() never changes symbol visibility.
+function initLabelChip(map) {
+  wireChip('labelchip', 'labels', () => {
+    for (const l of map.getStyle().layers)
+      if (l.type === 'symbol' && l.metadata && l.metadata.wcv_paint && map.getLayer(l.id))
+        map.setLayoutProperty(l.id, 'visibility', chipState.labels ? 'visible' : 'none');
+  });
 }
 
 // Ward containing a clicked point (null when wards are off/unavailable).
@@ -354,6 +387,7 @@ async function loadParcels(map) {
     map.getSource('parcels').setData(esriToGeoJSON(json));
     setHint(json.exceededTransferLimit ? t('Too many erven for one view — zoom in')
                                        : t('Tap or click an erf for its valuation'));
+    if (pendingSel) map.once('idle', () => selectPending(map));
   } catch (e) {
     if (e.name === 'AbortError') return;
     console.warn('parcel fetch failed', e);
@@ -364,6 +398,32 @@ async function loadParcels(map) {
 /* ─────────────────────── click → valuation (increment #3) ─────────────────────── */
 
 let selId = null;
+// s=<PRCL_KEY> from the hash on load: selected ONCE, after the first parcel load for that camera.
+let pendingSel = readHash().s || null;
+
+// Deep-linked selection → the ordinary click path (pickParcel) for that one erf. One attempt only:
+// a parcel that is not in the first loaded view (e.g. no camera in the hash) is simply not selected.
+function selectPending(map) {
+  const key = pendingSel;
+  pendingSel = null;
+  if (!key || selId !== null) return;      // the user already picked something — theirs wins
+  const f = map.querySourceFeatures('parcels').find(f => (f.id != null ? f.id : f.properties.PRCL_KEY) === key);
+  if (!f) { writeHash({ s: undefined }); return; }
+  // a point for muniAt()/wardAt(): the hash camera when it lies on the erf, else the ring's mean vertex
+  const ring = (f.geometry && f.geometry.coordinates && f.geometry.coordinates[0]) || [];
+  const cam = readHash().c;
+  let ll = cam ? { lng: cam.lng, lat: cam.lat } : null;
+  const onErf = ll && map.queryRenderedFeatures(map.project(ll), { layers: ['parcels-fill'] })
+    .some(h => (h.id != null ? h.id : h.properties.PRCL_KEY) === key);
+  if (!onErf && ring.length) {
+    const n = ring.length;
+    ll = { lng: ring.reduce((a, p) => a + p[0], 0) / n, lat: ring.reduce((a, p) => a + p[1], 0) / n };
+  }
+  parcelCands = [f];
+  parcelWard = ll ? wardAt(map, map.project(ll)) : null;
+  lastClickLL = ll;
+  pickParcel(f);
+}
 // parcels under the last click, smallest-first, + that click's ward — powers the overlap chooser.
 // Cadastre parcels routinely overlap (utility erven, sectional-scheme PARENT parcels, remnant
 // subdivisions), so one click can land on several. We auto-pick the SMALLEST (most specific): an
@@ -411,6 +471,8 @@ async function pickParcel(f) {
   const map = window._map;
   if (selId !== null) map.setFeatureState({ source: 'parcels', id: selId }, { sel: false, verified: false, none: false });
   selId = f.id;
+  pendingSel = null;
+  writeHash({ s: selId });
   map.setFeatureState({ source: 'parcels', id: selId }, { sel: true, verified: false });
   setSelFilter(map, selId);
   setSelectionStatus('possible');        // sparse hatch + dashed until the link decision is known
@@ -872,7 +934,7 @@ async function initI18n() {
   if (LANG !== 'af') return;
   try { I18N = await (await fetch('data/i18n-af.json')).json(); } catch (_) { return; }
   document.documentElement.lang = 'af';
-  document.title = t(MODE === 'plain'
+  document.title = t(PAGE_B === 'map'
     ? 'Western Cape Property Valuation Atlas — Map'
     : 'Western Cape Property Valuation Atlas — Satellite map');
   document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
@@ -886,7 +948,7 @@ async function initI18n() {
 }
 function wireLangToggle() {
   document.querySelectorAll('[data-lang]').forEach(a => {
-    if (a.dataset.lang === LANG) a.setAttribute('aria-current', 'page');
+    a.setAttribute('aria-pressed', String(a.dataset.lang === LANG));
     a.addEventListener('click', e => { e.preventDefault();
       try { localStorage.setItem('wcv-lang', a.dataset.lang); } catch (_) {}
       if (a.dataset.lang !== LANG) location.reload();
@@ -900,6 +962,7 @@ function closePanel() {
   if (selId !== null && window._map) window._map.setFeatureState({ source: 'parcels', id: selId }, { sel: false, verified: false, none: false });
   selId = null;
   if (window._map) setSelFilter(window._map, null);
+  writeHash({ s: undefined });
 }
 
 function statRow(k, v) {
@@ -1099,26 +1162,89 @@ async function ensureDB() {
 }
 function resetDB() { dbw = null; dbwPromise = null; }
 
-function boot() {
+// Overlay inks follow the theme pin (tokens.css: --map-* on [data-theme]); re-read after a flip.
+function applyOverlayTokens(map) {
+  const paint = (id, prop, v) => { if (v && map.getLayer(id)) map.setPaintProperty(id, prop, v); };
+  const sel = cssVar('--map-parcel-sel');
+  paint('munis-line', 'line-color', cssVar('--map-muni-line'));
+  paint('ward-lines', 'line-color', cssVar('--map-ward'));
+  paint('ward-labels', 'text-color', cssVar('--map-ward-label'));
+  paint('parcels-fill', 'fill-color', sel);
+  paint('parcels-line', 'line-color', cssVar('--map-parcel-line'));
+  paint('parcels-sel-line', 'line-color', sel);
+  paint('place-hl-fill', 'fill-color', sel);
+  paint('place-hl-line', 'line-color', sel);
+  const rgba = hexToRgba(sel);
+  for (const d of ['dense', 'sparse'])
+    if (map.hasImage('hatch-' + d)) map.updateImage('hatch-' + d, hatchImageData(12, 4, rgba, d));
+}
+
+// Map ↔ Satellite, in place: layer visibility/paint only (applyBasemap — no setStyle, no reload),
+// so the camera, the panel and the selection are untouched. Theme pin, overlay inks, button state
+// and the hash follow.
+function setBasemap(b) {
+  b = b === 'sat' ? 'sat' : 'map';
+  basemap = b;
+  document.body.dataset.basemap = b;
+  document.documentElement.dataset.theme = themeFor(b);
+  document.querySelectorAll('button[data-basemap]').forEach(el =>
+    el.setAttribute('aria-pressed', String(el.dataset.basemap === b)));
+  const map = window._map;
+  if (map && map.getStyle()) { applyBasemap(map, b); applyOverlayTokens(map); }
+  writeHash({ b });
+}
+
+function wireBasemapButtons() {
+  document.querySelectorAll('button[data-basemap]').forEach(el => {
+    el.setAttribute('aria-pressed', String(el.dataset.basemap === basemap));
+    el.addEventListener('click', () => { if (el.dataset.basemap !== basemap) setBasemap(el.dataset.basemap); });
+  });
+}
+
+// Camera → hash (c=lng,lat,z), debounced; rounded so the URL stays short and stable.
+let camTimer = null;
+function trackCamera(map) {
+  map.on('moveend', () => {
+    clearTimeout(camTimer);
+    camTimer = setTimeout(() => {
+      const c = map.getCenter();
+      writeHash({ c: { lng: round(c.lng, 5), lat: round(c.lat, 5), z: round(map.getZoom(), 2) } });
+    }, 300);
+  });
+}
+
+function showMapFail() { document.getElementById('mapfail')?.removeAttribute('hidden'); }
+
+async function boot() {
   wireLangToggle();
   initI18n();
-  if (!maplibregl) {
-    document.getElementById('mapfail')?.removeAttribute('hidden');
+  wireBasemapButtons();
+  maplibregl = window.maplibregl || null;
+  if (!maplibregl) { showMapFail(); return; }
+  // The Liberty style, fetched ONCE; both basemaps live in this one style (transformStyle).
+  let style;
+  try {
+    const res = await fetch(PLAIN_STYLE);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    style = transformStyle(await res.json(), { lang: currentLang(), basemap: MODE0, overrides: [] });
+  } catch (e) {
+    console.warn('basemap style unavailable', e);
+    showMapFail();
     return;
   }
-  const map = initMap();
+  const map = initMap(style, readHash().c);
   window._map = map;                 // closePanel needs it to clear the selection
   map.on('load', () => {
-    // plain mode: our overlays slot in UNDER the OpenFreeMap style's first symbol
-    // layer so its road/place labels stay legible above our translucent fills.
-    // satellite mode: no pre-existing layers, append order is fine (undefined).
-    const beforeId = MODE === 'plain' ? firstSymbolLayerId(map) : undefined;
-    if (MODE === 'satellite') addBasemap(map);
+    // our overlays slot in UNDER the style's first symbol layer so its road/place labels stay
+    // legible above our translucent fills (and above the imagery in satellite)
+    const beforeId = firstSymbolLayerId(map);
     addBoundaries(map, beforeId);
     addWards(map, beforeId);
     addParcels(map, beforeId);
     onParcelClick(map);
-    initPlaceSearch(map, { t, setHint, beforeId });
+    initLabelChip(map);
+    initPlaceSearch(map, { t, setHint, beforeId, writeHash });
+    trackCamera(map);
   });
   map.on('error', (e) => console.warn('map error', e && e.error)); // tile gaps degrade quietly
   $('pclose').addEventListener('click', closePanel);
@@ -1126,4 +1252,6 @@ function boot() {
   ensureDB().catch(() => {});       // pre-warm the SQLite worker so the first click is fast
 }
 
-boot();
+// MapLibre is a deferred classic script ahead of this module, so it has run by DOMContentLoaded.
+if (document.readyState === 'loading') addEventListener('DOMContentLoaded', boot);
+else boot();

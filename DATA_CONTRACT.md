@@ -697,26 +697,66 @@ halves with deliberately **asymmetric** failure modes:
    the local geojson, no network. **Fetch failure degrades to the fly-to only** (hint chip
    "Boundary unavailable — zoomed to the area") — the navigate half of search never depends on
    the live service. Boundaries render as a translucent accent fill + stroke; deliberately **no
-   symbol/text label layer** (the satellite inline style has no `glyphs` URL, so label text would
-   silently not render — the place name lives in the search input instead).
+   symbol/text label layer** (the place name lives in the search input instead).
    Deep links: `#p/t<mp>` / `#p/s<sp[_sp…]>` / `#p/m<normalizedname>` restore a selection on load
-   and survive switching between the two map views (the view links carry the hash).
+   (fitting its bbox, unless the hash also carries a camera `c=`, which wins); the place key is
+   merged into the full map hash (§16), so basemap, camera and selected parcel survive a search.
 
-## 15. The plain "Map" view (`plain.html`)
+## 15. One map page: `map.html` and `plain.html`
 
-`plain.html` is the non-satellite twin of `map.html`: same shared `assets/map.js` (mode selected
-by `<body data-basemap="plain">`), same parcels/valuation/wards/search. Differences, all
-deliberate:
-- **Basemap:** OpenFreeMap vector style (`https://tiles.openfreemap.org/styles/liberty` — the
-  `PLAIN_STYLE` const in `map.js` is the single swap point, exactly like §9's `BASEMAP`;
-  `/bright` and `/positron` are drop-in alternates, PMTiles self-hosting the escape hatch if the
-  keyless community service ever degrades). Vector tiles overzoom crisply to parcel zoom.
-- **Theme:** pins `data-theme="light"` (`map.html` pins dark). The six `--map-*` overlay tokens
-  in `assets/tokens.css` exist on BOTH theme pins with per-theme values — `map.js` reads the same
-  token names via `cssVar()` and needs no JS branching. Don't move those tokens back to base
-  `:root`.
-- **Layer order:** in plain mode every overlay layer is inserted *before* the style's first
-  symbol layer (`firstSymbolLayerId()`), so OpenFreeMap's road/place labels stay legible above
-  the translucent fills. Satellite mode appends as before.
+`map.html` and `plain.html` are **the same page** — identical shells over the shared
+`assets/map.js` + `assets/map.css` — differing only in their SEO head (title, meta description,
+canonical, og/twitter, ld+json), the initial `data-theme`, and the **default basemap**:
+`<body data-basemap="sat">` (map.html) vs `<body data-basemap="map">` (plain.html). Both keep
+`?db=`, `?nolink=1` and the hash (§16). The Map / Satellite buttons in the top bar switch the
+basemap **in place** — no navigation, no reload, no `setStyle` — so the camera, the open panel and
+the selected erf survive the switch.
+- **Basemap:** ONE style for both — OpenFreeMap Liberty (`https://tiles.openfreemap.org/styles/liberty`,
+  the `PLAIN_STYLE` const in `map.js` is the single swap point; `/bright` and `/positron` are
+  drop-in alternates, PMTiles self-hosting the escape hatch). It is fetched once as JSON and passed
+  through `transformStyle()` (§16), which adds the Esri World Imagery raster. Vector tiles overzoom
+  crisply to parcel zoom. If the style fetch fails the page shows `#mapfail` (no degraded map).
+- **Theme:** the basemap drives the `[data-theme]` pin (`sat` → dark, `map` → light). The six
+  `--map-*` overlay tokens in `assets/tokens.css` exist on BOTH pins with per-theme values; `map.js`
+  reads them via `cssVar()` at boot and again after a switch (`applyOverlayTokens`). Don't move
+  those tokens back to base `:root`.
+- **Layer order:** every overlay layer is inserted *before* the style's first symbol layer
+  (`firstSymbolLayerId()`), so labels stay legible above the translucent fills, in both basemaps.
+- **Chrome:** chips `Wards` (on), `Labels` (basemap labels, on) and `Ward labels` (off by default);
+  attribution lives behind the ⓘ button (`#attribBtn` → `#attrib`, MapLibre's attribution control
+  mounted inside, so credits follow the sources in use — Esri only while imagery shows).
+- MapLibre is pinned to an exact version with SRI (`integrity` + `crossorigin`) in both shells;
+  bump both together (recompute the sha384 of the new `maplibre-gl.js` / `.css`).
 - `plain.html` is listed in `sitemap.xml` (priority 0.8, like `map.html`) and in every generated
   page's view-switcher nav (`templates/shell.html` `${nav_map}`).
+
+## 16. Map style transform and the map URL hash (`assets/map/style.js`, `assets/map/hash.js`)
+
+**`transformStyle(style, {lang, basemap, overrides})`** — pure (returns a new style; unit-tested in
+`tests/style.test.mjs`):
+- adds source `esri` + raster layer `esri-world-imagery` directly above `background`, visible only
+  when `basemap === 'sat'` (a hidden raster requests no tiles — map mode fetches no imagery);
+- in `sat`, hides the fill/line layers by id/source prefix (`SAT_HIDDEN_LAYER_PREFIXES`: landcover,
+  landuse, park, water, building, road/highway/…) and gives every symbol layer a dark halo
+  (`SAT_LABEL_PAINT`); originals are stashed in `layer.metadata` (`wcv_visibility`, `wcv_paint`,
+  `wcv_name_expr`);
+- rewrites each name-reading `text-field` (AF: `name:af` first, falling back to the original;
+  renamed-place overrides keyed on tile feature id + class + exact current name, never a global
+  text replace); drops parking POIs and starts `poi_r20` at z18.
+
+**`applyBasemap(map, b)`** switches a live map between `map` and `sat` using that metadata:
+`setLayoutProperty('visibility')` / `setPaintProperty` only, restoring each hidden layer's own
+original visibility when switching back. **`applyLanguage(map, lang, overrides)`** re-expresses the
+label `text-field`s the same way. Neither calls `setStyle`.
+
+**Hash** (`parseMapHash(hash, defaults)` / `buildMapHash(state)`, unit-tested in
+`tests/hash.test.mjs`): `#p/<place>` or `#m/<slug>`, then `&b=map|sat&c=<lng>,<lat>,<z>&s=<PRCL_KEY>`.
+- `b` — basemap; omitted when it equals the page's default (so the canonical URLs stay bare).
+- `c` — camera, written on `moveend` (debounced 300 ms, `history.replaceState`, lng/lat rounded to
+  5 dp, zoom to 2 dp). On load `c` wins over the province fit and over a place's bbox fit.
+- `s` — the selected parcel's `PRCL_KEY`, written on selection and removed when the panel closes.
+  On load it is selected **once**, via the ordinary click path (`pickParcel`), after the first
+  parcel load for the hash camera; if that erf is not in view it is dropped from the hash.
+- Legacy `#p/<place>` / `#m/<slug>` still parse; unknown or malformed keys are ignored.
+- Every writer (map.js `writeHash`, places.js via the `writeHash` option) merges into the current
+  hash, so one writer never drops another's keys.

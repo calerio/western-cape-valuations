@@ -13,6 +13,8 @@
  * No symbol/text label layer on the highlight: the satellite style has no glyphs
  * URL configured, so text would silently not render — the name lives in the input. */
 
+import { parseMapHash, buildMapHash } from "./map/hash.js?v=1";
+
 const BOUNDARY_SVC = 'https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/StatsSA_CensusBoundaries/MapServer';
 const TOWN_LAYER = 3, SUBURB_LAYER = 1;
 const EMPTY_FC = { type: 'FeatureCollection', features: [] };
@@ -119,7 +121,11 @@ const clearHighlight = map => map.getSource('place-hl').setData(EMPTY_FC);
 /* ──────────────────────────────── search UI ──────────────────────────────── */
 
 // Single entry point — map.js calls this on map 'load' with its i18n + hint helpers.
-export function initPlaceSearch(map, { t, setHint, beforeId }) {
+// writeHash(patch) merges into the map hash (#p/<place>&b=…&c=…&s=…) so the basemap, camera and
+// selection survive a place search; the fallback keeps the legacy bare #p/<place> form.
+export function initPlaceSearch(map, { t, setHint, beforeId, writeHash }) {
+  const putHash = writeHash || (patch => history.replaceState(null, '',
+    location.pathname + location.search + buildMapHash({ ...parseMapHash(location.hash), b: undefined, ...patch })));
   const input = document.getElementById('placeSearch');
   const listbox = document.getElementById('placeResults');
   const clearBtn = document.getElementById('placeClear');
@@ -176,16 +182,19 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
     render();
   }
 
-  async function select(entry) {
+  // fit=false: a deep link that also carries a camera (c=) keeps that camera; the place only
+  // fills the input and draws its boundary.
+  async function select(entry, { fit = true } = {}) {
     close();
     input.value = entry.name;
     input.blur();
     clearBtn.hidden = false;
-    const [w, s, e, n] = entry.bbox;
-    map.fitBounds([[w, s], [e, n]],
-      { padding: 70, maxZoom: entry.type === 'municipality' ? 11 : 16, duration: 900 });
-    history.replaceState(null, '', '#p/' + placeKey(entry));
-    syncViewLinks();
+    if (fit) {
+      const [w, s, e, n] = entry.bbox;
+      map.fitBounds([[w, s], [e, n]],
+        { padding: 70, maxZoom: entry.type === 'municipality' ? 11 : 16, duration: 900 });
+    }
+    putHash({ place: placeKey(entry), muni: undefined });
     if (hlAbort) hlAbort.abort();
     const ctl = (hlAbort = new AbortController());
     try {
@@ -204,14 +213,7 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
     clearBtn.hidden = true;
     clearHighlight(map);
     close();
-    history.replaceState(null, '', location.pathname + location.search);
-    syncViewLinks();
-  }
-
-  // keep the Satellite↔Map view links carrying the selected place across a switch
-  function syncViewLinks() {
-    document.querySelectorAll('.viewseg a[href^="map.html"], .viewseg a[href^="plain.html"]')
-      .forEach(a => { a.href = a.href.split('#')[0] + location.hash; });
+    putHash({ place: undefined });
   }
 
   input.addEventListener('input', () => {
@@ -232,13 +234,13 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
   wrap.addEventListener('click', ev => { if (ev.target === wrap || ev.target.closest('svg')) input.focus(); });
   document.addEventListener('mousedown', ev => { if (!wrap.contains(ev.target)) close(); });
 
-  // deep link: #p/t<mp> | #p/s<sp[_sp…]> | #p/m<normname>
-  const deep = location.hash.match(/^#p\/([tsm].+)$/);
-  if (deep) {
+  // deep link: #p/t<mp> | #p/s<sp[_sp…]> | #p/m<normname>, optionally &b=…&c=…&s=… (hash.js)
+  const deep = parseMapHash(location.hash);
+  if (deep.place && /^[tsm]./.test(deep.place)) {
     loadIndex().then(() => {
       if (!placeIndex) return;
-      const entry = placeIndex.find(e => placeKey(e) === deep[1]);
-      if (entry) select(entry);
+      const entry = placeIndex.find(e => placeKey(e) === deep.place);
+      if (entry) select(entry, { fit: !deep.c });
     });
   }
 }
