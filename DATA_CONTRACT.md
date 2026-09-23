@@ -145,12 +145,19 @@ field is optional and is consumed defensively (see §5). New municipalities just
    `config.json` sets `requestChunkSize: 65536` to pull those contiguous rows in a few range reads.
    `config.json.databaseLengthBytes` **must equal** the summed byte size of the chunk files
    (export computes this — don't touch it).
-3. **`data/geo/*.geojson`** — province / WC districts / WC municipalities /
-   WC wards (`wc-wards.geojson`: 406 MDB wards, properties `ward`/`ward_id`/`muni`;
+3. **`data/geo/*.geojson`** — South Africa outline (`za-outline.geojson`) / WC districts / WC
+   municipalities / WC wards (`wc-wards.geojson`: 406 MDB wards, properties `ward`/`ward_id`/`muni`;
    `muni` matches the DB municipality names exactly — it drives the Atlas's per-municipality
    ward overlay and the satellite map's ward layer + click panel's "Ward" row. Refresh it from
    the WC SpatialDataWarehouse `AfriGIS_MainAdminBoundaries/MapServer/10` after a ward
    re-delimitation; both maps degrade quietly if it's missing).
+   **Since 2026-09-23 these are simplified and generated — never hand-edit them.** The
+   full-resolution boundaries live in the data repo at `extract/geo/source/` (`za-provinces`,
+   `wc-districts`, `wc-municipalities`, `wc-wards`); update a boundary THERE, then run
+   `extract/geo/simplify_geo.py --check` (needs `shapely`), which rewrites the site's
+   `za-outline`, `wc-districts`, `wc-municipalities`, `wc-wards` and copies the unsimplified
+   municipalities to `wc-municipalities-full.geojson` (see §11 for sizes and why the map keeps the
+   full file).
 
 ---
 
@@ -423,7 +430,7 @@ MAP-FEASIBILITY.md is the upgrade path — swap `addParcels()`'s source, keep ev
 Erf numbers restart in every SG township, so an erf-number match alone is province-wide noise
 (erf 15773 exists in 14 towns). `lookupErf` in `assets/map.js` therefore:
 - **gates rows to the municipality containing the click point** (`muniAt`, point-in-polygon over
-  `data/geo/wc-municipalities.geojson`). Rows from another municipality are allowed only with
+  the UNSIMPLIFIED `data/geo/wc-municipalities-full.geojson` — never the simplified Atlas file, §11). Rows from another municipality are allowed only with
   town-level (suburb) evidence — a safety net for boundary slivers where MDB and SG lines differ.
 - **draws and clicks only current erven** (`where WSTATUS='C'`). 77,120 obsolete erven (5.4%) are
   superseded by consolidations/subdivisions and sit inside their successors; the smallest-first
@@ -552,7 +559,39 @@ Plus a boot pre-warm: `ensureDB()` (both `atlas.js` and `map.js`) runs tiny `erf
 probes right after opening the worker, faulting the shared index pages before the user's first click
 or search — the pre-warm used to be only `SELECT 1`, so the first real query paid the whole cold
 descent. **If you re-measure and any of these regresses the click past ~2 s, check that all four are
-still in place.** A future structural upgrade (pre-built PMTiles / precomputed top-N in `stats.json`)
+still in place.**
+
+**Load order and boundary weight (design refresh 2026-09, Task 12).** The pre-warm is deferred so it
+never competes with first paint: the Atlas starts `ensureDB()` from
+`requestIdleCallback(…, { timeout: 4000 })` (Safari has no `requestIdleCallback`: a 1.5 s `setTimeout`
+fallback) or on the first `#search` focus, whichever comes first; the map page starts it the same way
+but only after `map.once('idle')` (first full render). A click or search before that awaits
+`ensureDB()` itself, so the pre-warm is an optimisation only, never a precondition. The warm-up
+queries above are unchanged. d3 on `index.html` is `defer` + SRI (pinned `7.9.0`). The map page skips
+the cadastre refetch when a pan/zoom stays inside the last successful, non-truncated fetch's bbox at
+the same or a higher zoom (`assets/map/bbox.js`); any error, truncation or zoom-out below the parcel
+zoom clears that memory.
+The boundary GeoJSON is simplified by `extract/geo/simplify_geo.py` (per feature,
+`shapely.simplify(tol, preserve_topology=True)`, 4 dp; properties and feature order verbatim):
+
+| file | before | after | tolerance | budget |
+|---|---:|---:|---:|---:|
+| `za-provinces` → `za-outline` (SA + WC dissolved) | 801,916 B | 61,162 B | 0.004° | 12 KB — **over** |
+| `wc-districts` | 531,072 B | 49,991 B | 0.002° | 60 KB |
+| `wc-municipalities` | 703,958 B | 88,918 B | 0.002° | 90 KB |
+| `wc-wards` | 972,656 B | 224,425 B | 0.004° | 120 KB — **over** |
+
+The largest per-municipality planar area drift is **0.195 %** (Saldanha Bay; the gate is < 0.5 %).
+Municipal densities in `stats.json` / `explore.json` are computed by `export_site.py` from
+`wc-municipalities.geojson`, so after the next export they carry that ≤ 0.2 % area drift. Borders
+move by up to the tolerance (0.002° ≈ 200 m) and adjacent simplified polygons no longer share edges
+exactly (hairline gaps/overlaps). That is invisible at Atlas scale, but NOT acceptable for the map's
+municipality gate, so `map.js` `muniAt()` reads `wc-municipalities-full.geojson` (the unsimplified
+source, byte-identical to the pre-2026-09-23 file). Ward naming on the map (`wardAt`) uses the
+simplified wards: a click within ~400 m of a ward border can name the neighbouring ward — the ward
+row is orientation only and never gates a lookup.
+
+A future structural upgrade (pre-built PMTiles / precomputed top-N in `stats.json`)
 is sketched in the extraction repo's MAP-FEASIBILITY.md.
 
 ## 12. History snapshots (`data/history/`) — append-only, never deleted
