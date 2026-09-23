@@ -166,8 +166,19 @@ All twelve were captured on HEAD 75ef902 (1440×900 desktop; 390×844 phone). Ex
   `towns.json` and `places.json` are byte-identical to the previous commit. Pointing
   `export_site.py` / `export_places.py` at `extract/geo/source/` is follow-up work in the data repo.
 - **A full `export_site.py` run rebuilds `data/db/`** with a new build id. Never run it on a
-  checkout whose `config.json` must stay pinned to the live Supabase namespace. The pages for this
-  branch were regenerated with the search-DB step cut off (see the Task 13 report).
+  checkout whose `config.json` must stay pinned to the live Supabase namespace. This branch's pages
+  were regenerated with `extract/export_pages_only.py` (data repo, commit c5afaa6). That script execs
+  `export_site.py` up to its `# ---- search DB (slim + indexed) ----` marker, so it writes stats.json,
+  towns.json, the pages + sitemap.xml and places.json, and leaves `data/db/` untouched. To reproduce:
+
+  ```sh
+  cd ~/projects/western-cape-property-valuations
+  python3 extract/export_pages_only.py --site ~/projects/western-cape-valuations-design
+  cd ~/projects/western-cape-valuations-design
+  git checkout -- data/stats.json data/geo/places.json   # drop the simplified-boundary density/bbox drift (see above)
+  ```
+
+  Follow-up: a real `--pages-only` flag in `export_site.py` should replace the wrapper.
 - The Natural Earth raster on `plain.html` (656 KB) is still loaded (deferred in `05-perf-after.md`).
 - A desktop Satellite screenshot may exceed the 400 KB PNG budget, because imagery compresses poorly.
   The scenario flags any file that does.
@@ -178,34 +189,78 @@ All twelve were captured on HEAD 75ef902 (1440×900 desktop; 390×844 phone). Ex
 
 ## 8. Deployment (after the owner approves)
 
-Production is `~/projects/western-cape-valuations` on `main`, served by GitHub Pages. `main` has three
-commits the branch does not have (search-DB switch to `b-93c01c0b6202`, the Matzikama repair export,
-DATA_CONTRACT §7c). The merge conflicts only on the `?v=` of the `atlas.js`/`map.js` script tags in
-`index.html`, `map.html` and `plain.html`. Keep the branch side, which has the higher numbers. The
-Supabase `configUrl` change lives in the JS and auto-merges.
+**The P0 integrity guards ship with this branch.** `design-2026-09` was cut from
+`p0-integrity-guards` (f446fef, the fail-closed link-table gate and the selection token), so merging
+the design branch deploys the guards too. The separate P0 checkpoint exists only to deploy the guards
+earlier, on their own. It is not needed once this branch is merged.
+
+**Find where `main` is checked out.** Git lets a branch be checked out in only one worktree. The layout
+changes over time, so look first:
 
 ```sh
-cd ~/projects/western-cape-valuations
-git checkout main && git status --short            # must be clean
-git merge --no-ff design-2026-09
-# resolve the three script-tag conflicts in favour of the branch (atlas.js?v=40, map.js?v=38):
-git checkout --theirs index.html map.html plain.html
-grep -n 'atlas.js?v=\|map.js?v=' index.html map.html plain.html
-grep -c 'b-93c01c0b6202' assets/atlas.js assets/map.js    # 1 each: the live DB namespace survived
-node --test 'tests/*.test.mjs' && node tests/check-i18n.mjs
-git add index.html map.html plain.html && git commit --no-edit
-git push
+git -C ~/projects/western-cape-valuations worktree list
 ```
 
-Then, in the data repo, set `DEFAULT_SITE` in `extract/geo/simplify_geo.py` to
-`~/projects/western-cape-valuations` and commit. The search DB and Supabase are not touched.
+At the time of writing, the layout was:
+
+```
+~/projects/western-cape-valuations          f446fef [p0-integrity-guards]
+~/projects/western-cape-valuations-design   <HEAD>  [design-2026-09]
+~/projects/western-cape-valuations-hotfix   23a57b0 [main]
+```
+
+so `main` lives in the **hotfix worktree**. Set `MAIN` to whichever directory the listing shows for
+`[main]`:
+
+```sh
+MAIN=~/projects/western-cape-valuations-hotfix     # the worktree that has [main] in `git worktree list`
+```
+
+Alternatively, move `main` back to the production checkout first:
+
+```sh
+git -C ~/projects/western-cape-valuations-hotfix checkout --detach
+git -C ~/projects/western-cape-valuations checkout main    # needs a clean tree there
+MAIN=~/projects/western-cape-valuations
+```
+
+`main` has three commits the branch does not have: the search-DB switch to `b-93c01c0b6202`, the
+Matzikama repair export, and DATA_CONTRACT §7c. The merge conflicts only on the `?v=` of the
+`atlas.js`/`map.js` script tags in `index.html`, `map.html` and `plain.html`. Keep the branch side, which
+has the higher numbers. The Supabase `configUrl` change lives in the JS and auto-merges.
+
+```sh
+git -C "$MAIN" status --short                      # must be empty
+git -C "$MAIN" merge --no-ff design-2026-09
+# the three script-tag conflicts, in favour of the branch (atlas.js?v=41, map.js?v=39):
+git -C "$MAIN" checkout --theirs index.html map.html plain.html
+grep -n 'atlas.js?v=\|map.js?v=' "$MAIN"/index.html "$MAIN"/map.html "$MAIN"/plain.html
+grep -c 'b-93c01c0b6202' "$MAIN"/assets/atlas.js "$MAIN"/assets/map.js    # 1 each: the live DB namespace survived
+(cd "$MAIN" && node --test 'tests/*.test.mjs' && node tests/check-i18n.mjs)
+git -C "$MAIN" add index.html map.html plain.html && git -C "$MAIN" commit --no-edit
+git -C "$MAIN" push origin main
+git -C "$MAIN" log -1 --format=%H                 # the merge SHA, for a rollback
+```
+
+Afterwards, in the data repo, set `DEFAULT_SITE` in `extract/geo/simplify_geo.py` (and the
+`--site` default in `extract/export_site.py`) to the checkout that holds `main` from now on, and
+commit. The search DB and Supabase are not touched.
 
 ## 9. Rollback
 
+Run the revert where `main` is checked out (`git worktree list`, as above):
+
 ```sh
-cd ~/projects/western-cape-valuations
-git revert -m 1 <merge-sha> && git push
+MAIN=~/projects/western-cape-valuations-hotfix     # or wherever [main] is listed
+git -C "$MAIN" status --short                      # must be empty
+git -C "$MAIN" revert -m 1 <merge-sha>
+git -C "$MAIN" push origin main
 ```
+
+The revert also takes out the P0 integrity guards that came with the merge (see §8). Git treats the
+reverted branch as already merged, so merging `p0-integrity-guards` again does nothing. To keep the
+guards, cherry-pick their commit back after the revert, run the tests, and push:
+`git -C "$MAIN" cherry-pick f446fef`.
 
 The database is untouched by this branch: `data/db/` and the Supabase namespace stay as they are, so a
 revert restores the previous front-end against the same data.
