@@ -57,10 +57,11 @@ export const R = v => {
 };
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const clWs = s => (s || '').replace(/\s+/g, ' ').trim();
-// PRIVACY HOTFIX (2026-09-23, DATA_CONTRACT §7): the Matzikama roll's parsed address column can hold the
-// registered owner's name (column-shifted rows). Until the corrected immutable build ships, NO Matzikama
-// address is displayed — every row shows a neutral "Address unavailable". No heuristic name detection.
-const ADDRESS_HIDDEN_MUNIS = new Set(['Matzikama']);
+// Address suppression per municipality (DATA_CONTRACT §7b/§7c). Every row of a listed municipality shows a
+// neutral "Address unavailable"; no heuristic name detection. Armed 2026-09-23 for Matzikama (owner names in
+// column-shifted rows), lifted 2026-09-24 for build b-93c01c0b6202 once the release gate
+// extract/tests/test_no_owner_names_in_exports.py (data repo) passed. Re-arm in one line: new Set(['Matzikama']).
+export const ADDRESS_HIDDEN_MUNIS = new Set([]);
 const addrHidden = muni => ADDRESS_HIDDEN_MUNIS.has(String(muni || '').trim());
 const dispAddr = (r, fallback) => addrHidden(r && r.muni) ? t('Address unavailable') : (clWs(r && r.address) || fallback);
 const RZA = v => 'R' + N(Math.round(v));

@@ -49,6 +49,7 @@ on the selected erf, with its status drawn in line-work rather than colour alone
 | Data | `data/explore.json`, `data/geo/*.geojson` | Pre-computed Explore statistics with their SQL; simplified boundaries (outline 28 KB, municipalities 89 KB) plus the full-resolution municipalities for the Integrity rule |
 | Static pages | `templates/shell.html`, regenerated `m/`, `d/`, `guide/`, `af/`, `sitemap.xml` | Self-hosted fonts via tokens.css, shared `viewseg.css`, sentence case, copy without middle-dot strings. The figures now match `stats.json` (they had not been regenerated since 2026-07-19). |
 | Renamed places | `data/geo/renamed-places/` (registry 1.1.0, `overrides.json`), `scripts/build-overrides.mjs`, `assets/map/style.js`, `assets/places.js` | Former names (Graaff-Reinet, East London, Grahamstown, Umhlanga Rocks …) are the map labels on both basemaps and in both languages, on place labels only, matched by tile feature id + class + exact current name. Official names stay searchable: the place search lists a renamed place under its former name with its official name on a second line. One line in the map credits links to the registry. |
+| Privacy | `assets/atlas.js`, `assets/map/panel.js`, `tests/browser/test-hotfix-matzikama.js` | Matzikama address suppression lifted on 2026-09-24 for build `b-93c01c0b6202` (`ADDRESS_HIDDEN_MUNIS` is empty; re-arming is one line in each of the two files). Gate: `extract/tests/test_no_owner_names_in_exports.py` in the data repo, which passed against the DB, the site exports and the build's search-DB chunks. |
 | Tests | `tests/*.test.mjs` (71 passing), `tests/browser/*.js` | Unit tests for tokens (incl. WCAG contrast of the five status pairs), fonts, format, hash, hatch, style, selection, bbox, slug, evidence, panel disclosure, charts, i18n, explore sections, check-i18n; WebKit scenarios for every page and state |
 
 Data repo (`~/projects/western-cape-property-valuations`, no remote): `extract/export_explore.py`,
@@ -169,6 +170,7 @@ All twelve were re-captured on 82a0b07 (after the inline desktop credits) (1440�
   only). `m/matzikama.html` and its AF twin show the same two most/least-valuable addresses as before this
   branch. This is not new exposure, but it should be decided together with lifting the
   suppression.
+- **The Matzikama address suppression is lifted, gated by `extract/tests/test_no_owner_names_in_exports.py`** (data repo). The gate checked build `b-93c01c0b6202`, which reaches this branch only through the merge with `main`; on its own the branch still points `configUrl` at `b-2b502178f94f`, whose search DB holds the owner names. Do not deploy the branch without that merge, and rerun the gate on any new build.
 - **Density and place bounding boxes are computed from the simplified municipal boundaries** (≤ 0.2%
   area drift) when `export_site.py` runs. This branch does not ship that drift: `stats.json`,
   `towns.json` and `places.json` are byte-identical to the previous commit. Pointing

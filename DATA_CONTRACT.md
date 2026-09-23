@@ -304,11 +304,19 @@ So a partial data update = a quieter page, not a broken one.
 
 ---
 
-### 7b. Privacy hotfix — Matzikama addresses suppressed (2026-09-23)
+### 7b. Privacy hotfix — Matzikama addresses suppressed (2026-09-23), lifted 2026-09-24
+**Lifted on 2026-09-24 for build `b-93c01c0b6202`.** `ADDRESS_HIDDEN_MUNIS` in `assets/atlas.js` and
+`assets/map/panel.js` is now an empty set; the mechanism and the "Address unavailable" string stay. The gate
+is `extract/tests/test_no_owner_names_in_exports.py` in the data repo: it rebuilds the owner strings locally
+from the pre-repair backup and checks that none of them is in the DB's public text columns (all
+municipalities), `stats.json`, `towns.json`, `explore.json`, `places.json`, the generated pages or the
+build's search-DB chunks. Rerun it before publishing any new build. If it fails, re-arming is one line in each file:
+`new Set(["Matzikama"])` in both files. The history below is kept for context.
+
 864 Matzikama rows (`suburb='0'`) are column-shifted in the parsed roll: `site_address` holds the registered
 owner's name and `category` the town. The hosted search DB (build `b-2b502178f94f`) therefore carries those
 names in `prop.address`. Until a corrected immutable build ships, **the site displays no address for ANY
-Matzikama row**: `atlas.js`/`map.js` render the i18n string "Address unavailable" (`ADDRESS_HIDDEN_MUNIS`), with
+Matzikama row**: `atlas.js`/`map.js` (now `assets/map/panel.js`) rendered the i18n string "Address unavailable" (`ADDRESS_HIDDEN_MUNIS`), with
 no heuristic detection of names. Remove the rule only when the new build (Matzikama parser fixed, reparsed,
 re-adjudicated, verified) is the one referenced by `configUrl`. Static pages and `stats.json` `hi`/`lo` for
 Matzikama carry only street/town strings today and are regenerated with the same rule at the next export.
