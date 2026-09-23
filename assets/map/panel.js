@@ -85,7 +85,10 @@ export function wireAct(el, fn) {
 /* ---- dialog shell ---- */
 
 // #ppanel as a labelled, non-modal dialog with a polite status line (set once at boot; the shells'
-// markup stays as is so the static /af/ pages need no regeneration).
+// markup stays as is so the static /af/ pages need no regeneration). The status line sits just
+// OUTSIDE the panel: a live region inside a hidden dialog is not in the accessibility tree yet when the
+// panel first opens, so its first announcement would be lost. #pgrab is the phone sheet's handle
+// (hidden on desktop by map.css; map.js wires the swipe gestures).
 export function initPanel() {
   const p = $('ppanel');
   if (!p) return;
@@ -95,14 +98,37 @@ export function initPanel() {
     const s = document.createElement('div');
     s.id = 'pstatus'; s.className = 'vh';
     s.setAttribute('aria-live', 'polite'); s.setAttribute('role', 'status');
-    p.insertBefore(s, $('pbody'));
+    p.parentNode.insertBefore(s, p);
   }
+  if (!$('pgrab')) {
+    const g = document.createElement('button');
+    g.type = 'button'; g.id = 'pgrab';
+    g.setAttribute('aria-controls', 'pbody');
+    g.addEventListener('click', () => setSheet(p.dataset.sheet === 'open' ? 'peek' : 'open'));
+    p.insertBefore(g, p.firstChild);
+  }
+  setSheet('peek');
+}
+// Phone bottom sheet state: 'peek' (badge, address, value) or 'open' (the whole panel, scrollable).
+export function setSheet(state) {
+  const p = $('ppanel'); if (!p) return;
+  p.dataset.sheet = state === 'open' ? 'open' : 'peek';
+  if (p.dataset.sheet === 'peek') p.scrollTop = 0;
+  labelSheet();
+}
+// The handle's name follows the state and the language (re-run on a language switch).
+export function labelSheet() {
+  const p = $('ppanel'), g = $('pgrab'); if (!p || !g) return;
+  const open = p.dataset.sheet === 'open';
+  g.setAttribute('aria-expanded', String(open));
+  g.setAttribute('aria-label', t(open ? 'Collapse' : 'Expand'));
 }
 // Show the panel; focus moves to its close button only when it was closed (re-renders and drill-ins
-// inside an open panel never steal focus).
+// inside an open panel never steal focus). A fresh open always starts as a peek on phones.
 export function openPanel() {
   const p = $('ppanel');
   if (!p || !p.hidden) return;
+  setSheet('peek');
   p.hidden = false;
   const c = $('pclose');
   if (c) c.focus({ preventScroll: true });

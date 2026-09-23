@@ -27,7 +27,8 @@ let maplibregl = null;          // window.maplibregl — the deferred CDN script
 // design tokens (assets/tokens.css). The --map-* overlay inks live on the [data-theme] pins;
 // setBasemap() flips the pin (sat → dark, map → light) and re-reads them (applyOverlayTokens).
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-import { renderState, lastRender, clearRender, configurePanel, initPanel, clWs } from "./map/panel.js?v=1";
+import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=1";
+import { dur } from "./motion.js?v=1";
 import { initPlaceSearch } from "./places.js?v=3";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
 import { hatchImageData } from "./map/hatch.js?v=1";
@@ -500,9 +501,65 @@ async function pickParcel(f) {
   map.setFeatureState({ source: 'parcels', id: selId }, { sel: true, verified: false });
   setSelFilter(map, selId);
   setSelectionStatus('possible');        // sparse hatch + dashed until the link decision is known
+  panSelectionUp(map, f);                 // phones: keep the erf clear of the bottom sheet
   await Promise.all([SG_TOWNS, MUNIS]);   // town names + muni polygons: tiny, normally long loaded
   if (!selection.isCurrent(token)) return;
   await showValuation({ ...f.properties, Town_name: townOf(f.properties), _ward: parcelWard, _muni: muniAt(lastClickLL) }, token);
+}
+
+/* ---- phone bottom sheet (map.css ≤ 640 px): peek ↔ open, swipe down to close ---- */
+const PHONE = '(max-width: 640px)';
+const phoneMQ = (() => { try { return matchMedia(PHONE); } catch (_) { return null; } })();
+const isPhone = () => !!(phoneMQ && phoneMQ.matches);
+
+// Centre of a parcel's bounding box (the rendered, tile-clipped geometry is close enough to place it).
+function featureCenter(g) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  const walk = c => { if (typeof c[0] === 'number') { x0 = Math.min(x0, c[0]); x1 = Math.max(x1, c[0]); y0 = Math.min(y0, c[1]); y1 = Math.max(y1, c[1]); } else c.forEach(walk); };
+  if (g && g.coordinates) walk(g.coordinates);
+  return isFinite(x0) ? [(x0 + x1) / 2, (y0 + y1) / 2] : null;
+}
+// Phones: pan so the selected erf's centre lands at 30% of the map height — above the peek sheet
+// (≤ 40vh), in the upper half. dur() makes it instant under prefers-reduced-motion.
+function panSelectionUp(map, f) {
+  if (!isPhone() || !map || !f) return;
+  const c = featureCenter(f.geometry); if (!c) return;
+  const h = map.getContainer().clientHeight;
+  map.panTo(c, { offset: [0, Math.round(-0.2 * h)], duration: dur(300) });
+}
+// Keep --sheet-h (map.css) equal to the sheet's height so ⓘ, its popover and the hint sit above it.
+function syncSheetH() {
+  const p = $('ppanel');
+  const h = p && !p.hidden && isPhone() ? p.offsetHeight : 0;
+  document.documentElement.style.setProperty('--sheet-h', h + 'px');
+}
+// Handle tap (panel.js) + vertical swipes anywhere on the sheet: up > 40 px opens it; down > 40 px
+// goes open → peek, or peek → closed (a long swipe down from open, > 200 px, closes directly).
+// While the open sheet's content is scrolled, a swipe scrolls it instead.
+function initSheet() {
+  const p = $('ppanel'); if (!p) return;
+  let y0 = null, y1 = null, drag = false;
+  p.addEventListener('touchstart', e => {
+    if (!isPhone() || e.touches.length !== 1) { y0 = null; return; }
+    y0 = y1 = e.touches[0].clientY;
+    const onGrab = !!(e.target.closest && e.target.closest('#pgrab'));
+    drag = onGrab || p.dataset.sheet !== 'open' || p.scrollTop <= 0;
+  }, { passive: true });
+  p.addEventListener('touchmove', e => { if (y0 != null && e.touches.length === 1) y1 = e.touches[0].clientY; }, { passive: true });
+  p.addEventListener('touchend', e => {
+    if (y0 == null) return;
+    const end = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : y1;
+    const dy = end - y0; y0 = null;
+    if (!drag || Math.abs(dy) <= 40) return;
+    if (dy < 0) setSheet('open');
+    else if (p.dataset.sheet === 'open' && dy <= 200) setSheet('peek');
+    else closePanel();
+  }, { passive: true });
+  p.addEventListener('touchcancel', () => { y0 = null; }, { passive: true });
+  if (typeof ResizeObserver === 'function') new ResizeObserver(syncSheetH).observe(p);
+  new MutationObserver(syncSheetH).observe(p, { attributes: true, attributeFilter: ['hidden', 'data-sheet'] });
+  if (phoneMQ) { if (phoneMQ.addEventListener) phoneMQ.addEventListener('change', syncSheetH); else if (phoneMQ.addListener) phoneMQ.addListener(syncSheetH); }
+  syncSheetH();
 }
 
 // Point the selection layers (hatch + outline) at one erf, or at nothing (id null).
@@ -832,6 +889,7 @@ function refreshLang(lang) {
     if (map.getLayer('ward-labels'))
       map.setLayoutProperty('ward-labels', 'text-field', ['concat', t('Ward') + ' ', ['get', 'ward']]);
   }
+  labelSheet();                               // the sheet handle's Expand/Collapse name
   rerenderPanel();
 }
 function wireLangToggle() {
@@ -845,8 +903,10 @@ function wireLangToggle() {
 }
 function setHint(text) { const h = $('maphint'); if (h) { h.textContent = text; h.hidden = !text; } }
 function closePanel() {
+  selection.begin();                      // an in-flight lookup must not reopen the panel after a close
   const wasOpen = !$('ppanel').hidden;
   $('ppanel').hidden = true;
+  const st = $('pstatus'); if (st) st.textContent = '';   // the next open announces even the same status
   lastView = null;
   clearRender();
   if (selId !== null && window._map) window._map.setFeatureState({ source: 'parcels', id: selId }, { sel: false, verified: false, none: false });
@@ -1063,7 +1123,8 @@ async function boot() {
     trackCamera(map);
   });
   map.on('error', (e) => console.warn('map error', e && e.error)); // tile gaps degrade quietly
-  initPanel();                      // #ppanel: role="dialog", aria-labelledby="pTitle", #pstatus live line
+  initPanel();                      // #ppanel: role="dialog", aria-labelledby="pTitle", #pstatus live line, #pgrab
+  initSheet();                      // phones: bottom-sheet gestures + --sheet-h
   configurePanel({ pickParcel, townOf, parcelAreaM2 });
   $('pclose').addEventListener('click', closePanel);
   addEventListener('keydown', e => { if (e.key === 'Escape' && !$('ppanel').hidden) closePanel(); });

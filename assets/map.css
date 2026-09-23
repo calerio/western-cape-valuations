@@ -79,12 +79,18 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
 .chip.on{color:var(--ink)}
 .chip.on .sw{opacity:1}
 
-/* phones: the top bar no longer fits beside the brand — stack: bar, brand, search, chips.
-   (Must come after the base #brand/#searchWrap/#chips rules to win.) */
+/* phones: three compact rows — search, view + language, chips — kept under 25% of the viewport
+   height before a parcel is chosen. The brand card and the zoom buttons go (pinch to zoom).
+   (Must come after the base #brand/#searchWrap/#chips/#topbar rules to win.) */
 @media (max-width:640px){
-  #brand{top:calc(env(safe-area-inset-top,0px) + 64px)}
-  #searchWrap{top:calc(env(safe-area-inset-top,0px) + 134px)}
-  #chips{top:calc(env(safe-area-inset-top,0px) + 190px)}
+  #brand{display:none}
+  #searchWrap{top:calc(env(safe-area-inset-top,0px) + var(--s-2));left:var(--s-2);right:var(--s-2);
+    width:auto;max-width:none;padding:10px 12px}
+  #placeSearch{font-size:16px}                     /* 16 px: no iOS zoom on focus */
+  #topbar{top:calc(env(safe-area-inset-top,0px) + 60px);left:var(--s-2);right:auto;padding:2px}
+  #topbar .viewseg a,#topbar .viewseg button,#topbar .langseg button{display:inline-flex;align-items:center;min-height:40px}
+  #chips{top:calc(env(safe-area-inset-top,0px) + 116px);left:var(--s-2);max-width:calc(100vw - 2 * var(--s-2))}
+  .maplibregl-ctrl-top-right{display:none}
 }
 
 #mapfail{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;
@@ -95,7 +101,7 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
 .mfSub{font-size:var(--t-14);color:var(--label2)}
 
 /* zoom/loading hint chip */
-#maphint{bottom:calc(env(safe-area-inset-bottom,0px) + 34px);left:50%;transform:translateX(-50%);
+#maphint{bottom:calc(max(var(--sheet-h,0px), env(safe-area-inset-bottom,0px)) + 34px);left:50%;transform:translateX(-50%);
   background:var(--bg);border:1px solid var(--sep);color:var(--label2);border-radius:var(--r-pill);
   box-shadow:var(--shadow-platter);
   padding:var(--s-2) var(--s-4);font-size:var(--t-13);white-space:nowrap;pointer-events:none}
@@ -103,12 +109,14 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
 
 /* attribution: an ⓘ button bottom-right toggling a small popover (MapLibre's attribution
    control is mounted inside #attrib, so source credits stay live and complete) */
-#attribBtn{bottom:calc(env(safe-area-inset-bottom,0px) + var(--s-2));right:var(--s-2);
+/* --sheet-h: the bottom sheet's height on phones (map.js keeps it in sync; 0 when closed or on desktop),
+   so the ⓘ, its popover and the hint pill always sit above the sheet's top edge */
+#attribBtn{bottom:calc(max(var(--sheet-h,0px), env(safe-area-inset-bottom,0px)) + 12px);right:var(--s-2);
   width:32px;height:32px;border-radius:50%;border:1px solid var(--sep);background:var(--bg);color:var(--label2);
   font:inherit;font-size:var(--t-16);line-height:1;cursor:pointer;padding:0}
 #attribBtn::after{content:"";position:absolute;inset:-6px}   /* 44px hit area */
 #attribBtn:hover,#attribBtn[aria-expanded="true"]{color:var(--ink)}
-#attrib{bottom:calc(env(safe-area-inset-bottom,0px) + 48px);right:var(--s-2);
+#attrib{bottom:calc(max(var(--sheet-h,0px), env(safe-area-inset-bottom,0px)) + 52px);right:var(--s-2);
   max-width:min(360px, calc(100vw - 2 * var(--s-2)));padding:var(--s-2) var(--s-3);
   background:var(--bg);border:1px solid var(--sep);border-radius:var(--r-ctl);box-shadow:var(--shadow-platter);
   font-size:var(--t-11);line-height:1.5;color:var(--label2)}
@@ -123,9 +131,21 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
   max-height:calc(100dvh - 140px);overflow:auto;padding:18px 20px var(--s-4);
   background:var(--bg);backdrop-filter:none;-webkit-backdrop-filter:none;border-radius:10px}
 #ppanel[hidden]{display:none}
+#pgrab{display:none}
+/* phones: a bottom sheet. peek (≤ 40vh: badge, address, value) ↔ open (85vh, scrolls); the handle
+   (#pgrab) and a vertical swipe > 40 px switch states, a swipe down from peek closes (map.js). */
 @media (max-width:640px){
-  #ppanel{top:auto;right:var(--s-2);left:var(--s-2);width:auto;bottom:calc(env(safe-area-inset-bottom,0px) + var(--s-2));
-    max-height:55dvh;border-radius:10px 10px var(--s-3) var(--s-3)}
+  #ppanel{position:fixed;inset:auto 0 0 0;width:auto;max-width:none;max-height:40vh;overflow:hidden;
+    padding:28px var(--s-4) calc(env(safe-area-inset-bottom,0px) + var(--s-4));
+    border-radius:var(--r-panel) var(--r-panel) 0 0;border-bottom:0;overscroll-behavior:contain;
+    transition:max-height .25s ease-out}
+  #ppanel[data-sheet="open"]{max-height:85vh;overflow-y:auto}
+  #ppanel[data-sheet="peek"] #overlapBar{display:none}   /* the overlap chooser: expanded sheet only */
+  #pgrab{display:flex;align-items:flex-start;justify-content:center;position:absolute;top:0;left:50%;
+    transform:translateX(-50%);width:120px;height:28px;padding:8px 0 0;border:0;background:none;cursor:pointer;
+    touch-action:none}
+  #pgrab::before{content:"";width:36px;height:5px;border-radius:3px;background:var(--label3)}
+  #pgrab:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;border-radius:var(--r-ctl)}
 }
 #pclose{position:absolute;top:10px;right:var(--s-3);border:0;background:none;font-size:var(--t-20);line-height:1;
   color:var(--label2);cursor:pointer;padding:var(--s-1)}

@@ -57,22 +57,31 @@
 </noscript>
 
 <header class="bar">
-  <a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span><span data-i18n="Western Cape municipal valuations">Western Cape municipal valuations</span></a>
+  <!-- brand + ☰: the phone bar's sticky row (the search below it scrolls away); on desktop this
+       wrapper is display:contents and CSS order puts the search between brand and switcher -->
+  <div class="bar-id">
+    <a class="brand" href="index.html"><span class="mark" aria-hidden="true"></span><span id="brandTitle"><span class="b-long" data-i18n="Western Cape municipal valuations">Western Cape municipal valuations</span><span class="b-short" data-i18n="Western Cape valuations">Western Cape valuations</span></span></a>
+    <!-- phones: the view switcher + EN/AF live behind ☰ (a <details>); desktop: always open, no ☰ -->
+    <details id="menu" open>
+      <summary data-i18n-aria="Menu" aria-label="Menu"><span aria-hidden="true">☰</span></summary>
+      <div id="viewsegWrap">
+        <nav class="viewseg" aria-label="Map view">
+          <a href="index.html" aria-current="page" data-i18n="Explore">Explore</a>
+          <a href="plain.html" data-maplink="plain.html" data-i18n="Map">Map</a>
+          <a href="map.html" data-maplink="map.html" data-i18n="Satellite">Satellite</a>
+        </nav>
+        <nav class="viewseg" aria-label="Language / Taal">
+          <button type="button" data-lang="en" aria-pressed="true">EN</button>
+          <button type="button" data-lang="af" aria-pressed="false">AF</button>
+        </nav>
+      </div>
+    </details>
+    <script>(function(){var m=document.getElementById('menu');if(m&&window.matchMedia&&matchMedia('(max-width: 720px)').matches)m.open=false;})();</script>
+  </div>
   <div id="pHead" class="searchbox" role="search">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg>
     <input id="search" type="search" autocomplete="off" spellcheck="false" data-i18n-ph="Search an address, town or municipality" placeholder="Search an address, town or municipality" aria-label="Search an address, town or municipality" role="combobox" aria-expanded="false" aria-haspopup="listbox" aria-autocomplete="list" aria-controls="results" />
     <div id="results" role="listbox" aria-live="polite" hidden></div>
-  </div>
-  <div id="viewsegWrap">
-    <nav class="viewseg" aria-label="Map view">
-      <a href="index.html" aria-current="page" data-i18n="Explore">Explore</a>
-      <a href="plain.html" data-maplink="plain.html" data-i18n="Map">Map</a>
-      <a href="map.html" data-maplink="map.html" data-i18n="Satellite">Satellite</a>
-    </nav>
-    <nav class="viewseg" aria-label="Language / Taal">
-      <button type="button" data-lang="en" aria-pressed="true">EN</button>
-      <button type="button" data-lang="af" aria-pressed="false">AF</button>
-    </nav>
   </div>
 </header>
 

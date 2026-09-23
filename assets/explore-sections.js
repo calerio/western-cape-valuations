@@ -28,16 +28,27 @@ function sqlFor(X, ids, level) {
 const how = (sql, extra = '', summary = 'How this is computed') => sql || extra
   ? `<details class="how"><summary>${esc(t(summary))}</summary>${extra}${sql ? `<pre>${esc(sql)}</pre>` : ''}</details>` : '';
 
-function shell(id, { h2, lede, body, notes = [], sql = '', howExtra = '', fold = false }) {
+// Phones (≤ 720 px, the explore.css breakpoint): each section is a <details> card whose summary carries
+// the heading and the key sentence; the first two start open, the rest collapsed, and a reader's own
+// open/close choice survives re-renders (sort, language). Desktop keeps plain, always-open sections.
+const PHONE = '(max-width: 720px)';
+const phoneMQ = (() => { try { return typeof matchMedia === 'function' ? matchMedia(PHONE) : null; } catch (_) { return null; } })();
+const isPhone = () => !!(phoneMQ && phoneMQ.matches);
+const CARD_ORDER = ['secValue', 'secSpread', 'secMix', 'secDates', 'secFindings'];
+const userOpen = {};                                   // section id → the reader's choice (phones)
+const cardOpen = id => (id in userOpen ? userOpen[id] : CARD_ORDER.indexOf(id) < 2);
+
+function shell(id, { h2, lede, body, notes = [], sql = '', howExtra = '' }) {
   const el = $(id); if (!el) return null;
   el.hidden = false;
-  el.classList.toggle('foldable', fold);
-  el.innerHTML = `<h2>${esc(h2)}</h2>` + (lede ? `<p class="lede">${esc(lede)}</p>` : '') +
-    (fold ? `<button type="button" class="fold-btn" aria-expanded="${el.classList.contains('open')}">${esc(t(el.classList.contains('open') ? 'Hide' : 'Show'))}</button>` : '') +
-    `<div class="sec-body"><div class="chart">${body}</div>` +
+  const head = `<h2>${esc(h2)}</h2>` + (lede ? `<p class="lede">${esc(lede)}</p>` : '');
+  const inner = `<div class="sec-body"><div class="chart">${body}</div>` +
     notes.filter(Boolean).map(n => `<p class="note">${esc(n)}</p>`).join('') + how(sql, howExtra) + `</div>`;
-  const fb = el.querySelector('.fold-btn');
-  if (fb) fb.onclick = () => { const open = el.classList.toggle('open'); fb.setAttribute('aria-expanded', String(open)); fb.textContent = t(open ? 'Hide' : 'Show'); };
+  if (isPhone()) {
+    el.innerHTML = `<details class="card"${cardOpen(id) ? ' open' : ''}><summary>${head}</summary>${inner}</details>`;
+    const d = el.querySelector('details.card');
+    d.addEventListener('toggle', () => { if (isPhone()) userOpen[id] = d.open; });
+  } else el.innerHTML = head + inner;
   return el;
 }
 const hide = id => { const el = $(id); if (el) { el.hidden = true; el.innerHTML = ''; } };
@@ -204,7 +215,7 @@ function renderMix(ctx) {
     h2: t('What the roll contains'),
     lede: tf(big.key === 'residential' ? 'Share of properties by rating category; residential properties make up {pct}.'
       : 'Share of properties by rating category; the largest group makes up {pct}.', { pct: P(big.n / tot) }),
-    body: stackedBar(groups, { width: 640, lang: L() }), notes, fold: true,
+    body: stackedBar(groups, { width: 640, lang: L() }), notes,
     sql: sqlFor(X, ['catmap', 'groups_count'], ctx.level),
   });
 }
@@ -224,7 +235,7 @@ function renderDates(ctx) {
       : tf('The {place} roll does not state its date of valuation; it serves the {cycle} rating cycle.', { place: tn(ctx.name), cycle: cyc });
   } else lede = tf('Each roll values property at its own date, from {a} to {b}; compare with care.', { a: fmtDate(dated[0], L()), b: fmtDate(dated[dated.length - 1], L()) });
   const el = shell('secDates', {
-    h2: t('When each municipality valued'), lede, fold: true,
+    h2: t('When each municipality valued'), lede,
     body: dateDots(rolls, { from, to, width: 640, lang: L() }),
     notes: [t('Each dot is a date of valuation, not a trend.')], sql: sqlFor(X, ['rolls'], ctx.level),
   });
@@ -258,7 +269,7 @@ function renderFindings(ctx) {
   if (!items.length) return hide('secFindings');
   const body = `<ol class="findings">` + items.map(f => `<li><p class="f-num">${esc(f.value)}</p><p class="f-text">${esc(f.text)}</p>` +
     how(sqlFor(X, f.q, ctx.level), '', 'Show the query') + `</li>`).join('') + `</ol>`;
-  shell('secFindings', { h2: t('Notable findings'), lede: t('Figures from the rolls, each with the query that produced it.'), body, fold: true,
+  shell('secFindings', { h2: t('Notable findings'), lede: t('Figures from the rolls, each with the query that produced it.'), body,
     notes: [t('Value per m² is shown only where a roll’s land extents passed the reliability check.')] });
 }
 
@@ -277,7 +288,12 @@ export function renderCoverage(X) {
 }
 
 /* ---------- entry point ---------- */
+let lastCtx = null;
+// crossing the phone breakpoint re-renders the column in the other form (cards ↔ plain sections)
+if (phoneMQ) { const re = () => { if (lastCtx) renderSections(lastCtx); };
+  if (phoneMQ.addEventListener) phoneMQ.addEventListener('change', re); else if (phoneMQ.addListener) phoneMQ.addListener(re); }
 export function renderSections(ctx) {
+  lastCtx = ctx;
   renderValue(ctx);
   if (!ctx.explore) { ['secSpread', 'secMix', 'secDates', 'secFindings'].forEach(hide); return; }
   renderSpread(ctx); renderMix(ctx); renderDates(ctx); renderFindings(ctx);

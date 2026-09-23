@@ -24,14 +24,21 @@ input, button { font: inherit; color: inherit; }
   font-weight: 600; font-size: var(--t-14); white-space: nowrap; }
 .mark { width: 18px; height: 18px; border: 1.5px solid var(--ink); flex: 0 0 auto;
   background: repeating-linear-gradient(45deg, transparent 0 3px, var(--accent) 3px 4px); }
-.searchbox { position: relative; flex: 1 1 420px; max-width: 560px; }
+/* brand + ☰ share a wrapper (the phone bar's sticky row); on desktop it dissolves into the bar and
+   `order` puts the search between them. The ☰ summary exists only on phones: the menu stays open. */
+.bar-id { display: contents; }
+.brand { order: 0; }
+.b-short { display: none; }
+#menu { order: 2; margin-left: auto; }
+#menu > summary { display: none; }
+.searchbox { order: 1; position: relative; flex: 1 1 420px; max-width: 560px; }
 .searchbox > svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); opacity: .5; pointer-events: none; }
 #search { width: 100%; height: 40px; padding: 0 12px 0 36px; border: 1px solid var(--rule); border-radius: var(--r-ctl);
   background: var(--bg); font-size: var(--t-14); outline: none; }
 #search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
 #results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 5; background: var(--bg);
   border: 1px solid var(--rule); border-radius: var(--r-ctl); box-shadow: var(--shadow-overlay); overflow: hidden auto; max-height: 60vh; }
-#viewsegWrap { display: flex; gap: var(--s-2); margin-left: auto; }
+#viewsegWrap { display: flex; gap: var(--s-2); }
 .viewseg { display: inline-flex; background: var(--bg3); border-radius: var(--r-ctl); padding: 2px; }
 .viewseg a, .viewseg button { appearance: none; border: 0; background: none; margin: 0; text-decoration: none;
   font-size: var(--t-13); font-weight: 500; color: var(--ink2); padding: 8px 12px; border-radius: 6px; cursor: pointer; min-height: 36px;
@@ -104,7 +111,6 @@ input, button { font: inherit; color: inherit; }
   background-size: 8px 8px; background-position: 0 0; }
 .chart svg { display: block; max-width: 100%; }
 .chart svg.c-hist, .chart svg.c-dates, .chart svg.c-stack { width: 100%; height: auto; }
-.fold-btn { display: none; }
 
 details.how { margin-top: var(--s-3); font-size: var(--t-13); }
 details.how summary { cursor: pointer; color: var(--accent); width: fit-content; min-height: 32px; display: flex; align-items: center; }
@@ -295,11 +301,26 @@ ol.findings details.how { grid-column: 2; margin-top: var(--s-1); }
 /* ============================ phones: one column ============================ */
 @media (max-width: 720px) {
   .explore { --bar-h: 56px; }
-  .bar { position: sticky; flex-wrap: wrap; gap: var(--s-2) var(--s-3); padding: var(--s-2) var(--s-4); }
-  .brand span:last-child { overflow: hidden; text-overflow: ellipsis; max-width: 44vw; }
-  #viewsegWrap { gap: 4px; }
-  .viewseg a, .viewseg button { padding: 6px 8px; font-size: var(--t-12); }
-  .searchbox { order: 3; flex: 1 1 100%; max-width: none; }
+  /* compact bar: only the brand + ☰ row is sticky; the search row scrolls away with the content.
+     The header box itself dissolves so the sticky row's containing block is the whole page. */
+  .bar { display: contents; }
+  .bar-id { position: sticky; top: 0; z-index: 40; display: flex; align-items: center; gap: var(--s-3);
+    min-height: var(--bar-h); padding: 6px var(--s-4); background: var(--paper); border-bottom: 1px solid var(--rule); }
+  .brand { min-width: 0; font-size: var(--t-16); }
+  .b-long { display: none; }
+  .b-short { display: inline; }
+  #menu { position: relative; margin-left: auto; flex: 0 0 auto; }
+  #menu > summary { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; list-style: none;
+    border: 1px solid var(--rule); border-radius: var(--r-ctl); cursor: pointer; font-size: 20px; line-height: 1; -webkit-user-select: none; user-select: none; }
+  #menu > summary::-webkit-details-marker { display: none; }
+  #menu > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #menu[open] > summary { background: var(--bg3); }
+  #menu #viewsegWrap { position: absolute; top: calc(100% + 6px); right: 0; z-index: 45; flex-direction: column; gap: var(--s-2);
+    min-width: 232px; padding: var(--s-2); background: var(--bg); border: 1px solid var(--rule); border-radius: var(--r-ctl);
+    box-shadow: var(--shadow-overlay); }
+  #menu .viewseg { display: flex; }
+  #menu .viewseg a, #menu .viewseg button { flex: 1 1 0; justify-content: center; min-height: 44px; padding: 0 var(--s-2); }
+  .searchbox { display: block; margin: var(--s-3) var(--s-4) 0; max-width: none; }
   #search { height: 44px; font-size: 16px; }                       /* 16 px: no iOS zoom on focus */
   .layout { display: block; padding: 0 var(--s-4) var(--s-6); }
   .rail { position: static; max-height: none; overflow: visible; border-right: 0; padding: var(--s-4) 0 var(--s-2); }
@@ -311,9 +332,17 @@ ol.findings details.how { grid-column: 2; margin-top: var(--s-1); }
   .ledger td, .ledger th { padding-left: 4px; padding-right: 4px; }
   .ledger td svg.c-share { width: 72px; height: auto; }
   .ledger td svg.c-marker { width: 80px; height: auto; }
-  .fold-btn { display: inline-flex; align-items: center; min-height: 40px; padding: 0 var(--s-4); margin-bottom: var(--s-2);
-    background: none; border: 1px solid var(--rule); border-radius: var(--r-ctl); cursor: pointer; font-size: var(--t-13); }
-  .sec.foldable:not(.open) .sec-body { display: none; }
+  /* sections as <details> cards (explore-sections.js): heading + key sentence in the summary */
+  .sec { padding: var(--s-4) 0; }
+  details.card > summary { display: block; position: relative; padding-right: 40px; list-style: none; cursor: pointer; min-height: 44px; }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::after { content: "▾"; position: absolute; top: 0; right: 0; width: 32px; height: 32px; display: flex;
+    align-items: center; justify-content: center; border: 1px solid var(--rule); border-radius: var(--r-ctl); color: var(--ink2);
+    transition: transform .2s ease-out; }
+  details.card[open] > summary::after { transform: rotate(180deg); }
+  details.card > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  details.card > summary .lede { margin-bottom: var(--s-2); }
+  details.card:not([open]) > summary .lede { margin-bottom: 0; }
   .props, .callouts, .statgrid { grid-template-columns: 1fr; }
   ol.findings li { grid-template-columns: 1fr; }
   ol.findings details.how { grid-column: 1; }

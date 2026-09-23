@@ -62,6 +62,22 @@ function wireLangToggle() {
   });
 }
 
+/* ☰ menu (#menu, a <details> holding #viewsegWrap): on phones it is a closed dropdown that closes
+ * again on an outside tap or Escape; on desktop it is always open and its summary is hidden (CSS).
+ * index.html closes it before first paint on phones; this keeps it right across the breakpoint. */
+function wireMenu() {
+  const m = $("menu"); if (!m) return;
+  let mq = null; try { mq = matchMedia("(max-width: 720px)"); } catch (_) { }
+  const phone = () => !!(mq && mq.matches);
+  const sync = () => { m.open = !phone(); };
+  if (mq) { if (mq.addEventListener) mq.addEventListener("change", sync); else if (mq.addListener) mq.addListener(sync); }
+  sync();
+  document.addEventListener("click", e => { if (phone() && m.open && !m.contains(e.target)) m.open = false; });
+  document.addEventListener("keydown", e => {
+    if (e.key === "Escape" && phone() && m.open) { m.open = false; m.querySelector("summary").focus(); }
+  });
+}
+
 /* Money + counts: the shared EN/AF formatter (assets/format.js) — "R850 000", "R1.25 m",
  * "R2.66 tn"; Afrikaans uses the decimal comma and mn./mjd./bilj. (same as the map page). */
 const R = (v, o) => fmtR(v, currentLang(), o);
@@ -95,6 +111,7 @@ let dbw = null, dbwPromise = null, areaIndex = null;
 
 /* ============================ boot ============================ */
 (async function () {
+  wireMenu();
   wireLangToggle();
   await loadCatalog(currentLang());                    // EN: no fetch (the key is the text)
   applyStaticI18n();
