@@ -1,6 +1,6 @@
 async (page) => {
   // Task 9: result panel states. One fixture parcel per link decision (the first `ok` case per decision in
-  // extract/match/reports/smoke-final-b-2b502178f94f/smoke.json). Per parcel: the badge (glyph + label per
+  // extract/match/reports/smoke-final-b-93c01c0b6202/smoke.json). Per parcel: the badge (glyph + label per
   // STATE_BADGES), the smoke matrix's EN substrings (must / must-not), the "Why this result?" disclosure
   // (summary text; opened: <code> with the raw reason codes, a plain <p> without underscores), the
   // accepted_group sum line only when the link row's `complete` flag is 1, dialog semantics (role,
@@ -9,7 +9,7 @@ async (page) => {
   // singular "1 valuation", and the selection's `verified` feature-state for the accepted decisions.
   const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
   const BASE = 'http://127.0.0.1:8766/';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/config.json';
+  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
   const FIX = [
     { decision: 'accepted_high', muni: 'Beaufort West', prcl_key: 'W053C009000100000688000000', x: 22.58741, y: -32.364945, erf: '688' },
     { decision: 'review', muni: 'Beaufort West', prcl_key: 'W053C009000400000206000000', x: 23.00786, y: -32.092625, erf: '206' },

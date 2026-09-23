@@ -2,7 +2,7 @@ async (page) => {
   // Regression: stale-click race. Parcel A (Cape Town, scheme route → delayed City layer fetch) is clicked,
   // then parcel B (Drakenstein, accepted_high). A's late result must never replace B's panel.
   const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/config.json';
+  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
   const A = { x: 18.444501, y: -33.985471, erf: '49888' }, B = { x: 18.996231, y: -33.673691, erf: '97' };
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();

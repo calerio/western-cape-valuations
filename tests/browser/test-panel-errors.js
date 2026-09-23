@@ -7,7 +7,7 @@ async (page) => {
   //       (a MutationObserver on #pbody timestamps it; measured on (b)'s click).
   const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
   const BASE = 'http://127.0.0.1:8766/';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/config.json';
+  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
   const B = { x: 18.996231, y: -33.673691, erf: '97' };   // Drakenstein, accepted_high (test-race.js)
   const out = {};
   const open = async (tag, routeFn) => {
@@ -49,7 +49,7 @@ async (page) => {
 
   // (a) config aborted
   {
-    const { ctx, p, errs } = await open('panelerr-a', p => p.route('**/b-2b502178f94f/config.json**', r => r.abort()));
+    const { ctx, p, errs } = await open('panelerr-a', p => p.route('**/b-93c01c0b6202/config.json**', r => r.abort()));
     await p.evaluate(([x, y]) => { const m = window._map; const pp = m.project([x, y]); m.fire('click', { point: pp, lngLat: m.unproject(pp), originalEvent: {} }); }, [B.x, B.y]);
     const r = await settled(p);
     out.a = { ...r, errs };
@@ -60,7 +60,7 @@ async (page) => {
   }
   // (b) bogus manifest + (c) loading latency
   {
-    const { ctx, p, errs } = await open('panelerr-b', p => p.route('**/b-2b502178f94f/manifest.json**',
+    const { ctx, p, errs } = await open('panelerr-b', p => p.route('**/b-93c01c0b6202/manifest.json**',
       r => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ build_id: 'bogus' }) })));
     const ms = await fireTimed(p);
     out.c = { loadingBadgeMs: ms, ok: ms != null && ms <= 100 };

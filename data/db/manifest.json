@@ -1,18 +1,18 @@
 {
  "schema": "search.db v10",
- "built": "2026-09-22T22:27:59",
- "build_id": "20260922T222703-f09249",
+ "built": "2026-09-23T12:53:03",
+ "build_id": "20260923T125124-360099",
  "link_meta": {
-  "build_id": "20260922T222703-f09249",
+  "build_id": "20260923T125124-360099",
   "pipeline_version": "2026-09-22.1",
-  "generated_at": "2026-09-22T22:12:24",
-  "crosswalk_version": "2026-09-22",
+  "generated_at": "2026-09-23T12:20:45",
+  "crosswalk_version": "2026-09-23",
   "cadastre_version": "2026-09-22"
  },
- "size_bytes": 541908992,
- "sha256": "2b502178f94f34191319510b02579223bc1bf7d82c112cf6c386a47d3c4550db",
+ "size_bytes": 542093312,
+ "sha256": "93c01c0b62021f70126c54ba067d1b07b2053f227401ebbfda72e1bf77080f2f",
  "rows": {
-  "prop": 1459474,
+  "prop": 1459729,
   "link": 1336817
  },
  "prop_columns": [
@@ -36,120 +36,120 @@
    "order": 0,
    "name": "search.db.000",
    "size_bytes": 33554432,
-   "sha256": "53115d709ac08db2dbbe2564585e3a5767d05d05d61ca73349879876d145cb73",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.000"
+   "sha256": "27a1e0cd46923c94b023170a673acfe5a1f76dd7d746796caa85c924d49a9983",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.000"
   },
   {
    "order": 1,
    "name": "search.db.001",
    "size_bytes": 33554432,
-   "sha256": "39611e6fb3fd5a23494b68d57114fa6ccbbd73d2c74829d7e1da97baa10b5c44",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.001"
+   "sha256": "7d64a9fd4813373623b9dce22b6e70ede23b54e1954cbdbd590afc081d3af038",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.001"
   },
   {
    "order": 2,
    "name": "search.db.002",
    "size_bytes": 33554432,
-   "sha256": "4d592d0422b78611700569fb17f21f4b5b8addb691352b684583216341ae4d3d",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.002"
+   "sha256": "2c58ecd37465906222ce00989d62163722f1f7def683b0c7c2a1c3130c45bd98",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.002"
   },
   {
    "order": 3,
    "name": "search.db.003",
    "size_bytes": 33554432,
-   "sha256": "72a4a9d3acbb538146d0ded13621514dfb65e09d3ede059b5c462cd08e2f12d4",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.003"
+   "sha256": "71f878bf2c0f2338a9fb0f3f6be914ee0ddc12bf79da0044ebfe1e5e6993245e",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.003"
   },
   {
    "order": 4,
    "name": "search.db.004",
    "size_bytes": 33554432,
-   "sha256": "8c12da9beb714d6eebe0360efe7d8b38f45f0d1c5af2bcaa12b2cc86cd4eb194",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.004"
+   "sha256": "2da5cbd5a711777d620ae42a369daa394e2002efca59b741c14bb8101243a228",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.004"
   },
   {
    "order": 5,
    "name": "search.db.005",
    "size_bytes": 33554432,
-   "sha256": "fff7809f0625eae5e314702f43bc2e476eb610c877f7b1a79638a82a3f063c8a",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.005"
+   "sha256": "b9b9eaedd0c953c6ac9feae277bb42f530db0842c78e6443a2c952f824819615",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.005"
   },
   {
    "order": 6,
    "name": "search.db.006",
    "size_bytes": 33554432,
-   "sha256": "0ad9d35823ed00dc0bd5a1b34d8c9bc1ecd9b3ad904033712b9f2a9cdce8ea69",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.006"
+   "sha256": "da2653519876c8b7c3a18fc7e2aaf919a9f798d4acf9252b8e6c7aaf2d664651",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.006"
   },
   {
    "order": 7,
    "name": "search.db.007",
    "size_bytes": 33554432,
-   "sha256": "7cc6efe39580b1f98f8b2d8df57a951a3e8169e2398356f7bd777d713bf71ce1",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.007"
+   "sha256": "35e34e57c61964d8abfd38a39ac3e4a06922e3021293541c825dc764dd3a6493",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.007"
   },
   {
    "order": 8,
    "name": "search.db.008",
    "size_bytes": 33554432,
-   "sha256": "ad7a2152bf15529f9b428078d184d7bee38edddbbf6010acb7553a2b36d2bd28",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.008"
+   "sha256": "81b51817efefad01f7e3f5f94435bafa491b885561ce013dae0237842fa1c090",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.008"
   },
   {
    "order": 9,
    "name": "search.db.009",
    "size_bytes": 33554432,
-   "sha256": "821d6fc0bfc9388886b12dc24ed123041c66a8f589529d99f42dc3a1f4b13b4c",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.009"
+   "sha256": "ccc14a93eea23206bcdd61be239d47283c86e6b6ac3015a310c71df2fa0bbed3",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.009"
   },
   {
    "order": 10,
    "name": "search.db.010",
    "size_bytes": 33554432,
-   "sha256": "4aa544b2f8acad16fcba118d355206fcb0945e00a8565e1fd62f5187471ac1da",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.010"
+   "sha256": "011d3bcab351af443062cf1a384db41c29b573abf9526d18b91378e2315282ea",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.010"
   },
   {
    "order": 11,
    "name": "search.db.011",
    "size_bytes": 33554432,
-   "sha256": "33b7cb53522f794108670576d12581cceb295944c3f1346c3a8b285a00c09eb2",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.011"
+   "sha256": "4e8718c0ed47eac5171b722669fef7b89999b334df7726d1c2a9b9adc164fb53",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.011"
   },
   {
    "order": 12,
    "name": "search.db.012",
    "size_bytes": 33554432,
-   "sha256": "2147431d345c09142af858eb75e267916b004a1650c513a699d490220c8369fd",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.012"
+   "sha256": "39bf353c22617029779583154bd93ccd893c208c0cdf957c3c6041d1b8b991f7",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.012"
   },
   {
    "order": 13,
    "name": "search.db.013",
    "size_bytes": 33554432,
-   "sha256": "ad041a515da62f3da01df5eaa1fb107c5e2f142158c49009abb80d868910c207",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.013"
+   "sha256": "d4eb470a7d2670767ca4358405667d47dd77bfaf2b1ab6b5a02979b89dbfd352",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.013"
   },
   {
    "order": 14,
    "name": "search.db.014",
    "size_bytes": 33554432,
-   "sha256": "72deb800fc24db7b63eccf91ad8e47971bbecc17f198285f510b29d989b04940",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.014"
+   "sha256": "7757a5ff7aeb3ed3cb254bbe032a0d65d0aecc5a3c633e4e45e64f91cfdf132e",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.014"
   },
   {
    "order": 15,
    "name": "search.db.015",
    "size_bytes": 33554432,
-   "sha256": "1e454818bc13e41566dccc57aa272f61731eab586be0c33c15e15f9d180c4055",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.015"
+   "sha256": "497317db8632ed43f532f03d9ba40b55e3bb9c36b52a0a0f0430438b781363a3",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.015"
   },
   {
    "order": 16,
    "name": "search.db.016",
-   "size_bytes": 5038080,
-   "sha256": "01ad5ae568c928ef7535c5ac19a8164f2329e66cf787c964120239bba2e13835",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/search.db.016"
+   "size_bytes": 5222400,
+   "sha256": "d35b55a8c547538bc5d601886cca7580d0b0cb5c49039c564e66493900580b68",
+   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.016"
   }
  ],
  "concatenation": [
@@ -171,7 +171,7 @@
   "search.db.015",
   "search.db.016"
  ],
- "remote_prefix": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/",
- "version": "b-2b502178f94f",
+ "remote_prefix": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/",
+ "version": "b-93c01c0b6202",
  "immutable": true
 }

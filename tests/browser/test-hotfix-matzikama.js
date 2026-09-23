@@ -3,7 +3,7 @@ async (page) => {
   // in the data repo): Matzikama rows show their street address again (map panel, Explore cards, search) and never
   // "Address unavailable" when the roll has one; other municipalities unchanged. BASE is set per run.
   const BASE = '__BASE__';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/config.json';
+  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
   const MZ = { x: 18.241641, y: -31.584797, erf: '24' }, DK = { x: 18.996231, y: -33.673691, erf: '97' };
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(String(e).slice(0, 120)));

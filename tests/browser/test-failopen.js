@@ -2,14 +2,14 @@ async (page) => {
   // Regression: fail-open link-table gate. While the DB config is unreachable a click must render an explicit
   // unavailable state (never the legacy heuristic); once reachable again, the next click must use the link table.
   const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/config.json';
+  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
   const B = { x: 18.996231, y: -33.673691, erf: '97' };
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage();
   const errs = []; p.on('pageerror', e => errs.push(String(e).slice(0, 120)));
   let blocked = 0;
   const blocker = route => { blocked++; return route.abort(); };
-  await p.route('**/b-2b502178f94f/config.json**', blocker);
+  await p.route('**/b-93c01c0b6202/config.json**', blocker);
   await p.goto('http://127.0.0.1:8765/plain.html?db=' + encodeURIComponent(DB) + '&t=failopen', { waitUntil: 'load' });
   await p.waitForFunction(() => window._map && window._map.isStyleLoaded());
   await p.waitForTimeout(2500);
@@ -25,7 +25,7 @@ async (page) => {
   out.blockedRequests = blocked;
   out.gateWhileBlocked = await p.evaluate(async () => { try { return String(await window._integrity.hasLinkTable()); } catch (e) { return 'ERR:' + (e && e.message); } });
   await p.screenshot({ path: OUT + 'failopen-blocked.png' });
-  await p.unroute('**/b-2b502178f94f/config.json**', blocker);
+  await p.unroute('**/b-93c01c0b6202/config.json**', blocker);
   await p.waitForTimeout(500);
   await p.evaluate(() => { document.getElementById('pbody').innerHTML = ''; });
   await fire(B);

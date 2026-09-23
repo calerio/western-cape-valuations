@@ -1,5 +1,5 @@
 async (page) => {
-  const BASE = 'http://127.0.0.1:8766/', DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/config.json';
+  const BASE = 'http://127.0.0.1:8766/', DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json';
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } }); const p = await ctx.newPage();
   const reqs = []; p.on('request', r => reqs.push(r.url()));
   await p.goto(BASE + 'plain.html?db=' + encodeURIComponent(DB) + '#p/tSTELLENBOSCH&c=18.861,-33.9366,17', { waitUntil: 'load' });
