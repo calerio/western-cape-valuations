@@ -274,6 +274,13 @@ So a partial data update = a quieter page, not a broken one.
 - **`build.py` caps single values at R2bn** to drop misparsed totals lines.
 - **The R618,975,000 "Dagbreekstraat / PSP / Malmesbury" record is the Malmesbury Prison** — REAL,
   verified against the OCR source and two independent extractions. Not an error.
+- **Matzikama GV2025 owner-column shift — FIXED 2026-09-23, not a caveat to keep.** The roll prints a
+  REGISTERED OWNER column that overflows into ADDRESS; the old text-splitting parser shifted 887 rows
+  (owner name in `site_address`, town in `category`, `suburb` = `0`/`1`/`2`). The parser now bins cells
+  by PDF coordinates and drops the owner column structurally; the DB was repaired in place by id (ids
+  and row count unchanged). Any `suburb='0'` or owner-looking `site_address` in Matzikama is a
+  regression — guarded by `extract/tests/test_matzikama_owner_guard.py`. Owner names must never reach
+  the export (POPIA); details in the data repo's `West-Coast/Matzikama/SOURCE.md`.
 - **Witzenberg & Laingsburg** are on older valuation cycles; **City of Cape Town** publishes no
   downloadable roll (search-only) and has no stats node — all intentional.
 
