@@ -487,6 +487,7 @@ async function pickParcel(f) {
   const map = window._map;
   if (selId !== null) map.setFeatureState({ source: 'parcels', id: selId }, { sel: false, verified: false, none: false });
   selId = f.id;
+  lastView = null;                        // until showValuation runs, a language switch must not re-render the previous parcel
   pendingSel = null;
   writeHash({ s: selId });
   map.setFeatureState({ source: 'parcels', id: selId }, { sel: true, verified: false });
@@ -956,7 +957,19 @@ async function initI18n() {
   if (currentLang() !== lang) return;          // the user switched meanwhile — setLang owns the page
   document.documentElement.lang = lang;
   applyDom();
+  refreshLang(lang);                           // anything rendered before the catalogue landed
+}
+// Re-derive everything language-dependent outside the [data-i18n] DOM: page chrome, basemap
+// label expressions, the ward-label text and the open panel. Used by initI18n and onLangChange.
+function refreshLang(lang) {
   applyPageI18n();
+  const map = window._map;
+  if (map && map.getStyle()) {
+    applyLanguage(map, lang, []);             // renamed-places overrides: not approved yet
+    if (map.getLayer('ward-labels'))
+      map.setLayoutProperty('ward-labels', 'text-field', ['concat', t('Ward') + ' ', ['get', 'ward']]);
+  }
+  rerenderPanel();
 }
 function wireLangToggle() {
   document.querySelectorAll('[data-lang]').forEach(a => {
@@ -964,16 +977,7 @@ function wireLangToggle() {
       if (a.dataset.lang !== currentLang()) setLang(a.dataset.lang);
     });
   });
-  onLangChange(lang => {
-    applyPageI18n();
-    const map = window._map;
-    if (map && map.getStyle()) {
-      applyLanguage(map, lang, []);             // renamed-places overrides: not approved yet
-      if (map.getLayer('ward-labels'))
-        map.setLayoutProperty('ward-labels', 'text-field', ['concat', t('Ward') + ' ', ['get', 'ward']]);
-    }
-    rerenderPanel();
-  });
+  onLangChange(refreshLang);
   applyPageI18n();
 }
 function setHint(text) { const h = $('maphint'); if (h) { h.textContent = text; h.hidden = !text; } }

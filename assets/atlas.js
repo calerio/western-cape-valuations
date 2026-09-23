@@ -52,7 +52,9 @@ function wireLangToggle() {
   });
   onLangChange(() => {
     applyStaticI18n();
-    if (STATS) navigate(statePath, false);             // re-render panel, labels, crumbs in place
+    // Lighter than navigate(): re-render the text only (labels + chrome, which renders the dash),
+    // so a manual pan/zoom, open search results and the panel scroll position all survive.
+    if (STATS) { labels(statePath.length, statePath); renderChrome(statePath); }
   });
 }
 
