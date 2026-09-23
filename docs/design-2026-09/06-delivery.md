@@ -78,7 +78,7 @@ and vary with ArcGIS latency.
 
 ### WebKit (automated, Playwright MCP)
 
-Run 2026-09-23 18:2x on 75ef902, then re-run after the final fix wave on the HEAD of this branch, against http://127.0.0.1:8766/ (Playwright MCP, WebKit 26.6, cold contexts). 13 scenarios, 13 passed, 0 page errors, 0 console errors. Scenario sources: `tests/browser/*.js`; the `probe-hint-focus` check (hint text after EN→AF + pan inside the fetched bbox; no `:focus-visible` on `#pclose` after a touch tap; zoom control present at 600 px desktop) also passed.
+Run 2026-09-23 18:2x on 75ef902, then re-run after the final fix wave on 77efb53, against http://127.0.0.1:8766/ (Playwright MCP, WebKit 26.6, cold contexts). 14 scenarios (the 13 below plus `test-crossview.js`), 14 passed, 0 page errors, 0 console errors. The map scenarios were re-run against the live build `b-93c01c0b6202` (`?db=`) with the same results. One timing flake was seen in four runs of `test-mobile-map.js` (a synthetic 80 px swipe from peek did not register once; it passed on re-run with both builds). Scenario sources: `tests/browser/*.js`; the `probe-hint-focus` check (hint text after EN→AF + pan inside the fetched bbox; no `:focus-visible` on `#pclose` after a touch tap; zoom control present at 600 px desktop) also passed.
 
 | Scenario | Result | Notes |
 |---|---|---|
@@ -95,6 +95,7 @@ Run 2026-09-23 18:2x on 75ef902, then re-run after the final fix wave on the HEA
 | `test-race.js` | PASS (later click kept) | |
 | `test-hotfix-matzikama.js` | PASS (Matzikama addresses suppressed; Drakenstein keeps its address) | the suppression must still hold |
 | `test-crossview.js` | <!-- controller: result --> | `plain.html#m/stellenbosch` frames Stellenbosch; the map's Explore link carries `#m/<slug>`; Explore's "Open the map" carries its municipality |
+| `test-crossview.js` | PASS (province view link `index.html`; zoom ≥ 9 carries `#m/<slug>`; `#m/stellenbosch` frames the municipality; Explore → `plain.html#m/swellendam`) | added in the final fix wave |
 | P0 tests | PASS (`tests/selection.test.mjs` in the 58 node tests; `test-failopen`/`test-race` above) | |
 
 ### Chrome and Firefox (manual, by the owner)
@@ -137,13 +138,13 @@ python3 extract/match/smoke_matrix.py --site http://127.0.0.1:8766 --db <prod co
 
 Made by `tests/browser/shots-delivery.js` (MCP scenario) into `docs/design-2026-09/screenshots/`.
 
-All twelve were captured on HEAD 75ef902 (1440×900 desktop; 390×844 phone). Explore pages are lossless PNG within the 400 KB budget. Map and satellite pages contain imagery that does not compress losslessly (0.4–2.5 MB as PNG), so those are stored as JPEG (quality 82) or, for the two plain-map phone shots, PNG at 1× — a controller ruling recorded in the SDD ledger.
+All twelve were re-captured on 77efb53 (after the inline desktop credits) (1440×900 desktop; 390×844 phone). Explore pages are lossless PNG within the 400 KB budget. Map and satellite pages contain imagery that does not compress losslessly (0.4–2.5 MB as PNG), so those are stored as JPEG (quality 82) or, for the two plain-map phone shots, PNG at 1× — a controller ruling recorded in the SDD ledger.
 
 | Page | EN desktop | EN phone | AF desktop | AF phone |
 |---|---|---|---|---|
-| Explore (`index.html`) | [PNG 226 KB](screenshots/index-en-desktop.png) | [PNG 383 KB @3×](screenshots/index-en-phone.png) | [PNG 235 KB](screenshots/index-af-desktop.png) | [PNG 382 KB @3×](screenshots/index-af-phone.png) |
-| Map (`plain.html`, Stellenbosch deep link) | [JPEG 366 KB](screenshots/plain-en-desktop.jpg) | [PNG 180 KB @1×](screenshots/plain-en-phone.png) | [JPEG 370 KB](screenshots/plain-af-desktop.jpg) | [PNG 180 KB @1×](screenshots/plain-af-phone.png) |
-| Satellite (`map.html`, same link, `&b=sat`) | [JPEG 608 KB](screenshots/map-en-desktop.jpg) | [JPEG 132 KB](screenshots/map-en-phone.jpg) | [JPEG 611 KB](screenshots/map-af-desktop.jpg) | [JPEG 142 KB](screenshots/map-af-phone.jpg) |
+| Explore (`index.html`) | [PNG 226 KB](screenshots/index-en-desktop.png) | [PNG 383 KB @3×](screenshots/index-en-phone.png) | [PNG 231 KB](screenshots/index-af-desktop.png) | [PNG 381 KB @3×](screenshots/index-af-phone.png) |
+| Map (`plain.html`, Stellenbosch deep link) | [JPEG 370 KB](screenshots/plain-en-desktop.jpg) | [PNG 180 KB @1×](screenshots/plain-en-phone.png) | [JPEG 373 KB](screenshots/plain-af-desktop.jpg) | [PNG 180 KB @1×](screenshots/plain-af-phone.png) |
+| Satellite (`map.html`, same link, `&b=sat`) | [JPEG 606 KB](screenshots/map-en-desktop.jpg) | [JPEG 132 KB](screenshots/map-en-phone.jpg) | [JPEG 609 KB](screenshots/map-af-desktop.jpg) | [JPEG 133 KB](screenshots/map-af-phone.jpg) |
 
 ## 7. Known limitations
 
