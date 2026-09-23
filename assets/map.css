@@ -133,13 +133,14 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
 #ppanel[hidden]{display:none}
 #pgrab{display:none}
 /* phones: a bottom sheet. peek (≤ 40vh: badge, address, value) ↔ open (85vh, scrolls); the handle
-   (#pgrab) and a vertical swipe > 40 px switch states, a swipe down from peek closes (map.js). */
+   (#pgrab) and a vertical drag > 40 px switch states, a drag down from peek closes (map.js, Pointer Events). */
 @media (max-width:640px){
   #ppanel{position:fixed;inset:auto 0 0 0;width:auto;max-width:none;max-height:40vh;overflow:hidden;
     padding:28px var(--s-4) calc(env(safe-area-inset-bottom,0px) + var(--s-4));
     border-radius:var(--r-panel) var(--r-panel) 0 0;border-bottom:0;overscroll-behavior:contain;
     transition:max-height .25s ease-out}
   #ppanel[data-sheet="open"]{max-height:85vh;overflow-y:auto}
+  #ppanel[data-sheet="peek"]{touch-action:none}           /* overflow:hidden anyway: the drag owns the gesture */
   #ppanel[data-sheet="peek"] #overlapBar{display:none}   /* the overlap chooser: expanded sheet only */
   #pgrab{display:flex;align-items:flex-start;justify-content:center;position:absolute;top:0;left:50%;
     transform:translateX(-50%);width:120px;height:28px;padding:8px 0 0;border:0;background:none;cursor:pointer;

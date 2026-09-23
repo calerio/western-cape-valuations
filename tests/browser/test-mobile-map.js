@@ -5,8 +5,8 @@ async (page) => {
   // separately. Clicking the fixture parcel (Drakenstein erf 97) opens #ppanel as a bottom sheet in
   // data-sheet="peek" (≤ 40vh) with badge + address + value fully visible, #attribBtn above the sheet's
   // top edge, and the map panned so the parcel sits in the upper half (y < 422, target 30% ≈ 253). The
-  // #pgrab handle (aria-label "Expand") toggles peek ↔ open (85vh); an upward swipe > 40 px opens; a
-  // downward swipe from open returns to peek and from peek closes. No horizontal overflow throughout.
+  // #pgrab handle (aria-label "Expand") toggles peek ↔ open (85vh); an upward drag > 40 px opens; a
+  // downward drag from open returns to peek and from peek closes. No horizontal overflow throughout.
   // Serve the worktree on :8766 (python3 -m http.server 8766).
   const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
   const BASE = 'http://127.0.0.1:8766/';
@@ -97,16 +97,16 @@ async (page) => {
   await p.tap('#pgrab'); await p.waitForTimeout(400);
   out.backToPeek = (await sheet()).state === 'peek';
 
-  // swipes: synthetic touch sequences on the sheet (touchstart → touchmove → touchend)
-  const swipe = (dy) => p.evaluate((dy) => {
-    const P = document.getElementById('ppanel'), g = document.getElementById('pgrab'), r = g.getBoundingClientRect();
-    const x = r.left + r.width / 2, y0 = r.top + r.height / 2;
-    const T = y => new Touch({ identifier: 7, target: g, clientX: x, clientY: y, pageX: x, pageY: y });
-    const fire = (type, y, live) => g.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, composed: true,
-      touches: live ? [T(y)] : [], targetTouches: live ? [T(y)] : [], changedTouches: [T(y)] }));
-    fire('touchstart', y0, true); fire('touchmove', y0 + dy / 2, true); fire('touchmove', y0 + dy, true); fire('touchend', y0 + dy, false);
-    return P.hidden ? 'closed' : P.dataset.sheet;
-  }, dy);
+  // drags: Pointer Events on #pgrab via page.mouse (works in Chromium and WebKit); the click that
+  // follows a completed drag must not also toggle the handle
+  const swipe = async (dy) => {
+    const r = await p.locator('#pgrab').boundingBox();
+    const x = r.x + r.width / 2, y = r.y + r.height / 2;
+    await p.mouse.move(x, y); await p.mouse.down();
+    await p.mouse.move(x, y + dy / 2, { steps: 3 }); await p.mouse.move(x, y + dy, { steps: 3 }); await p.mouse.up();
+    await p.waitForTimeout(50);
+    return p.evaluate(() => { const P = document.getElementById('ppanel'); return P.hidden ? 'closed' : P.dataset.sheet; });
+  };
   out.swipeSmall = await swipe(-20); await p.waitForTimeout(300);          // ≤ 40 px: no change
   out.swipeUp = await swipe(-120); await p.waitForTimeout(400);            // → open
   out.swipeDown1 = await swipe(80); await p.waitForTimeout(400);           // open → peek
@@ -123,15 +123,20 @@ async (page) => {
   await p.waitForTimeout(500);
   out.reopen = await p.evaluate(() => document.getElementById('ppanel').dataset.sheet);
   // closing mid-lookup: the panel must stay closed when the in-flight lookup lands
-  await p.evaluate(([x, y]) => { const m = window._map; const pp = m.project([x, y]); m.fire('click', { point: pp, lngLat: m.unproject(pp), originalEvent: {} }); }, [FIX.x, FIX.y]);
-  await p.evaluate(() => document.getElementById('pclose').click());
+  // (click and close in the same evaluate: pickParcel awaits before rendering, so even a cached lookup
+  // lands after the close — the race is exercised whether or not erf 97 is cached)
+  out.midLookupOpenBefore = await p.evaluate(([x, y]) => { const m = window._map; const pp = m.project([x, y]);
+    m.fire('click', { point: pp, lngLat: m.unproject(pp), originalEvent: {} });
+    const wasOpen = !document.getElementById('ppanel').hidden;
+    document.getElementById('pclose').click();
+    return wasOpen; }, [FIX.x, FIX.y]);
   await p.waitForTimeout(3000);
   out.staysClosed = await p.evaluate(() => document.getElementById('ppanel').hidden);
 
   out.overflowEnd = await overflow();
   out.overflowOk = [out.overflow0, out.overflowPeek, out.overflowEnd].every(noOverflow);
   out.verdict = (out.controlsOk && out.peekOk && out.attribOk && out.panOk && out.statusOk && out.openOk && out.backToPeek &&
-    out.swipeOk && out.reopen === 'peek' && out.staysClosed && out.overflowOk && !errs.length) ? 'PASS' : 'FAIL';
+    out.swipeOk && out.reopen === 'peek' && out.staysClosed && out.midLookupOpenBefore && out.overflowOk && !errs.length) ? 'PASS' : 'FAIL';
   await ctx.close();
   return out;
 }

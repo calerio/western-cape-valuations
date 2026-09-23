@@ -67,9 +67,11 @@ async (page) => {
   });
   out.overflowMenu = await overflow();
   await p.screenshot({ path: OUT + 'explore-mobile-menu.png' });
-  await p.tap('#scopeLabel');
+  // outside tap in the content below the sticky bar, without scrolling (#statTotal is on the first screen)
+  const href0 = p.url(), st = await p.locator('#statTotal').boundingBox();
+  await p.touchscreen.tap(st.x + st.width / 2, st.y + st.height / 2);
   await p.waitForTimeout(150);
-  out.menuClosed = await p.evaluate(() => !document.getElementById('menu').open);
+  out.menuClosed = await p.evaluate(() => !document.getElementById('menu').open) && p.url() === href0;
   out.menuOk = !out.menu0.open && !out.menu0.visible && out.menu1.open && out.menu1.visible && out.menu1.inView &&
     ['Explore', 'Map', 'Satellite', 'EN', 'AF'].every(x => out.menu1.items.includes(x)) && out.menu1.minH >= 44 && out.menuClosed;
 

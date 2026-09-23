@@ -533,29 +533,42 @@ function syncSheetH() {
   const h = p && !p.hidden && isPhone() ? p.offsetHeight : 0;
   document.documentElement.style.setProperty('--sheet-h', h + 'px');
 }
-// Handle tap (panel.js) + vertical swipes anywhere on the sheet: up > 40 px opens it; down > 40 px
-// goes open → peek, or peek → closed (a long swipe down from open, > 200 px, closes directly).
-// While the open sheet's content is scrolled, a swipe scrolls it instead.
+// Handle tap (panel.js) + vertical drags anywhere on the sheet (Pointer Events: touch, pen, mouse):
+// up > 40 px opens it; down > 40 px goes open → peek, or peek → closed (a long drag down from open,
+// > 200 px, closes directly). While the open sheet's content is scrolled, a drag scrolls it instead.
+// The peek sheet and #pgrab are touch-action:none (map.css); on the open sheet the browser keeps
+// panning, and a pointercancel (it took the gesture to scroll) counts as no gesture. The click that
+// follows a drag (> 10 px of movement) is swallowed, so a drag on #pgrab does not also toggle it.
 function initSheet() {
   const p = $('ppanel'); if (!p) return;
-  let y0 = null, y1 = null, drag = false;
-  p.addEventListener('touchstart', e => {
-    if (!isPhone() || e.touches.length !== 1) { y0 = null; return; }
-    y0 = y1 = e.touches[0].clientY;
+  let id = null, y0 = 0, drag = false, dragged = false;
+  p.addEventListener('pointerdown', e => {
+    dragged = false;
+    if (!isPhone() || !e.isPrimary || e.button > 0) { id = null; return; }
+    id = e.pointerId; y0 = e.clientY;
     const onGrab = !!(e.target.closest && e.target.closest('#pgrab'));
     drag = onGrab || p.dataset.sheet !== 'open' || p.scrollTop <= 0;
-  }, { passive: true });
-  p.addEventListener('touchmove', e => { if (y0 != null && e.touches.length === 1) y1 = e.touches[0].clientY; }, { passive: true });
-  p.addEventListener('touchend', e => {
-    if (y0 == null) return;
-    const end = e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : y1;
-    const dy = end - y0; y0 = null;
-    if (!drag || Math.abs(dy) <= 40) return;
+    // Capture on the pressed element itself (not the sheet), so a plain tap still clicks that button/link.
+    try { if (e.target.setPointerCapture) e.target.setPointerCapture(id); } catch (_) { }
+  });
+  p.addEventListener('pointerup', e => {
+    if (id == null || e.pointerId !== id) return;
+    id = null;
+    const dy = e.clientY - y0;
+    if (!drag) return;
+    // A press that moved (> 10 px) is a drag, not a tap: swallow the click this pointerup produces.
+    if (Math.abs(dy) > 10) { dragged = true; setTimeout(() => { dragged = false; }, 0); }
+    if (Math.abs(dy) <= 40) return;
     if (dy < 0) setSheet('open');
     else if (p.dataset.sheet === 'open' && dy <= 200) setSheet('peek');
     else closePanel();
-  }, { passive: true });
-  p.addEventListener('touchcancel', () => { y0 = null; }, { passive: true });
+  });
+  p.addEventListener('pointercancel', e => { if (e.pointerId === id) id = null; });
+  p.addEventListener('click', e => { if (dragged) { dragged = false; e.stopPropagation(); e.preventDefault(); } }, true);
+  // Peek clips #pbody: keyboard focus moving past the handle and close button expands the sheet.
+  p.addEventListener('focusin', e => {
+    if (p.dataset.sheet === 'peek' && e.target !== $('pclose') && e.target !== $('pgrab') && isPhone()) setSheet('open');
+  });
   if (typeof ResizeObserver === 'function') new ResizeObserver(syncSheetH).observe(p);
   new MutationObserver(syncSheetH).observe(p, { attributes: true, attributeFilter: ['hidden', 'data-sheet'] });
   if (phoneMQ) { if (phoneMQ.addEventListener) phoneMQ.addEventListener('change', syncSheetH); else if (phoneMQ.addListener) phoneMQ.addListener(syncSheetH); }
