@@ -27,7 +27,7 @@ let maplibregl = null;          // window.maplibregl — the deferred CDN script
 // design tokens (assets/tokens.css). The --map-* overlay inks live on the [data-theme] pins;
 // setBasemap() flips the pin (sat → dark, map → light) and re-reads them (applyOverlayTokens).
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-import { getRates, computeRates } from "./rates.js?v=1";
+import { renderState, lastRender, clearRender, configurePanel, initPanel, clWs } from "./map/panel.js?v=1";
 import { initPlaceSearch } from "./places.js?v=3";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
 import { hatchImageData } from "./map/hatch.js?v=1";
@@ -180,6 +180,11 @@ async function addBoundaries(map, beforeId) {
 // Chip state. Ward labels are OFF by default (quiet map); they draw only while Wards is also on.
 const chipState = { wards: true, wardLabels: false, labels: true };
 
+// Ward-label halo per theme pin: a light halo under the dark amber label ink on the map basemap, a dark
+// one under the pale label ink on satellite. (--map-halo is a light-dark() pair, which MapLibre cannot
+// parse, so the two values are picked here from [data-theme].)
+const wardHalo = () => (document.documentElement.dataset.theme === 'dark' ? 'rgba(12,21,18,.85)' : 'rgba(255,255,255,.85)');
+
 async function addWards(map, beforeId) {
   try {
     const gj = await (await fetch('data/geo/wc-wards.geojson')).json();
@@ -216,7 +221,7 @@ async function addWards(map, beforeId) {
       },
       paint: {
         'text-color': cssVar('--map-ward-label'),
-        'text-halo-color': 'rgba(12,21,18,.85)',
+        'text-halo-color': wardHalo(),
         'text-halo-width': 1.3,
       },
     }, beforeId);
@@ -337,7 +342,9 @@ function addParcels(map, beforeId) {
     filter: selFilter(null),
     paint: {
       'fill-pattern': SEL_PATTERN.possible,
-      'fill-opacity': ['case', ['boolean', ['feature-state', 'none'], false], 0, 0.9],
+      // dense (verified) hatch at 0.55 so the imagery still reads through it; sparse at 0.9
+      'fill-opacity': ['case', ['boolean', ['feature-state', 'none'], false], 0,
+        ['boolean', ['feature-state', 'verified'], false], 0.55, 0.9],
     },
   }, beforeId);
   // every erf: pale hairline so the selection reads first
@@ -516,30 +523,7 @@ function setSelectionStatus(status) {
   if (map.getLayer('parcels-sel-line')) map.setPaintProperty('parcels-sel-line', 'line-dasharray', SEL_DASH[status]);
 }
 
-// ---- tiny formatting helpers (mirrors atlas.js conventions) ----
-const N = v => Number(v).toLocaleString('en-ZA');
-const R = v => {
-  if (v == null) return '—';
-  // Afrikaans large-number words differ (10⁹ = miljard, not "billion") — see atlas.js R()
-  const af = currentLang() === 'af', d = s => af ? s.replace('.', ',') : s;
-  if (v >= 1e9) return 'R' + d((v / 1e9).toFixed(2)) + (af ? ' mjd.' : ' bn');
-  if (v >= 1e6) return 'R' + d((v / 1e6).toFixed(2)) + (af ? ' mn.' : ' m');
-  return 'R' + N(Math.round(v));
-};
-const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const clWs = s => (s || '').replace(/\s+/g, ' ').trim();
-// PRIVACY HOTFIX (2026-09-23, DATA_CONTRACT §7): the Matzikama roll's parsed address column can hold the
-// registered owner's name (column-shifted rows). Until the corrected immutable build ships, NO Matzikama
-// address is displayed — every row shows a neutral "Address unavailable". No heuristic name detection.
-const ADDRESS_HIDDEN_MUNIS = new Set(['Matzikama']);
-const addrHidden = muni => ADDRESS_HIDDEN_MUNIS.has(String(muni || '').trim());
-const dispAddr = (r, fallback) => addrHidden(r && r.muni) ? t('Address unavailable') : (clWs(r && r.address) || fallback);
-const RZA = v => 'R' + N(Math.round(v));
-
-// Verified municipal rates (rates.js + data/rates.json). Shown only when the
-// municipality's official tariff is on file — no figure beats a made-up one.
-let RATESDATA = null;
-getRates().then(d => { RATESDATA = d; });
+// Formatting helpers + the Matzikama address suppression live with the panel (assets/map/panel.js).
 
 // Rank valuation rows for a clicked parcel: the same erf NUMBER recurs across towns,
 // so prefer rows whose suburb/municipality matches the cadastre's Town_name. Suburb
@@ -742,36 +726,12 @@ async function lookupLink(prclKey) {
   };
   return { ...l, rows: await fetchRows(l.pids, 400), cands: await fetchRows(l.cands, 40) };
 }
-// What may be LISTED for an explicit ambiguous/abstain/review decision (display rule, 2026-09-22):
-// only the linker's own candidates that carry positive locality or area evidence and no hard
-// contradiction (`cands`, filtered offline). Rows that share the erf number but are tied to OTHER
-// towns are never listed — they are reported as rejected. The click-time heuristic is never consulted.
-function rejectedNote(link) {
-  const n = link.n_rejected || 0, w = link.n_weak || 0;
-  const parts = [];
-  if (n) parts.push(tf('{n} roll entries with this erf number were found but rejected: their locality refers to other towns.', { n }));
-  if (w) parts.push(tf('{n} further entries share the number but carry no locality or area evidence and are not shown.', { n: w }));
-  return parts.join(' ');
-}
-async function renderUnverified(props, title, note, rows, link) {
-  if (rows.length) {
-    renderList(rows, props, t('unverified — same erf number, with some locality or area evidence'));
-    $('pbody').insertAdjacentHTML('afterbegin', `<div class="pKick">${esc(props.Town_name || '')}</div><div class="pAddr">${esc(title)}</div>`);
-  } else {
-    $('pbody').innerHTML =
-      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
-      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-      `<div class="pVal" style="font-size:22px">${esc(title)}</div>`;
-  }
-  const rej = rejectedNote(link || {});
-  $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${note}${rej ? ' ' + esc(rej) : ''}</div>`);
-  maybeInjectChooser();
-}
-async function renderLink(link, props, live = () => true) {
-  const d = link.decision, rows = link.rows || [];
-  // Sectional buildings: the roll's units carry no erf (CoCT), so the offline linker can only say
-  // not_in_roll/abstain. The City's scheme-polygon layer is an independent evidence route (not
-  // the erf heuristic), so it is still consulted for those two decisions before the card.
+// The panel for one link decision. Sectional buildings: the roll's units carry no erf (CoCT), so the
+// offline linker can only say not_in_roll/abstain. The City's scheme-polygon layer is an independent
+// evidence route (not the erf heuristic), so it is still consulted for those two decisions before the
+// card. What each decision may list is decided in assets/map/panel.js (renderLinkView).
+async function showLink(link, props, live) {
+  const d = link.decision;
   if (d === 'not_in_roll' || d === 'abstain') {
     try {
       const cands = await schemesAtClick();
@@ -779,51 +739,13 @@ async function renderLink(link, props, live = () => true) {
       if (cands.length) {
         const groups = await lookupSchemes(cands);
         if (!live()) return;
-        if (groups.length === 1) { renderSchemeList(groups[0], props); return; }
-        if (groups.length > 1) { renderSchemeChooser(groups, props); return; }
+        if (groups.length) { show({ state: 'scheme', props, groups }); return; }
       }
     } catch (e) { console.warn('scheme fallback failed', e); }
   }
   if (!live()) return;
-  const why = `${t('Evidence')}: ${esc(String(link.reasons || '').replace(/,/g, ' · '))}`;
-  if (d === 'accepted_high' && rows.length === 1) {
-    renderDetail(rows[0], props, null);
-    $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${t('Verified link: this roll entry is tied to this parcel by its town and erf number.')} ${why}</div>`);
-  } else if (d === 'accepted_group' && rows.length) {
-    renderList(rows, props, tf('{n} sectional-title units on this parcel (verified scheme) — list may be incomplete; no parcel valuation is implied', { n: rows.length }));
-    if (link.complete) renderSchemeSum(rows);
-    $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${why}</div>`);
-  } else if ((d === 'review' || d === 'accepted_high' || d === 'accepted_group') && rows.length && link.show !== 0) {
-    // review — or an accepted decision whose rows this DB build cannot show: a list, never a certain card
-    renderList(rows, props, t('possible match — town not confirmed'));
-    $('pbody').insertAdjacentHTML('beforeend', `<div class="pNote">${t('Likely but unconfirmed: the roll entry fits the erf number, but its locality could not be tied to this SG town with certainty.')} ${why}${rejectedNote(link) ? ' ' + esc(rejectedNote(link)) : ''}</div>`);
-  } else if (d === 'review') {
-    // the leading row has no positive locality/area evidence of its own: nothing is listed
-    await renderUnverified(props, t('Could not link this parcel to the roll'),
-      `${t('The evidence is insufficient or conflicting; no entry can be shown as a possible match.')} ${why}`, [], link);
-  } else if (d === 'ambiguous') {
-    await renderUnverified(props, tf('Erf {erf} — several entries fit', { erf: esc(props.TAG_VALUE || '?') }),
-      `${t('Several roll entries fit this erf number and cannot be told apart.')} ${why}`, link.cands, link);
-  } else if (d === 'missing') {
-    $('pbody').innerHTML =
-      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
-      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-      `<div class="pVal" style="font-size:22px">${t('Not in this data build')}</div>` +
-      `<div class="pNote">${t('This parcel is newer than, or missing from, the current link table — no valuation is shown rather than a guess.')}</div>`;
-    maybeInjectChooser();
-  } else if (d === 'not_in_roll') {
-    $('pbody').innerHTML =
-      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
-      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-      `<div class="pVal" style="font-size:22px">${t('No valuation found')}</div>` +
-      `<div class="pNote">${t('Checked: the roll covers this town but has no entry for this erf.')} ${why}</div>`;
-    maybeInjectChooser();
-  } else {
-    await renderUnverified(props, t('Could not link this parcel to the roll'),
-      `${link.cands.length ? t('The evidence is insufficient or conflicting; any entries below are unverified.') : t('The evidence is insufficient or conflicting; no entry can be shown as a possible match.')} ${why}`, link.cands, link);
-  }
+  show({ state: d, props, link, why: link.reasons });
 }
-
 /* ---- City of Cape Town sectional-scheme fallback ----------------------------------
  * The CoCT sectional roll carries NO erf numbers (units are "SCHEME UNIT n" under a
  * scheme ref like SS513/2006), so the erf join above can't find them — a click on a
@@ -879,66 +801,7 @@ async function lookupSchemes(cands) {
   return groups;
 }
 
-// Sum of the unit valuations, shown ONLY when the unit set is the roll's complete set for the
-// scheme (offline link with `complete`=1, or a Cape Town exact scheme-reference match, which
-// returns every roll row of that reference). Always labelled as a sum of units — the erf's own
-// official valuation is R0 (the roll values the units, not the land parcel).
-function renderSchemeSum(rows) {
-  const total = rows.reduce((s, r) => s + (r.value || 0), 0);
-  const scheme = clWs(rows[0].scheme || '') || 'the scheme';
-  const sub = $('pbody').querySelector('.pSub');
-  sub.insertAdjacentHTML('beforebegin',
-    `<div class="pVal">${R(total)}</div>` +
-    `<div class="pSub">${tf('sum of the {n} unit valuations on the roll for scheme {scheme} — not the erf’s official valuation, which is R0', { n: rows.length, scheme: esc(scheme) })}</div>`);
-  sub.textContent = tf('{n} sectional-title units on this parcel', { n: rows.length });
-}
-function renderSchemeList(g, props) {
-  // A sectional scheme is a GROUP of units. The list is the roll's complete set only when the
-  // City's scheme reference matched exactly (`g.exact`); otherwise no aggregate is shown, the
-  // count is stated and the list is marked possibly incomplete. A single matched unit is never
-  // the parcel's value.
-  const total = g.rows.reduce((s, r) => s + (r.value || 0), 0);
-  const head = g.exact
-    ? `<div class="pVal">${R(total)}</div><div class="pSub">${tf('sum of the {n} unit valuations on the roll for scheme {scheme} — not the erf’s official valuation, which is R0', { n: g.rows.length, scheme: esc(clWs(g.scheme)) })}</div>`
-    : `<div class="pSub">${tf('{n} sectional-title units matched — list may be incomplete; no parcel valuation is implied', { n: g.rows.length })}</div>`;
-  $('pbody').innerHTML =
-    `<div class="pKick">${esc([props.Town_name, props._ward != null ? t('Ward') + ' ' + props._ward : null]
-      .filter(Boolean).join(' · '))}</div>` +
-    `<div class="pAddr">${esc(clWs(g.scheme))}</div>` + head +
-    `<div class="pNote">${t('Scheme identified from the City’s sectional-scheme layer at the click point; units matched by scheme reference or name.')}</div>` +
-    g.rows.slice(0, 40).map((r, i) =>
-      `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(dispAddr(r, '—'))}</span>` +
-      `<span class="v">${R(r.value)}</span></div>`).join('') +
-    (g.rows.length > 40 ? `<div class="pNote">${tf('Showing the 40 highest of {n}.', { n: g.rows.length })}</div>` : '');
-  const sub = t('sectional-title units of this scheme');
-  $('pbody').querySelectorAll('.pPick').forEach(el =>
-    wireAct(el, () => renderDetail(g.rows[+el.dataset.i], props, g.rows, sub)));
-  openPanel();
-  maybeInjectChooser();
-}
-
-function renderSchemeChooser(groups, props) {
-  $('pbody').innerHTML =
-    `<div class="pKick">${esc(props.Town_name || '')}</div>` +
-    `<div class="pAddr">${tf('{n} schemes match here', { n: groups.length })}</div>` +
-    `<div class="pSub">${t('same scheme name registered more than once — pick the one you mean')}</div>` +
-    groups.map((g, i) =>
-      `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(clWs(g.scheme))}</span>` +
-      `<span class="v">${tf('{n} units', { n: g.rows.length })}</span></div>`).join('');
-  $('pbody').querySelectorAll('.pPick').forEach(el =>
-    wireAct(el, () => renderSchemeList(groups[+el.dataset.i], props)));
-  openPanel();
-  maybeInjectChooser();
-}
-
 const $ = id => document.getElementById(id);
-
-// Make a clickable div keyboard-operable — tabbable, role=button, Enter/Space (audit 2026-07-19).
-function wireAct(el, fn) {
-  el.tabIndex = 0; el.setAttribute('role', 'button');
-  el.addEventListener('click', fn);
-  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(); } });
-}
 
 /* ---- i18n: shared module (assets/i18n.js, catalogue data/i18n-af.json). The EN/AF buttons switch
  * IN PLACE (no reload): setLang() re-applies the [data-i18n] DOM and notifies onLangChange, which
@@ -981,164 +844,81 @@ function wireLangToggle() {
   applyPageI18n();
 }
 function setHint(text) { const h = $('maphint'); if (h) { h.textContent = text; h.hidden = !text; } }
-function openPanel() { $('ppanel').hidden = false; }
 function closePanel() {
+  const wasOpen = !$('ppanel').hidden;
   $('ppanel').hidden = true;
   lastView = null;
+  clearRender();
   if (selId !== null && window._map) window._map.setFeatureState({ source: 'parcels', id: selId }, { sel: false, verified: false, none: false });
   selId = null;
   if (window._map) setSelFilter(window._map, null);
   writeHash({ s: undefined });
+  if (wasOpen) focusMap();
+}
+// Focus back to the map after the panel closes (the container is made programmatically focusable).
+function focusMap() {
+  const m = $('map');
+  if (!m) return;
+  if (!m.hasAttribute('tabindex')) m.tabIndex = -1;
+  m.focus({ preventScroll: true });
 }
 
-function statRow(k, v) {
-  return `<div class="pRow"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`;
-}
-
-function ratesNote(rr) {
-  const cents = (rr.rate * 100).toFixed(4).replace(/0+$/, '').replace(/\.$/, '');
-  return `${esc(cents)}c/R${rr.reduction ? tf(' on value above {v}', { v: RZA(rr.reduction) }) : ''}` +
-         (rr.source ? ` · <a href="${esc(rr.source)}" target="_blank" rel="noopener">${t('Official tariff')} ↗</a>` : '');
-}
-
-function renderDetail(r, props, backList, backSub) {
-  const ppm = r.extent && r.value ? 'R' + N(Math.round(r.value / r.extent)) + ' / m²' : '—';
-  const rr = computeRates(RATESDATA, r.muni, r.category, r.tenure, r.value);
-  $('pbody').innerHTML =
-    (backList ? `<div id="pback" class="pLink">${tf('← All {n} valuations on this erf', { n: backList.length })}</div>` : '') +
-    `<div class="pKick">${esc([clWs(r.suburb), tn(r.muni)].filter(Boolean).join(' · '))}</div>` +
-    `<div class="pAddr">${esc(dispAddr(r, t('Unnamed erf')))}</div>` +
-    `<div class="pVal">${R(r.value)}</div>` +
-    `<div class="pSub">${t('municipal market value')}</div>` +
-    statRow(t('Erf / unit'), r.erf || '—') +
-    (props._ward != null ? statRow(t('Ward'), props._ward) : '') +
-    statRow(t('Category'), r.category || '—') +
-    statRow(t('Extent'), r.extent ? N(Math.round(r.extent)) + ' m²' : '—') +
-    (r.dwext ? statRow(t('Dwelling extent'), N(Math.round(r.dwext)) + ' m²') : '') +
-    statRow(t('Value per m²'), ppm) +
-    (rr ? statRow(tf('Rates / year ({year})', { year: rr.year }), RZA(rr.annual)) +
-          statRow(t('Rates / month'), RZA(rr.monthly)) : '') +
-    `<div class="pNote">${rr ? ratesNote(rr) + ' · ' : ''}${tf("Parcel {key}. Roll valuation as at the municipality’s valuation date, set for rates — not today’s sale price.", { key: esc(props.PRCL_KEY || '') })}</div>`;
-  if (backList) wireAct($('pback'), () => renderList(backList, props, backSub));
-  openPanel();
-  maybeInjectChooser();
-}
-
-function renderList(rows, props, subText) {
-  $('pbody').innerHTML =
-    `<div class="pKick">${esc([props.Town_name, props._ward != null ? t('Ward') + ' ' + props._ward : null]
-      .filter(Boolean).join(' · '))}</div>` +
-    `<div class="pAddr">${tf('Erf {erf} — {n} valuations', { erf: esc(props.TAG_VALUE || '?'), n: rows.length })}</div>` +
-    `<div class="pSub">${esc(subText || t('portions or sectional-title units share this parcel'))}</div>` +
-    rows.slice(0, 40).map((r, i) =>
-      `<div class="pRow pPick" data-i="${i}"><span class="k">${esc(dispAddr(r, r.erf || 'Unnamed'))}</span>` +
-      `<span class="v">${R(r.value)}</span></div>`).join('') +
-    (rows.length > 40 ? `<div class="pNote">${tf('Showing the 40 highest of {n}.', { n: rows.length })}</div>` : '');
-  const sub = subText;
-  $('pbody').querySelectorAll('.pPick').forEach(el =>
-    wireAct(el, () => renderDetail(rows[+el.dataset.i], props, rows, sub)));
-  openPanel();
-  maybeInjectChooser();
-}
-
-// When a click hit several overlapping parcels, prepend a "N parcels here" switcher to whatever the
-// panel currently shows (valuation, list, or no-match) so the user can pick a different parcel.
-function maybeInjectChooser() {
-  if (parcelCands.length < 2) return;
-  const body = $('pbody'); if (!body) return;
-  const bar = document.createElement('div');
-  bar.className = 'pLink';
-  bar.textContent = tf('⇅ {n} parcels overlap here — choose', { n: parcelCands.length });
-  wireAct(bar, renderParcelChooser);
-  body.insertBefore(bar, body.firstChild);
-}
-
-function renderParcelChooser() {
-  $('pbody').innerHTML =
-    `<div class="pKick">${t('Overlapping parcels')}</div>` +
-    `<div class="pAddr">${tf('{n} parcels at this point', { n: parcelCands.length })}</div>` +
-    `<div class="pSub">${t('smallest (most specific) first — pick the one you mean')}</div>` +
-    parcelCands.map((f, i) =>
-      `<div class="pRow pPick" data-i="${i}"><span class="k">Erf ${esc(f.properties.TAG_VALUE || '?')}` +
-      `${townOf(f.properties) ? ' · ' + esc(clWs(townOf(f.properties))) : ''}</span>` +
-      `<span class="v">${N(Math.round(parcelAreaM2(f.geometry)))} m²</span></div>`).join('');
-  $('pbody').querySelectorAll('.pPick').forEach(el =>
-    wireAct(el, () => pickParcel(parcelCands[+el.dataset.i])));
-  openPanel();
-}
-
-// The parcel whose valuation the panel shows, and its last link decision — a language switch
-// re-renders it from these (rerenderPanel) instead of reloading the page.
+// The parcel whose valuation the panel shows — a language switch re-renders the panel's last state
+// model for it (rerenderPanel) instead of reloading the page.
 let lastView = null;             // { props }
-let lastLink = null;             // { key, link } — the immutable DB's answer for that parcel
 
-// Re-render the open panel in the current language: same parcel, fresh selection token, no
-// loading placeholder (the old-language card stays until the new one is ready), and the cached
-// link decision when there is one. A drill-in (list → one entry, scheme chooser) returns to the
-// parcel's main card.
+// Draw one state model into the panel (assets/map/panel.js) and mirror its status on the map.
+function show(model) {
+  const r = renderState($('pbody'), { ...model, overlap: parcelCands });
+  setSelectionStatus(r.status);
+}
+
+// Re-render the open panel in the current language from its cached state model: same parcel, no new
+// lookup, no loading placeholder, and an in-flight lookup is left to finish (it renders in the new
+// language). A drill-in (list → one entry, scheme chooser) returns to the parcel's main card.
 function rerenderPanel() {
   if (!lastView || $('ppanel').hidden || selId === null) return;
-  showValuation(lastView.props, selection.begin(), { rerender: true });
+  const r = lastRender();
+  if (r && r.model && r.model.props === lastView.props) renderState($('pbody'), r.model);
 }
 
-async function showValuation(props, token = selection.begin(), { rerender = false } = {}) {
+async function showValuation(props, token = selection.begin()) {
   const live = () => selection.isCurrent(token);   // only the CURRENT selection may write to the panel
   lastView = { props };
-  if (!rerender) {
-    $('pbody').innerHTML =
-      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
-      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-      `<div class="pSub">${t('Looking up valuation…')}</div>`;
-    openPanel();
-    maybeInjectChooser();        // let the user switch parcels immediately, even while loading
-  }
+  show({ state: 'loading', props });   // the overlap chooser is offered immediately, even while loading
   // Offline link table first (search.db ≥ v10 with `link`): one explicit, evidence-backed decision
   // for EVERY current parcel. Any decision — abstain and ambiguous included — wins over the
   // click-time heuristic below. A key missing from the table is a data-build mismatch and is
   // reported as such; the heuristic runs only when the whole table is absent (older hosted DB)
   // or intentionally disabled with ?nolink=1.
   let link = null;
-  try {
-    link = rerender && lastLink && lastLink.key === props.PRCL_KEY ? lastLink.link : await lookupLink(props.PRCL_KEY);
-    lastLink = { key: props.PRCL_KEY, link };
-  }
+  try { link = await lookupLink(props.PRCL_KEY); }
   catch (e) {
     if (!live()) return;
     if (e && e.code === 'DB_UNAVAILABLE') {
       // transient: network, worker or build-check failure — an explicit state, probed again on the next
       // click; NEVER the heuristic (that path exists only for ?nolink=1 or a proven older DB)
       console.warn('valuation data unavailable', e);
-      $('pbody').innerHTML =
-        `<div class="pKick">${esc(props.Town_name || '')}</div>` +
-        `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-        `<div class="pVal" style="font-size:22px">${t('Valuation data unavailable')}</div>` +
-        `<div class="pNote">${t('The valuation database could not be reached, so no valuation is shown rather than a guess. Try the parcel again in a moment.')}</div>`;
-      maybeInjectChooser();
+      show({ state: 'unavailable', props });
       resetDB();
       return;
     }
-    // the table exists but cannot be read (schema mismatch between this JS and the hosted DB): an
-    // integrity error card — never a hang, never the heuristic
+    // the table exists but cannot be read (schema mismatch between this JS and the hosted DB) or the
+    // build could not be verified: an integrity error card — never a hang, never the heuristic
     console.warn('link table unreadable', e);
-    $('pbody').innerHTML =
-      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
-      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-      `<div class="pVal" style="font-size:22px">${t('Not in this data build')}</div>` +
-      `<div class="pNote">${t('The link table in this data build could not be read — no valuation is shown rather than a guess.')}</div>`;
-    maybeInjectChooser();
+    show({ state: 'integrity', props });
     return;
   }
   if (!live()) return;
-  if (link) { await renderLink(link, props, live); return; }
-  if (!rerender) heuristicRuns++;            // legitimately reached only via ?nolink=1 or a proven older DB
+  if (link) { await showLink(link, props, live); return; }
+  heuristicRuns++;                           // legitimately reached only via ?nolink=1 or a proven older DB
   let res;
   try { res = await lookupErf(props.TAG_VALUE, props.Town_name, props._muni); }
   catch (e) {
     if (!live()) return;
     console.warn('valuation lookup failed', e);
-    $('pbody').innerHTML += `<div class="pNote">${t('The valuation database is still loading — try the parcel again in a moment.')}</div>`;
+    show({ state: 'unavailable', variant: 'loading', props });
     resetDB();
-    maybeInjectChooser();
     return;
   }
   // Weak or empty erf match → maybe a CoCT sectional building (roll has no erf for
@@ -1150,31 +930,12 @@ async function showValuation(props, token = selection.begin(), { rerender = fals
       if (cands.length) {
         const groups = await lookupSchemes(cands);
         if (!live()) return;
-        if (groups.length === 1) { renderSchemeList(groups[0], props); return; }
-        if (groups.length > 1) { renderSchemeChooser(groups, props); return; }
+        if (groups.length) { show({ state: 'scheme', props, groups }); return; }
       }
     } catch (e) { console.warn('scheme fallback failed', e); }
   }
   if (!live()) return;
-  if (!res.rows.length) {
-    $('pbody').innerHTML =
-      `<div class="pKick">${esc(props.Town_name || '')}</div>` +
-      `<div class="pAddr">Erf ${esc(props.TAG_VALUE || '?')}</div>` +
-      `<div class="pVal" style="font-size:22px">${t('No valuation found')}</div>` +
-      `<div class="pNote">${t('Not in the extracted rolls — possibly state land, a supplementary roll, or another town name.')}${res.stale ? t(' The search index is one update behind.') : ''}</div>`;
-    maybeInjectChooser();
-    return;
-  }
-  if (!live()) return;
-  const sure = res.best >= 4;    // suburb-level match = genuinely this parcel's rows
-  const note =
-    res.best === 0 ? `<div class="pNote">${t('No town match — the same erf number exists in several municipalities; verify the address.')}</div>` :
-    !sure ? `<div class="pNote">${t('Same erf number, other townships — this may not be the right parcel.')}</div>` : '';
-  const listSub = sure ? t('portions or sectional-title units share this parcel')
-                       : t('same erf number, other townships — may not be this parcel');
-  if (res.rows.length === 1) { renderDetail(res.rows[0], props, null); }
-  else { renderList(res.rows, props, listSub); }
-  if (note) $('pbody').insertAdjacentHTML('beforeend', note);
+  show({ state: 'heuristic', props, res });
 }
 
 /* ─────────────────────── search.db worker (same pattern as atlas.js) ─────────────────────── */
@@ -1215,6 +976,7 @@ function applyOverlayTokens(map) {
   paint('munis-line', 'line-color', cssVar('--map-muni-line'));
   paint('ward-lines', 'line-color', cssVar('--map-ward'));
   paint('ward-labels', 'text-color', cssVar('--map-ward-label'));
+  paint('ward-labels', 'text-halo-color', wardHalo());
   paint('parcels-fill', 'fill-color', sel);
   paint('parcels-line', 'line-color', cssVar('--map-parcel-line'));
   paint('parcels-sel-line', 'line-color', sel);
@@ -1301,8 +1063,10 @@ async function boot() {
     trackCamera(map);
   });
   map.on('error', (e) => console.warn('map error', e && e.error)); // tile gaps degrade quietly
+  initPanel();                      // #ppanel: role="dialog", aria-labelledby="pTitle", #pstatus live line
+  configurePanel({ pickParcel, townOf, parcelAreaM2 });
   $('pclose').addEventListener('click', closePanel);
-  addEventListener('keydown', e => { if (e.key === 'Escape') closePanel(); });
+  addEventListener('keydown', e => { if (e.key === 'Escape' && !$('ppanel').hidden) closePanel(); });
   ensureDB().catch(() => {});       // pre-warm the SQLite worker so the first click is fast
 }
 

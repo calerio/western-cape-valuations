@@ -144,6 +144,23 @@ body[data-basemap="sat"] .platter{background:var(--bg);backdrop-filter:none;-web
 .pNote{font-size:var(--t-11);line-height:1.55;color:var(--label2);margin-top:10px}
 .pNote a{color:var(--accent)}
 .pLink{font-size:var(--t-13);font-weight:600;color:var(--accent);cursor:pointer;margin-bottom:10px}
+.pLink:focus-visible,.pPick:focus-visible,#pclose:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* result status: glyph + text on its own tint (never colour alone) */
+.pBadge{margin:0 28px var(--s-2) 0}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:var(--r-pill);
+  font-size:var(--t-12);font-weight:600;line-height:1.4}
+.badge-ok{color:var(--st-ok-ink);background:var(--st-ok-bg)}
+.badge-warn{color:var(--st-warn-ink);background:var(--st-warn-bg)}
+.badge-neutral{color:var(--st-neutral-ink);background:var(--st-neutral-bg)}
+.badge-none{color:var(--st-none-ink);background:var(--st-none-bg)}
+.badge-bad{color:var(--st-bad-ink);background:var(--st-bad-bg)}
+/* "Why this result?" — plain sentences, then the linker's raw codes */
+details.why{margin-top:10px;font-size:var(--t-12);color:var(--label2)}
+details.why summary{cursor:pointer;font-weight:600;color:var(--accent);padding:var(--s-1) 0}
+details.why p{margin:var(--s-1) 0;line-height:1.55;color:var(--ink)}
+details.why code{display:block;font:var(--t-11)/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;
+  overflow-wrap:anywhere;color:var(--label2)}
+.vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 
 /* MapLibre controls, toned to the chrome */
 .maplibregl-ctrl-top-right{top:calc(env(safe-area-inset-top,0px) + 56px)}   /* clear the top bar */
