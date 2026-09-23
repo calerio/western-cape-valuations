@@ -205,10 +205,11 @@ figures on the live site match the database exactly (R2.66 tn, median R915 k, Gi
 outside the design scope but need the owner's decision:
 
 1. **Personal data on the live site (POPIA) — verified.** 864 Matzikama rows with `suburb='0'` are
-   column-shifted: `site_address` holds the registered owner's name (819 of the 864 contain no digit; 16 name
-   a trust or family) and `category` holds the town. `site_address` is exported as `prop.address` in the
+   column-shifted: `site_address` holds the registered owner's name (a person's or a family trust's name) and
+   `category` holds the town name. `site_address` is exported as `prop.address` in the
    search DB, so the names are public now. Fix belongs in the Matzikama parser + a new build; until then the
-   Explore redesign never displays `site_address` for these rows.
+   Explore redesign never displays `site_address` for these rows. Fixed 2026-09-23 by the Matzikama parser
+   repair (DATA_CONTRACT §7).
 2. **Cape Town double count.** Multi-use properties appear as a parent "HOLDING / MULTIPLE PURPOSES" row and
    again as erf-less allocation rows: R15.1 bn certain, up to ~R36 bn (1.4% of the province). The current
    "most valuable property" on the site is one of these parents.
