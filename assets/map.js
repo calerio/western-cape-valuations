@@ -7,7 +7,8 @@
  * Parcels are fetched LIVE per viewport from the WC Surveyor-General planning cadastre
  * (ArcGIS REST, CORS-enabled, validated in MAP-FEASIBILITY.md) once you zoom close enough
  * — no pre-built tiles, no new hosting. A clicked parcel resolves to its valuation in the
- * existing Supabase-hosted search.db via the indexed erf_int column (see DATA_CONTRACT §9).
+ * existing search.db on the search-DB host (Cloudflare R2; see DATA_CONTRACT §8) via the
+ * indexed erf_int column (see DATA_CONTRACT §9).
  * The PMTiles pipeline in MAP-FEASIBILITY.md remains a future optimisation if the live
  * service becomes a bottleneck. Everything degrades quietly: no parcels → imagery map;
  * no valuation match → an honest "no match" card.
@@ -1096,7 +1097,7 @@ async function ensureDB() {
     const mod = await import('https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/+esm');
     const createDbWorker = mod.createDbWorker || mod.default.createDbWorker;
     const abs = p => new URL(p, location.href).href;
-    // Served from Supabase Storage, NOT GitHub Pages (Pages gzip-corrupts the HTTP range
+    // Served from the search-DB host (Cloudflare R2; see DATA_CONTRACT §8), NOT GitHub Pages (Pages gzip-corrupts the HTTP range
     // requests sql.js-httpvfs needs — see DATA_CONTRACT §8). ?db=<url> overrides for local dev.
     const DB_CONFIG = new URLSearchParams(location.search).get('db') || DB_CONFIG_URL;
     const w = await createDbWorker([{ from: 'jsonconfig', configUrl: abs(DB_CONFIG) }],

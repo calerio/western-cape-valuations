@@ -2,7 +2,7 @@ async (page) => {
   // Task 10: Explore lands on the province with no click; the ledger table sorts; the histogram, date
   // dots and SQL disclosures render from data/explore.json; #m/<slug> drills to the same sections
   // with towns; the map tooltip works (B3); the property dialog names the roll's own cycle (B4).
-  // Serve the worktree on :8766 (python3 -m http.server 8766). The top-N list needs the Supabase DB.
+  // Serve the worktree on :8766 (python3 -m http.server 8766). The top-N list needs the search DB from the search-DB host (Cloudflare R2; see DATA_CONTRACT §8).
   const BASE = 'http://127.0.0.1:8766/';
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 }, locale: 'en-US' });
   const p = await ctx.newPage();

@@ -1072,10 +1072,12 @@ async function ensureDB() {
     const mod = await import("https://cdn.jsdelivr.net/npm/sql.js-httpvfs@0.8.12/+esm");
     const createDbWorker = mod.createDbWorker || mod.default.createDbWorker;
     const abs = p => new URL(p, location.href).href;
-    // The search DB is served from Supabase Storage, NOT GitHub Pages. sql.js-httpvfs reads the
+    // The search DB is served from the search-DB host (Cloudflare R2; see DATA_CONTRACT §8), NOT
+    // GitHub Pages. sql.js-httpvfs reads the
     // DB via HTTP Range requests; GitHub Pages (and jsDelivr) gzip responses and serve ranges
     // against the COMPRESSED bytes, so SQLite reads garbage and every search returns nothing.
-    // Supabase Storage serves raw byte-ranges (no transfer compression) with CORS — verified.
+    // The search-DB host (Cloudflare R2; see DATA_CONTRACT §8) serves raw byte-ranges (no transfer
+    // compression) with CORS — verified.
     // config.json's urlPrefix ("search.db.") resolves the chunks relative to this configUrl.
     const DB_CONFIG = "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json";
     const w = await createDbWorker([{ from: "jsonconfig", configUrl: DB_CONFIG }],
