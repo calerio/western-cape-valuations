@@ -50,11 +50,14 @@ on the selected erf, with its status drawn in line-work rather than colour alone
 | Static pages | `templates/shell.html`, regenerated `m/`, `d/`, `guide/`, `af/`, `sitemap.xml` | Self-hosted fonts via tokens.css, shared `viewseg.css`, sentence case, copy without middle-dot strings. The figures now match `stats.json` (they had not been regenerated since 2026-07-19). |
 | Renamed places | `data/geo/renamed-places/` (registry 1.1.0, `overrides.json`), `scripts/build-overrides.mjs`, `assets/map/style.js`, `assets/places.js` | Former names (Graaff-Reinet, East London, Grahamstown, Umhlanga Rocks …) are the map labels on both basemaps and in both languages, on place labels only, matched by tile feature id + class + exact current name. Official names stay searchable: the place search lists a renamed place under its former name with its official name on a second line. One line in the map credits links to the registry. |
 | Privacy | `assets/atlas.js`, `assets/map/panel.js`, `tests/browser/test-hotfix-matzikama.js` | Matzikama address suppression lifted on 2026-09-24 for build `b-93c01c0b6202` (`ADDRESS_HIDDEN_MUNIS` is empty; re-arming is one line in each of the two files). Gate: `extract/tests/test_no_owner_names_in_exports.py` in the data repo, which passed against the DB, the site exports and the build's search-DB chunks. |
+| Search DB hosting | `assets/map.js` (`DB_CONFIG_URL`), `assets/atlas.js` (`DB_CONFIG`), `scripts/preflight_db.sh`, `scripts/verify_remote_db.sh`, `DATA_CONTRACT.md` §8 | The search DB moved from Supabase Storage to Cloudflare R2 (bucket `wc-valuations-db`) on 2026-09-24, after Supabase restricted the project for exceeding the free plan's 1 GB storage quota and every storage read returned HTTP 402 (`docs/incidents/2026-09-24-supabase-storage-quota.md`). The same build, `b-93c01c0b6202`, with the bytes unchanged. New pre-switch check `scripts/preflight_db.sh`; the verifier takes `--base` and compares the three build ids. Storage budget: at most two builds in the bucket, pruned after every verified switch. |
 | Tests | `tests/*.test.mjs` (71 passing), `tests/browser/*.js` | Unit tests for tokens (incl. WCAG contrast of the five status pairs), fonts, format, hash, hatch, style, selection, bbox, slug, evidence, panel disclosure, charts, i18n, explore sections, check-i18n; WebKit scenarios for every page and state |
 
 Data repo (`~/projects/western-cape-property-valuations`, no remote): `extract/export_explore.py`,
 `extract/catrules.py`, `extract/geo/simplify_geo.py` (drift gate and `--dry-run`),
-`extract/export_pages.py` (copy sweep).
+`extract/export_pages.py` (copy sweep), `extract/export_site.py` (the manifest records the R2 base,
+`WC_DB_BASE` overrides it), `extract/match/upload_r2.sh` (R2 uploader with a retention report and
+`--prune`), `extract/match/upload_supabase.sh` (marked legacy).
 
 ## 3. Performance before and after
 
@@ -132,6 +135,10 @@ cd ~/projects/western-cape-property-valuations
 python3 extract/match/smoke_matrix.py --site http://127.0.0.1:8766 --db <prod config> --out reports/smoke-design-2026-09 --private
 ```
 
+`<prod config>` is the R2 config URL,
+`https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json`. Since 2026-09-24 the
+matrices run against R2; runs before that date read the Supabase copy of the same build.
+
 **Pending.** The matrix drives Safari through AppleScript and cannot render while the screen is locked (`document.hidden` is true). A launcher (`extract/match/design_smoke_when_ready_2026-09-23.sh`) runs it automatically once the P0 checkpoint run has finished and the screen is unlocked with Safari idle; its result lands in `extract/match/reports/design-smoke-2026-09-23.DONE` and `reports/smoke-design-2026-09/smoke.json`.
 
 ## 6. Screenshots
@@ -175,8 +182,15 @@ All twelve were re-captured on 82a0b07 (after the inline desktop credits) (1440�
   area drift) when `export_site.py` runs. This branch does not ship that drift: `stats.json`,
   `towns.json` and `places.json` are byte-identical to the previous commit. Pointing
   `export_site.py` / `export_places.py` at `extract/geo/source/` is follow-up work in the data repo.
+- **The search DB is served from R2's public development endpoint** (`pub-….r2.dev`). No Cloudflare
+  zone is managed for this site, so there is no custom data hostname; adding one later is a single
+  config-URL switch (`scripts/rollback_db.sh <config-url>`).
+- **The Supabase copy of `b-93c01c0b6202` is temporary.** It is the rollback copy until production has
+  run on R2, then it is removed. At the time of writing Supabase still answers HTTP 402 for every
+  storage read (the quota restriction is lifted with a delay Supabase does not specify), so that copy
+  cannot serve as a rollback target until the restriction is gone.
 - **A full `export_site.py` run rebuilds `data/db/`** with a new build id. Never run it on a
-  checkout whose `config.json` must stay pinned to the live Supabase namespace. This branch's pages
+  checkout whose `config.json` must stay pinned to the live build. This branch's pages
   were regenerated with `extract/export_pages_only.py` (data repo, commit c5afaa6). That script execs
   `export_site.py` up to its `# ---- search DB (slim + indexed) ----` marker, so it writes stats.json,
   towns.json, the pages + sitemap.xml and places.json, and leaves `data/db/` untouched. To reproduce:
@@ -242,6 +256,21 @@ git -C ~/projects/western-cape-valuations checkout main    # needs a clean tree 
 MAIN=~/projects/western-cape-valuations
 ```
 
+**The database move to R2 is not part of this merge.** `main` switches its config URL to R2 with its own
+commit (`scripts/rollback_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json`),
+so production reads R2 before the design branch lands; the branch already points at the same URL.
+Before the merge, run the mandatory pre-switch check on that URL and confirm `main` reads it:
+
+```sh
+(cd "$MAIN" && scripts/preflight_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json)   # must end in PREFLIGHT OK
+grep -c 'r2.dev/b-93c01c0b6202/config.json' "$MAIN"/assets/atlas.js "$MAIN"/assets/map.js           # 1 each
+```
+
+(`scripts/preflight_db.sh` arrives on `main` with the merge; before that, run it from the branch
+worktree, `~/projects/western-cape-valuations-design/scripts/preflight_db.sh`.) Once both files name the
+same R2 URL on both sides, the config-URL lines merge cleanly. `DATA_CONTRACT.md` conflicts at the §7c/§8
+boundary: keep `main`'s §7c followed by the branch's §8 (drop `main`'s old §8 heading).
+
 `main` has three commits the branch does not have: the search-DB switch to `b-93c01c0b6202`, the
 Matzikama repair export, and DATA_CONTRACT §7c. Today `git merge --no-ff` **stops** on three conflicts,
 all on the `?v=` of the `atlas.js`/`map.js` script tags in `index.html`, `map.html` and `plain.html`
@@ -256,7 +285,7 @@ git -C "$MAIN" merge --no-ff design-2026-09
 # ONLY if the merge stopped: the three script-tag conflicts, in favour of the branch (keep the branch's current `?v=` numbers):
 git -C "$MAIN" checkout --theirs index.html map.html plain.html
 grep -n 'atlas.js?v=\|map.js?v=' "$MAIN"/index.html "$MAIN"/map.html "$MAIN"/plain.html
-grep -c 'b-93c01c0b6202' "$MAIN"/assets/atlas.js "$MAIN"/assets/map.js    # 1 each: the live DB namespace survived
+grep -c 'r2.dev/b-93c01c0b6202' "$MAIN"/assets/atlas.js "$MAIN"/assets/map.js    # 1 each: the live R2 config URL survived
 (cd "$MAIN" && node --test 'tests/*.test.mjs' && node tests/check-i18n.mjs)
 git -C "$MAIN" add index.html map.html plain.html && git -C "$MAIN" commit --no-edit   # ONLY if the merge stopped
 git -C "$MAIN" push origin main
@@ -265,7 +294,7 @@ git -C "$MAIN" log -1 --format=%H                 # the merge SHA, for a rollbac
 
 Afterwards, in the data repo, set `DEFAULT_SITE` in `extract/geo/simplify_geo.py` (and the
 `--site` default in `extract/export_site.py`) to the checkout that holds `main` from now on, and
-commit. The search DB and Supabase are not touched.
+commit. The merge does not touch the search DB: the R2 bucket and the Supabase rollback copy stay as they are.
 
 ## 9. Rollback
 
@@ -283,5 +312,16 @@ reverted branch as already merged, so merging `p0-integrity-guards` again does n
 guards, cherry-pick their commit back after the revert, run the tests, and push:
 `git -C "$MAIN" cherry-pick f446fef`.
 
-The database is untouched by this branch: `data/db/` and the Supabase namespace stay as they are, so a
-revert restores the previous front-end against the same data.
+**Front end:** reverting the merge commit (above) restores the previous front end. It keeps reading
+whatever config URL `main` held before the merge, which is the R2 URL once `main` has switched.
+
+**Database:** the merge does not change the data. To move the site off R2, point it at the Supabase copy
+of the same build while that copy exists and Supabase serves it again (HTTP 200, not 402):
+
+```sh
+(cd "$MAIN" && scripts/preflight_db.sh https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json)
+(cd "$MAIN" && scripts/rollback_db.sh https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json)
+```
+
+`rollback_db.sh` rewrites the config URL in both JS files, bumps the `?v=` on the pages, commits and
+pushes. Back to R2 is the same command with the R2 config URL.
