@@ -31,7 +31,7 @@ bytes unchanged, and the site now reads it from there.
 | 2026-09-22 ~19:00 | Build `b-9dadc03c7f1f` uploaded to Supabase (19 objects, 538 MB). |
 | 2026-09-22 ~20:30 | Build `b-2b502178f94f` (build D) uploaded (19 objects, 542 MB). |
 | 2026-09-23 12:53 | Build `b-93c01c0b6202` (build E, Matzikama repair) uploaded (19 objects, 542,099,494 bytes). |
-| 2026-09-23 14:4x | Site switched to `b-93c01c0b6202`; verified 131/131. The older namespaces, and `v9` from July (11 objects, 333 MB), stayed in the bucket: 1.96 GB against a 1 GB quota. |
+| 2026-09-23 14:42–14:44 | Site switched to `b-93c01c0b6202`; verified (smoke matrix 131/131 against the live site). The older namespaces, and `v9` from July (11 objects, 333 MB), stayed in the bucket: 1.96 GB against a 1 GB quota. |
 | 2026-09-24 ~01:07 | Supabase applies the Fair Use restriction `exceed_storage_size_quota`. Every storage read returns HTTP 402; parcel lookups fail closed. |
 | 2026-09-24 | The Storage API refuses deletes while the project is restricted. |
 | 2026-09-24 01:37 | The three superseded namespaces are deleted by exact object name through SQL on `storage.objects`, with the guard flag `storage.allow_delete_query` set for that transaction only. Only `b-93c01c0b6202` remains (19 objects, 542,099,494 bytes). Their `config.json` and `manifest.json` had been archived in the data repo first (`extract/db-manifests-archive/`). |
@@ -77,12 +77,14 @@ Then:
 
 - **Host:** Cloudflare R2. Its free tier allows 10 GB-month of storage, 10 million reads and 1 million
   writes a month, with no egress charge. A build is about 542 MB.
-- **Storage budget:** at most two builds in the bucket, the live one and the previous one. Prune after
-  every verified switch. Written into `DATA_CONTRACT.md` §2 and §8.
+- **Storage budget:** at most two builds in the bucket, the live one and the previous one. The order for
+  a new build is verify → prune the previous build → upload the new one → verify remote → preflight →
+  switch; the namespace the live config names is never pruned. Written into `DATA_CONTRACT.md` §2 and §8.
 - **Uploader** (`extract/match/upload_r2.sh`, data repo): refuses when the bucket would exceed 3 GB
-  (`MAX_GB`) or when two namespaces already exist (`MAX_BUILDS`); after a verified upload it prints
-  which namespace would be pruned; `--prune <namespace>` deletes exactly that namespace's objects and
-  refuses the one the live site reads.
+  (`MAX_GB`) or when two namespaces already exist (`MAX_BUILDS`), so the previous build is pruned before
+  the next upload: `--prune <namespace>` deletes exactly that namespace's objects (17 chunks plus
+  `config.json` and `manifest.json`) and refuses the one the live site reads. The uploader never deletes
+  on its own.
 - **Pre-switch check** (`scripts/preflight_db.sh <config-url>`): config and manifest reachable and
   consistent, ranged reads, CORS and cache headers correct, and the bucket below 3 GB. Mandatory
   before any switch.

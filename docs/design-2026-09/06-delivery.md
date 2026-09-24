@@ -237,12 +237,12 @@ changes over time, so look first:
 git -C ~/projects/western-cape-valuations worktree list
 ```
 
-At the time of writing, the layout was:
+At the time of writing (2026-09-24), the layout was:
 
 ```
 ~/projects/western-cape-valuations          f446fef [p0-integrity-guards]
 ~/projects/western-cape-valuations-design   <HEAD>  [design-2026-09]
-~/projects/western-cape-valuations-hotfix   23a57b0 [main]
+~/projects/western-cape-valuations-hotfix   64409d6 [main]
 ```
 
 so `main` lives in the **hotfix worktree**. Set `MAIN` to whichever directory the listing shows for
@@ -260,10 +260,10 @@ git -C ~/projects/western-cape-valuations checkout main    # needs a clean tree 
 MAIN=~/projects/western-cape-valuations
 ```
 
-**The database move to R2 is not part of this merge.** `main` switches its config URL to R2 with its own
-commit (`scripts/rollback_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json`),
-so production reads R2 before the design branch lands; the branch already points at the same URL.
-Before the merge, run the mandatory pre-switch check on that URL and confirm `main` reads it:
+**The database move to R2 is not part of this merge.** `main` already reads
+`https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json` (its own commit 64409d6),
+and the branch points at the same URL. Before the merge, run the mandatory pre-switch check on that URL
+and confirm `main` reads it:
 
 ```sh
 (cd "$MAIN" && scripts/preflight_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json)   # must end in PREFLIGHT OK
@@ -271,29 +271,48 @@ grep -c 'r2.dev/b-93c01c0b6202/config.json' "$MAIN"/assets/atlas.js "$MAIN"/asse
 ```
 
 (`scripts/preflight_db.sh` arrives on `main` with the merge; before that, run it from the branch
-worktree, `~/projects/western-cape-valuations-design/scripts/preflight_db.sh`.) Once both files name the
-same R2 URL on both sides, the config-URL lines merge cleanly. `DATA_CONTRACT.md` conflicts at the §7c/§8
-boundary: keep `main`'s §7c followed by the branch's §8 (drop `main`'s old §8 heading).
+worktree, `~/projects/western-cape-valuations-design/scripts/preflight_db.sh`.)
 
-`main` has three commits the branch does not have: the search-DB switch to `b-93c01c0b6202`, the
-Matzikama repair export, and DATA_CONTRACT §7c. Today `git merge --no-ff` **stops** on three conflicts,
-all on the `?v=` of the `atlas.js`/`map.js` script tags in `index.html`, `map.html` and `plain.html`
-(checked on 2026-09-23 with `git merge-tree --write-tree main design-2026-09`). Keep the branch side,
-which has the higher numbers. The Supabase `configUrl` change lives in the JS and auto-merges. The
-resolve-and-commit lines below apply **only when the merge stops**; if a later `main` no longer
-conflicts, the merge commits by itself — skip those lines and go on with the checks and the push.
+`main` has five commits since the branch base: a074486 (search-DB build `b-93c01c0b6202`, the
+Matzikama repair export), c8bc0bf (site switched to that build), 23a57b0 (DATA_CONTRACT §7c), ea7b0a1
+(`rollback_db.sh` accepts a full config URL) and 64409d6 (config URL on R2). ea7b0a1 is cherry-picked
+onto the branch, so `scripts/rollback_db.sh` is identical on both sides. `git merge --no-ff` **stops**
+on four conflicts (checked with `git merge-tree --write-tree --name-only main design-2026-09`):
+
+- `index.html`, `map.html`, `plain.html`: the `?v=` of the `atlas.js`/`map.js` script tags. The branch
+  side has the higher numbers.
+- `DATA_CONTRACT.md`, at the §7b/§7c/§8 boundary. The branch carries §7c (updated for R2 and for the
+  lifted §7b suppression) followed by its own §8, so the branch side is complete.
+
+All four are resolved by taking the branch's side. Merging from the checkout that has `main`, the
+branch is "theirs", so `git checkout --theirs` picks it:
 
 ```sh
 git -C "$MAIN" status --short                      # must be empty
-git -C "$MAIN" merge --no-ff design-2026-09
-# ONLY if the merge stopped: the three script-tag conflicts, in favour of the branch (keep the branch's current `?v=` numbers):
-git -C "$MAIN" checkout --theirs index.html map.html plain.html
-grep -n 'atlas.js?v=\|map.js?v=' "$MAIN"/index.html "$MAIN"/map.html "$MAIN"/plain.html
-grep -c 'r2.dev/b-93c01c0b6202' "$MAIN"/assets/atlas.js "$MAIN"/assets/map.js    # 1 each: the live R2 config URL survived
+git -C "$MAIN" merge --no-ff design-2026-09        # stops on the four conflicts above
+git -C "$MAIN" checkout --theirs index.html map.html plain.html DATA_CONTRACT.md
+grep -n 'atlas.js?v=\|map.js?v=' "$MAIN"/index.html "$MAIN"/map.html "$MAIN"/plain.html   # the branch's numbers
+grep -c '^### 7c\.' "$MAIN"/DATA_CONTRACT.md                                            # 1
+grep -c 'r2.dev/b-93c01c0b6202' "$MAIN"/assets/atlas.js "$MAIN"/assets/map.js           # 1 each: the live R2 config URL survived
 (cd "$MAIN" && node --test 'tests/*.test.mjs' && node tests/check-i18n.mjs)
-git -C "$MAIN" add index.html map.html plain.html && git -C "$MAIN" commit --no-edit   # ONLY if the merge stopped
+git -C "$MAIN" add index.html map.html plain.html DATA_CONTRACT.md
+git -C "$MAIN" commit --no-edit
 git -C "$MAIN" push origin main
 git -C "$MAIN" log -1 --format=%H                 # the merge SHA, for a rollback
+```
+
+If a later `main` changes and the merge no longer stops, it commits by itself: skip the `checkout`,
+`add` and `commit` lines and go on with the checks and the push.
+
+After GitHub Pages has deployed the merge, run the production smoke against the live site (the smoke
+matrix of §5, pointed at production) and the preflight once more on the live config URL:
+
+```sh
+cd ~/projects/western-cape-property-valuations
+python3 extract/match/smoke_matrix.py --site https://calerio.github.io/western-cape-valuations \
+    --db https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json \
+    --out reports/smoke-production-<date> --private
+(cd "$MAIN" && scripts/preflight_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json)
 ```
 
 Afterwards, in the data repo, set `DEFAULT_SITE` in `extract/geo/simplify_geo.py` (and the
