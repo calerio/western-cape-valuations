@@ -79,7 +79,7 @@ Regeneration remains: after any change, `python3 extract/build.py` then
 - ~24 entries. Backbone is automatic. Notes are authored only where the `SOURCE.md` warrants one
   (Witzenberg, Laingsburg draft, Ceres-only 2023, Cape Town search-only, and any others the survey
   surfaces).
-- Author by fanning cheap subagents over each municipality's existing `SOURCE.md`, each returning a
+- Author by working through each municipality's existing `SOURCE.md` in parallel, each yielding a
   structured `PROVENANCE` entry (or "backbone only" where nothing extra is warranted). Assemble into
   `extract/provenance.py`.
 

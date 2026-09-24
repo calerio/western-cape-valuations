@@ -19,7 +19,7 @@ Contract: `DATA_CONTRACT.md` §14–§15.
   GIS (`StatsSA_CensusBoundaries` MapServer, layers 3 = Main Places / 1 = Subplaces; 348 + 1,578
   WC features). Chosen because it is *official published open data on the exact host the site
   already trusts for the cadastre*, with verified CORS to the site origin and `f=geojson`
-  support. This retired the old "suburb borders aren't open data" assumption in `CLAUDE.md`.
+  support. This retired the old "suburb borders aren't open data" assumption in the project notes.
 - **Ship an index, live-fetch the polygons.** Pre-baking all polygons ≈ 3 MB; instead
   `places.json` carries only names + bboxes (~250 KB) and the polygon is fetched per selection
   (~10–200 KB), cached in-memory. Mirrors the §9 cadastre pattern, and makes failure asymmetric

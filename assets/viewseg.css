@@ -1,0 +1,15 @@
+/* Segmented switch (Explore / Map / Satellite, EN / AF) on paper surfaces: the Explore bar
+ * (index.html) and every generated static page (templates/shell.html → m/, d/, guide/, af/).
+ * One definition; the map pages keep their over-imagery variant in assets/map.css.
+ * Needs assets/tokens.css. */
+.viewseg { display: inline-flex; background: var(--bg3); border-radius: var(--r-ctl); padding: 2px; }
+.viewseg a, .viewseg button { appearance: none; border: 0; background: none; margin: 0; text-decoration: none;
+  font-size: var(--t-13); font-weight: 500; color: var(--ink2); padding: 8px 12px; border-radius: 6px; cursor: pointer; min-height: 36px;
+  display: inline-flex; align-items: center; }
+.viewseg a:hover, .viewseg button:hover { color: var(--ink); }
+.viewseg a[aria-current="page"], .viewseg button[aria-pressed="true"] { background: var(--seg-on); color: var(--ink);
+  box-shadow: 0 0 0 1px var(--rule); }
+/* phones: 40 px targets, the same as the map pages' top bar (desktop look unchanged) */
+@media (max-width: 640px) {
+  .viewseg a, .viewseg button { min-height: 40px; }
+}

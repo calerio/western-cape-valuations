@@ -13,6 +13,9 @@
  * No symbol/text label layer on the highlight: the satellite style has no glyphs
  * URL configured, so text would silently not render — the name lives in the input. */
 
+import { parseMapHash, buildMapHash } from "./map/hash.js?v=1";
+import { dur } from "./motion.js?v=1";
+
 const BOUNDARY_SVC = 'https://gis.westerncape.gov.za/server2/rest/services/SpatialDataWarehouse/StatsSA_CensusBoundaries/MapServer';
 const TOWN_LAYER = 3, SUBURB_LAYER = 1;
 const EMPTY_FC = { type: 'FeatureCollection', features: [] };
@@ -37,17 +40,38 @@ function loadIndex() {
   return indexPromise;
 }
 
-// Rank: exact > prefix > substring; towns/municipalities before suburbs at equal
-// match quality (so "Hermanus" the town outranks "Hermanus" the suburb).
-function filterPlaces(q, limit = 8) {
+// Renamed places (data/geo/renamed-places/overrides.json `search`, handed over by map.js): the map
+// labels them by their former name, so they are listed under it and found by the former, the
+// Afrikaans former, the official or any alias name. Many lie outside the Western Cape.
+let renamedIndex = [];
+export function toRenamedEntries(list) {
+  return (Array.isArray(list) ? list : []).filter(r => r && r.primary && Number.isFinite(r.lat) && Number.isFinite(r.lon))
+    .map(r => ({
+      type: 'renamed', name: r.primary, name_af: r.primary_af || r.primary, official: r.official || r.primary,
+      lat: r.lat, lon: r.lon, province: r.province || '',
+      _keys: [...new Set([r.primary, r.primary_af, r.official, ...(r.aliases || [])].filter(Boolean).map(norm))],
+    }));
+}
+// [[w, s], [e, n]] — the map's maxBounds; a renamed place outside it is listed but never flown to.
+export const inBounds = (e, b) => !!b && e.lon >= b[0][0] && e.lon <= b[1][0] && e.lat >= b[0][1] && e.lat <= b[1][1];
+
+const matchScore = (n, nq) => (n === nq ? 0 : n.startsWith(nq) ? 1 : n.includes(nq) ? 2 : -1);
+
+// Rank: exact > prefix > substring; towns/municipalities before suburbs, and suburbs before renamed
+// places, at equal match quality (so "Hermanus" the town outranks "Hermanus" the suburb).
+export function filterPlaces(q, limit = 8, index = placeIndex, renamed = renamedIndex) {
   const nq = norm(q);
-  if (!nq || !placeIndex) return [];
+  if (!nq || (!index && !renamed.length)) return [];
   const scored = [];
-  for (const e of placeIndex) {
+  for (const e of index || []) {
     const n = e._n || (e._n = norm(e.name));
-    let s = n === nq ? 0 : n.startsWith(nq) ? 1 : n.includes(nq) ? 2 : -1;
+    const s = matchScore(n, nq);
     if (s < 0) continue;
     scored.push([s * 2 + (e.type === 'suburb' ? 1 : 0), e]);
+  }
+  for (const e of renamed) {
+    const s = Math.min(...e._keys.map(k => { const m = matchScore(k, nq); return m < 0 ? 9 : m; }));
+    if (s < 9) scored.push([s * 2 + 1.5, e]);   // after WC towns and suburbs of the same match quality
   }
   scored.sort((a, b) => a[0] - b[0] ||
     a[1].name.length - b[1].name.length || a[1].name.localeCompare(b[1].name));
@@ -119,7 +143,11 @@ const clearHighlight = map => map.getSource('place-hl').setData(EMPTY_FC);
 /* ──────────────────────────────── search UI ──────────────────────────────── */
 
 // Single entry point — map.js calls this on map 'load' with its i18n + hint helpers.
-export function initPlaceSearch(map, { t, setHint, beforeId }) {
+// writeHash(patch) merges into the map hash (#p/<place>&b=…&c=…&s=…) so the basemap, camera and
+// selection survive a place search; the fallback keeps the legacy bare #p/<place> form.
+export function initPlaceSearch(map, { t, tf: tfIn, setHint, beforeId, writeHash, renamed, bounds, lang }) {
+  const putHash = writeHash || (patch => history.replaceState(null, '',
+    location.pathname + location.search + buildMapHash({ ...parseMapHash(location.hash), b: undefined, ...patch })));
   const input = document.getElementById('placeSearch');
   const listbox = document.getElementById('placeResults');
   const clearBtn = document.getElementById('placeClear');
@@ -127,14 +155,24 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
   if (!input || !listbox || !clearBtn || !wrap) return;
 
   addPlaceHighlightLayer(map, beforeId);
+  renamedIndex = toRenamedEntries(renamed);
+  const tf = tfIn || ((s, v = {}) => t(s).replace(/\{(\w+)\}/g, (m, k) => (k in v ? v[k] : m)));
+  const isAf = () => (lang ? lang() : document.documentElement.lang) === 'af';
+  const shownName = e => (e.type === 'renamed' && isAf() ? e.name_af : e.name);
 
   let rows = [], active = -1, debounce = null;
 
   const typeLabel = e =>
-    e.type === 'town' ? t('Town') : e.type === 'suburb' ? t('Suburb') : t('Municipality');
+    e.type === 'town' ? t('Town') : e.type === 'suburb' ? t('Suburb')
+    : e.type === 'renamed' ? t('Renamed place') : t('Municipality');
   const context = e =>
     e.type === 'suburb' ? [e.town !== e.name ? e.town : null, e.muni].filter(Boolean).join(' · ')
-    : e.type === 'town' ? e.muni : '';
+    : e.type === 'town' ? e.muni
+    : e.type === 'renamed' ? [e.official !== shownName(e) ? tf('official: {name}', { name: e.official }) : null,
+        inBounds(e, bounds) ? null : t('outside the map area')].filter(Boolean).join(' · ')
+    : '';
+  // The official name of a renamed place is metadata: a tooltip and the secondary line, never the label.
+  const officialTitle = e => (e.type === 'renamed' ? tf('Official name: {name}', { name: e.official }) : '');
 
   function close() {
     listbox.hidden = true; input.setAttribute('aria-expanded', 'false');
@@ -147,8 +185,9 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
         ? t('Search unavailable right now') : t('No matches')}</div>`;
     } else {
       listbox.innerHTML = rows.map((e, i) =>
-        `<div class="sRow" id="sopt-${i}" role="option" aria-selected="${i === active}">` +
-        `<span class="sName">${esc(e.name)}</span>` +
+        `<div class="sRow" id="sopt-${i}" role="option" aria-selected="${i === active}"` +
+        (e.type === 'renamed' ? ` data-renamed="1" title="${esc(officialTitle(e))}"` : '') + `>` +
+        `<span class="sName">${esc(shownName(e))}</span>` +
         `<span class="sCtx">${esc([typeLabel(e), context(e)].filter(Boolean).join(' · '))}</span></div>`
       ).join('');
       listbox.querySelectorAll('.sRow').forEach(el => {
@@ -176,16 +215,40 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
     render();
   }
 
-  async function select(entry) {
+  // A renamed place: fly to its point when it lies inside the map's bounds, otherwise leave the
+  // map where it is and say so. No boundary polygon and no hash entry (it has no place key).
+  function selectRenamed(entry) {
     close();
-    input.value = entry.name;
+    input.value = shownName(entry);
+    input.title = officialTitle(entry);
     input.blur();
     clearBtn.hidden = false;
-    const [w, s, e, n] = entry.bbox;
-    map.fitBounds([[w, s], [e, n]],
-      { padding: 70, maxZoom: entry.type === 'municipality' ? 11 : 16, duration: 900 });
-    history.replaceState(null, '', '#p/' + placeKey(entry));
-    syncViewLinks();
+    if (hlAbort) hlAbort.abort();
+    clearHighlight(map);
+    putHash({ place: undefined, muni: undefined });
+    if (inBounds(entry, bounds)) {
+      if (document.getElementById('maphint')?.dataset.i18n === 'Outside the map area') setHint(null);
+      map.flyTo({ center: [entry.lon, entry.lat], zoom: 12, duration: dur(900) });
+    } else {
+      setHint('Outside the map area');
+    }
+  }
+
+  // fit=false: a deep link that also carries a camera (c=) keeps that camera; the place only
+  // fills the input and draws its boundary.
+  async function select(entry, { fit = true } = {}) {
+    if (entry.type === 'renamed') return selectRenamed(entry);
+    close();
+    input.value = entry.name;
+    input.removeAttribute('title');
+    input.blur();
+    clearBtn.hidden = false;
+    if (fit) {
+      const [w, s, e, n] = entry.bbox;
+      map.fitBounds([[w, s], [e, n]],
+        { padding: 70, maxZoom: entry.type === 'municipality' ? 11 : 16, duration: dur(900) });
+    }
+    putHash({ place: placeKey(entry), muni: undefined });
     if (hlAbort) hlAbort.abort();
     const ctl = (hlAbort = new AbortController());
     try {
@@ -195,23 +258,17 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
     } catch (err) {
       if (err.name === 'AbortError') return;
       console.warn('boundary fetch failed', err);
-      setHint(t('Boundary unavailable — zoomed to the area'));   // fly-to already happened
+      setHint('Boundary unavailable — zoomed to the area');   // fly-to already happened
     }
   }
 
   function clearAll() {
     input.value = '';
+    input.removeAttribute('title');
     clearBtn.hidden = true;
     clearHighlight(map);
     close();
-    history.replaceState(null, '', location.pathname + location.search);
-    syncViewLinks();
-  }
-
-  // keep the Satellite↔Map view links carrying the selected place across a switch
-  function syncViewLinks() {
-    document.querySelectorAll('.viewseg a[href^="map.html"], .viewseg a[href^="plain.html"]')
-      .forEach(a => { a.href = a.href.split('#')[0] + location.hash; });
+    putHash({ place: undefined });
   }
 
   input.addEventListener('input', () => {
@@ -232,13 +289,13 @@ export function initPlaceSearch(map, { t, setHint, beforeId }) {
   wrap.addEventListener('click', ev => { if (ev.target === wrap || ev.target.closest('svg')) input.focus(); });
   document.addEventListener('mousedown', ev => { if (!wrap.contains(ev.target)) close(); });
 
-  // deep link: #p/t<mp> | #p/s<sp[_sp…]> | #p/m<normname>
-  const deep = location.hash.match(/^#p\/([tsm].+)$/);
-  if (deep) {
+  // deep link: #p/t<mp> | #p/s<sp[_sp…]> | #p/m<normname>, optionally &b=…&c=…&s=… (hash.js)
+  const deep = parseMapHash(location.hash);
+  if (deep.place && /^[tsm]./.test(deep.place)) {
     loadIndex().then(() => {
       if (!placeIndex) return;
-      const entry = placeIndex.find(e => placeKey(e) === deep[1]);
-      if (entry) select(entry);
+      const entry = placeIndex.find(e => placeKey(e) === deep.place);
+      if (entry) select(entry, { fit: !deep.c });
     });
   }
 }

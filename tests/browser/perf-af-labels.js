@@ -1,0 +1,33 @@
+async (page) => {
+  const OUT = '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/';
+  const browser = page.context().browser();
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const p = await ctx.newPage();
+  await p.addInitScript(() => { try { localStorage.setItem('wcv-lang', 'af'); } catch (e) { } });
+  const cons = []; p.on('console', m => { if (m.type() === 'error') cons.push(m.text().slice(0, 200)); });
+  await p.goto('http://127.0.0.1:8766/plain.html', { waitUntil: 'load' });
+  await p.waitForFunction(() => window._map && window._map.isStyleLoaded());
+  await p.waitForTimeout(3000);
+  const out = {};
+  const L = ['label_town', 'label_city', 'label_village', 'label_other'];
+  out.htmlLang = await p.evaluate(() => document.documentElement.lang);
+  out.uiSample = await p.evaluate(() => ['#brandKick', '#brandTitle', '#maphint', '#wardchip'].map(s => { const e = document.querySelector(s); return e ? e.textContent.trim().slice(0, 60) : null; }).concat([(document.querySelector('#placeSearch') || {}).placeholder]));
+  out.zoom = await p.evaluate(() => +window._map.getZoom().toFixed(2));
+  out.maxBounds = await p.evaluate(() => { const b = window._map.getMaxBounds(); return b ? b.toArray() : null; });
+  out.viewBounds = await p.evaluate(() => window._map.getBounds().toArray());
+  out.provinceLabels = await p.evaluate((L) => [...new Set(window._map.queryRenderedFeatures({ layers: L }).map(x => x.properties.name))].slice(0, 45), L);
+  out.sobukweVisibleAtStart = await p.evaluate(() => window._map.queryRenderedFeatures().some(f => /Sobukwe/.test(f.properties.name || '')));
+  await p.screenshot({ path: OUT + 'af-plain-province.png' });
+  await p.evaluate(() => window._map.jumpTo({ center: [22.13, -34.18], zoom: 11 }));
+  await p.waitForTimeout(3500);
+  out.mosselLabels = await p.evaluate((L) => [...new Set(window._map.queryRenderedFeatures({ layers: L.concat(['highway-name-major', 'water_name_point_label', 'waterway_line_label']) }).map(x => x.properties.name))].slice(0, 30), L);
+  await p.screenshot({ path: OUT + 'af-plain-mosselbay.png' });
+  await p.evaluate(() => window._map.jumpTo({ center: [24.53, -32.25], zoom: 9 }));
+  await p.waitForTimeout(3000);
+  out.grCenterAfterJump = await p.evaluate(() => window._map.getCenter().toArray().map(v => +v.toFixed(3)));
+  out.grLabels = await p.evaluate((L) => [...new Set(window._map.queryRenderedFeatures({ layers: L }).map(x => x.properties.name))].slice(0, 30), L);
+  await p.screenshot({ path: OUT + 'af-plain-graaff.png' });
+  out.consoleErrors = cons.slice(0, 5);
+  await ctx.close();
+  return out;
+}

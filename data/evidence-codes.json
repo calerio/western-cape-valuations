@@ -1,0 +1,190 @@
+{
+  "codes": {
+    "KEY_ERF_CONFLICT": {
+      "meaning": "The cadastre draws this parcel key in pieces that carry different erf numbers, so the key is quarantined and the linker abstains before looking at candidates (candidates.py:8, parcel.erf_conflict).",
+      "source": "extract/match/adjudicate.py:85",
+      "en": "The survey map gives this parcel conflicting erf numbers, so it was not matched.",
+      "af": "Die opmetingskaart gee teenstrydige erfnommers vir hierdie erf, dus is dit nie gekoppel nie."
+    },
+    "NO_CANDIDATE": {
+      "meaning": "No roll row in the parcel's municipality has this erf number (as whole erf, remainder or sectional parent).",
+      "source": "extract/match/adjudicate.py:91",
+      "en": "No roll entry with this erf number was found in this municipality.",
+      "af": "Geen rolinskrywing met hierdie erfnommer is in hierdie munisipaliteit gevind nie."
+    },
+    "ROLL_COVERAGE:{n}%": {
+      "meaning": "Share of this SG town's parcels that have any full-title roll candidate; emitted with NO_CANDIDATE — >=50% gives not_in_roll, <50% gives abstain.",
+      "source": "extract/match/adjudicate.py:91-92",
+      "en": "The roll has entries for {n}% of parcels in this town.",
+      "af": "Die rol het inskrywings vir {n}% van die erwe in hierdie dorp."
+    },
+    "ROLL_COVERAGE:?": {
+      "meaning": "Literal fallback when the town's roll coverage is unknown (no coverage row for the town code); always with NO_CANDIDATE and decision abstain.",
+      "source": "extract/match/adjudicate.py:92",
+      "en": "We could not tell how much of this town the roll covers.",
+      "af": "Ons kon nie bepaal hoeveel van hierdie dorp die rol dek nie."
+    },
+    "PORTION_ROWS:{n}": {
+      "meaning": "{n} roll rows are numbered sub-portions of this erf (via 'erf_portion'); the map draws only the remainder, so they are named but never matched.",
+      "source": "extract/match/adjudicate.py:88,100",
+      "en": "{n} roll entries are numbered portions of this erf, not the parcel drawn on the map.",
+      "af": "{n} rolinskrywings is genommerde gedeeltes van hierdie erf, nie die erf wat op die kaart geteken is nie."
+    },
+    "TOWN_A": {
+      "meaning": "The leading candidate's suburb/town label maps to this parcel's SG town at tier A (by name, manual approval, or erf-number distribution and Stats SA agreeing).",
+      "source": "extract/match/adjudicate.py:94; extract/match/crosswalk.py:73-83",
+      "en": "The best-fitting roll entry's place name clearly corresponds to this parcel's town.",
+      "af": "Die bes passende rolinskrywing se pleknaam stem duidelik ooreen met hierdie erf se dorp."
+    },
+    "TOWN_B": {
+      "meaning": "The leading candidate's locality label maps to this town at tier B: one strong statistical signal (erf-number distribution >=97% of >=50 erven, or Stats SA) but no name confirmation.",
+      "source": "extract/match/adjudicate.py:94; extract/match/crosswalk.py:84-87",
+      "en": "The best-fitting roll entry's place name probably corresponds to this town, based on statistics, not the name.",
+      "af": "Die bes passende rolinskrywing se pleknaam stem waarskynlik ooreen met hierdie dorp, volgens statistiek, nie die naam nie."
+    },
+    "TOWN_C": {
+      "meaning": "The leading candidate's locality label maps to this town at tier C: a weaker erf-number-distribution signal (>=95% of >=20 erven) only.",
+      "source": "extract/match/adjudicate.py:94; extract/match/crosswalk.py:88-89",
+      "en": "There is only weak evidence that the best-fitting roll entry's place name belongs to this town.",
+      "af": "Daar is net swak bewyse dat die bes passende rolinskrywing se pleknaam by hierdie dorp hoort."
+    },
+    "TOWN_SPAN": {
+      "meaning": "The leading candidate's locality label overlaps this town (shares some erven, or an ambiguous name) but this town is not its home.",
+      "source": "extract/match/adjudicate.py:94; extract/match/crosswalk.py:78-80,90-93",
+      "en": "The best-fitting roll entry's place name only partly overlaps this town, so the town is unconfirmed.",
+      "af": "Die bes passende rolinskrywing se pleknaam oorvleuel net gedeeltelik met hierdie dorp; die dorp is onbevestig."
+    },
+    "TOWN_NONE": {
+      "meaning": "The leading candidate's locality labels are unreliable or carry no crosswalk evidence for any town.",
+      "source": "extract/match/adjudicate.py:94 (ev 'none', adjudicate.py:5-9,184-189)",
+      "en": "The best-fitting roll entry gives no usable place name, so its town is unconfirmed.",
+      "af": "Die bes passende rolinskrywing gee geen bruikbare pleknaam nie, dus is sy dorp onbevestig."
+    },
+    "TOWN_CONTRA": {
+      "meaning": "Every candidate's locality label maps (A/B/C) only to other SG towns — the best evidence contradicts this parcel; decision abstain.",
+      "source": "extract/match/adjudicate.py:94,116-117",
+      "en": "Every roll entry with this erf number names a different town, so none was matched.",
+      "af": "Elke rolinskrywing met hierdie erfnommer noem 'n ander dorp, dus is geeneen gekoppel nie."
+    },
+    "TOWN_CONFLICT": {
+      "meaning": "The best candidate's locality evidence is self-contradictory (label name and erf numbers disagree, or the row's town and suburb labels disagree); decision abstain.",
+      "source": "extract/match/adjudicate.py:94,116-117; pair_evidence adjudicate.py:66-74",
+      "en": "The roll entry's place details contradict each other, so it was not matched.",
+      "af": "Die rolinskrywing se plekbesonderhede weerspreek mekaar, dus is dit nie gekoppel nie."
+    },
+    "CONTRA_GROUPS:{n}": {
+      "meaning": "{n} candidate groups (same erf number) have locality labels that map only to other towns; they are rejected and never listed.",
+      "source": "extract/match/adjudicate.py:96",
+      "en": "{n} other roll entries share this erf number but belong to other towns; they were set aside.",
+      "af": "{n} ander rolinskrywings deel hierdie erfnommer, maar hoort by ander dorpe; hulle is eenkant gesit."
+    },
+    "CONFLICT_GROUPS:{n}": {
+      "meaning": "{n} candidate groups carry self-contradictory locality evidence (name vs numbers, or town vs suburb label).",
+      "source": "extract/match/adjudicate.py:98",
+      "en": "{n} roll entries with this erf number have contradictory place details and were set aside.",
+      "af": "{n} rolinskrywings met hierdie erfnommer het teenstrydige plekbesonderhede en is eenkant gesit."
+    },
+    "DATE_AFTER_ROLL": {
+      "meaning": "The parcel (status S/A) was registered after the leading roll's cycle start (1 July of the cycle year), so the row may describe the pre-subdivision land; vetoes acceptance.",
+      "source": "extract/match/adjudicate.py:102; date logic adjudicate.py:317-318",
+      "en": "This parcel was registered after the roll was compiled, so the roll entry may describe older boundaries.",
+      "af": "Hierdie erf is geregistreer nadat die rol opgestel is, dus beskryf die rolinskrywing dalk ouer grense."
+    },
+    "AREA_MIXED": {
+      "meaning": "The parcel is drawn in several pieces with different registration statuses, so its area is not summed and not used as evidence.",
+      "source": "extract/match/adjudicate.py:104; candidates.py:5-8",
+      "en": "This parcel is mapped in pieces of different status, so its size could not be compared.",
+      "af": "Hierdie erf is in stukke met verskillende status gekarteer, dus kon sy grootte nie vergelyk word nie."
+    },
+    "AREA_ROLL_UNRELIABLE": {
+      "meaning": "The leading row's roll has an extent column that does not consistently measure the surveyed area (median absolute deviation > 0.3 in log10), so area is treated as unknown.",
+      "source": "extract/match/adjudicate.py:106-107; detection adjudicate.py:215-220",
+      "en": "This roll's recorded sizes are unreliable, so size was not used to check the match.",
+      "af": "Hierdie rol se aangetekende groottes is onbetroubaar, dus is grootte nie gebruik om die passing na te gaan nie."
+    },
+    "AREA_UNKNOWN": {
+      "meaning": "No area comparison was possible: no single leading full-title row, a sectional scheme, missing roll extent or SG area, or an unreliable roll.",
+      "source": "extract/match/adjudicate.py:109",
+      "en": "The size of the roll entry could not be compared with the mapped parcel.",
+      "af": "Die grootte van die rolinskrywing kon nie met die gekarteerde erf vergelyk word nie."
+    },
+    "AREA_NOT_USED": {
+      "meaning": "An area ratio exists but the parcel is AREA_MIXED, so the comparison is deliberately ignored.",
+      "source": "extract/match/adjudicate.py:109",
+      "en": "A size comparison was possible but deliberately not used, because the parcel is mapped in mixed pieces.",
+      "af": "'n Groottevergelyking was moontlik, maar is doelbewus nie gebruik nie, omdat die erf in gemengde stukke gekarteer is."
+    },
+    "AREA_OK": {
+      "meaning": "The leading row's roll extent (unit-corrected) agrees with the SG parcel area within |log10 ratio| <= 0.1 (about ±26%).",
+      "source": "extract/match/adjudicate.py:110-111",
+      "en": "The roll entry's recorded size agrees with the mapped parcel's size.",
+      "af": "Die rolinskrywing se aangetekende grootte stem ooreen met die gekarteerde erf se grootte."
+    },
+    "AREA_WEAK": {
+      "meaning": "The roll extent and SG area differ by a factor between about 1.26 and 5 (0.1 < |log10 ratio| <= 0.7).",
+      "source": "extract/match/adjudicate.py:112-113",
+      "en": "The roll entry's recorded size only roughly matches the mapped parcel's size.",
+      "af": "Die rolinskrywing se aangetekende grootte pas net rofweg by die gekarteerde erf se grootte."
+    },
+    "AREA_CONFLICT": {
+      "meaning": "The roll extent and SG area differ by more than about 5x (|log10 ratio| > 0.7); vetoes acceptance and caps confidence at 0.6.",
+      "source": "extract/match/adjudicate.py:114-115,120,134-135",
+      "en": "The roll entry's recorded size is very different from the mapped parcel's size.",
+      "af": "Die rolinskrywing se aangetekende grootte verskil baie van die gekarteerde erf se grootte."
+    },
+    "MULTI_GROUP:{n}": {
+      "meaning": "{n} candidate groups tie at the top evidence level and cannot be separated; decision ambiguous.",
+      "source": "extract/match/adjudicate.py:118-120",
+      "en": "{n} roll entries fit this parcel equally well and cannot be told apart.",
+      "af": "{n} rolinskrywings pas ewe goed by hierdie erf en kan nie onderskei word nie."
+    },
+    "SCHEME_GROUP": {
+      "meaning": "The single tier-A leading group is a sectional-title scheme (units whose parent erf is this parcel); decision accepted_group.",
+      "source": "extract/match/adjudicate.py:124-125",
+      "en": "The matching entries are sectional-title units in a scheme built on this parcel.",
+      "af": "Die passende inskrywings is deeltiteleenhede in 'n skema wat op hierdie erf gebou is."
+    },
+    "SCHEME_PARENT_R0": {
+      "meaning": "A full-title row valued R0/NULL (or a register 'parent' row) sharing this erf was identified as the scheme's land parcel and merged into the accepted scheme group.",
+      "source": "extract/match/adjudicate.py:327; merge logic adjudicate.py:299-305",
+      "en": "The erf itself is listed on the roll at R0; the scheme's units carry the values.",
+      "af": "Die erf self is teen R0 op die rol gelys; die skema se eenhede dra die waardes."
+    },
+    "UNIQUE_MUNI": {
+      "meaning": "The erf number exists in only one SG town of the municipality and the roll has only one full-title row for it; with tier B town and matching area this alone allows accepted_high (conf 0.90), otherwise it is informational on review.",
+      "source": "extract/match/adjudicate.py:126-131; feature adjudicate.py:322",
+      "en": "This erf number occurs only once in this municipality, both on the map and in the roll.",
+      "af": "Hierdie erfnommer kom net een keer in hierdie munisipaliteit voor, op die kaart sowel as in die rol."
+    }
+  },
+  "decisions": {
+    "accepted_high": {
+      "en": "Verified: town, erf number and other checks tie this roll entry to this parcel.",
+      "af": "Geverifieer: dorp, erfnommer en ander kontroles koppel hierdie rolinskrywing aan hierdie erf."
+    },
+    "accepted_group": {
+      "en": "Verified scheme: these sectional-title units stand on this parcel; the list may be incomplete.",
+      "af": "Geverifieerde skema: hierdie deeltiteleenhede staan op hierdie erf; die lys is dalk onvolledig."
+    },
+    "review": {
+      "en": "Possible match only: the erf number fits, but the town could not be confirmed.",
+      "af": "Slegs 'n moontlike ooreenkoms: die erfnommer pas, maar die dorp kon nie bevestig word nie."
+    },
+    "ambiguous": {
+      "en": "Several roll entries fit this erf number equally well; none could be confirmed.",
+      "af": "Verskeie rolinskrywings pas ewe goed by hierdie erfnommer; geeneen kon bevestig word nie."
+    },
+    "not_in_roll": {
+      "en": "Checked: the roll covers this town but has no entry for this erf.",
+      "af": "Nagegaan: die rol dek hierdie dorp, maar het geen inskrywing vir hierdie erf nie."
+    },
+    "abstain": {
+      "en": "Not linked: the evidence is missing or conflicting, so no entry is shown as this parcel's valuation.",
+      "af": "Nie gekoppel nie: die bewyse ontbreek of is teenstrydig, dus word geen inskrywing as hierdie erf se waardasie gewys nie."
+    },
+    "missing": {
+      "en": "This parcel is not in the current data build; no valuation is shown rather than a guess.",
+      "af": "Hierdie erf is nie in die huidige datastel nie; ons wys eerder niks as om te raai."
+    }
+  }
+}

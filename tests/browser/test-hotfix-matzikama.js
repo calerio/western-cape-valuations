@@ -1,8 +1,9 @@
 async (page) => {
-  // Hotfix regression: every Matzikama row shows "Address unavailable" (map panel, Explore cards, search, dialog);
-  // other municipalities keep their address. BASE is set per run (local hotfix tree or the live site).
+  // Matzikama suppression LIFTED (2026-09-24, DATA_CONTRACT §7b; gate: extract/tests/test_no_owner_names_in_exports.py
+  // in the data repo): Matzikama rows show their street address again (map panel, Explore cards, search) and never
+  // "Address unavailable" when the roll has one; other municipalities unchanged. BASE is set per run.
   const BASE = '__BASE__';
-  const DB = 'https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-2b502178f94f/config.json';
+  const DB = 'https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json';
   const MZ = { x: 18.241641, y: -31.584797, erf: '24' }, DK = { x: 18.996231, y: -33.673691, erf: '97' };
   const ctx = await page.context().browser().newContext({ viewport: { width: 1440, height: 900 } });
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', e => errs.push(String(e).slice(0, 120)));
@@ -13,7 +14,7 @@ async (page) => {
   await p.goto(BASE + 'plain.html?db=' + encodeURIComponent(DB) + '&t=hotfix', { waitUntil: 'load' });
   await p.waitForFunction(() => window._map && window._map.isStyleLoaded()); await p.waitForTimeout(2000);
   await jumpAndLoad(MZ); await fire(MZ); const mz = await settled();
-  out.mapMatzikama = mz.slice(0, 140); out.mapMatzikamaOk = /Address unavailable/.test(mz) && /municipal market value/.test(mz);
+  out.mapMatzikama = mz.slice(0, 140); out.mapMatzikamaOk = /Walvisstraat/.test(mz) && !/Address unavailable/.test(mz) && /municipal market value/.test(mz);
   await jumpAndLoad(DK); await fire(DK); const dk = await settled();
   out.mapDrakenstein = dk.slice(0, 90); out.mapDrakensteinOk = /Mafilastraat/.test(dk) && !/Address unavailable/.test(dk);
   await p.screenshot({ path: '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/hotfix-map.png' });
@@ -22,11 +23,11 @@ async (page) => {
   await p.waitForFunction(() => { const l = document.getElementById('loading'); return l && getComputedStyle(l).display === 'none'; }, null, { timeout: 60000 });
   await p.waitForTimeout(2500);
   out.hiLo = await p.evaluate(() => ['hiAddr', 'loAddr'].map(i => (document.getElementById(i) || {}).textContent));
-  out.hiLoOk = out.hiLo.every(x => x === 'Address unavailable');
+  out.hiLoOk = out.hiLo.length === 2 && out.hiLo.every(x => !!x && x.trim().length > 2 && x !== 'Address unavailable' && /[A-Za-z]{3,}/.test(x));
   await p.fill('#search', 'Vredendal'); await p.waitForTimeout(4000);
-  out.search = await p.evaluate(() => Array.from(document.querySelectorAll('#results .sName, #results [class*=Name]')).slice(0, 6).map(e => e.textContent.trim()));
-  out.searchOk = out.search.length > 0 && out.search.every(x => x === 'Address unavailable' || !/[A-Za-z]{3,} [A-Za-z]{3,}/.test(x) || x === 'Vredendal' || /Vredendal|Matzikama/i.test(x));
+  out.search = await p.evaluate(() => Array.from(document.querySelectorAll('#results [role=option] > span:first-child')).slice(0, 6).map(e => e.textContent.trim()));
+  out.searchOk = out.search.length > 0 && !out.search.every(x => x === 'Address unavailable');
   await p.screenshot({ path: '/Users/valeriocosta/projects/western-cape-property-valuations/.playwright-mcp/perf/hotfix-explore.png' });
-  out.verdict = (out.mapMatzikamaOk && out.mapDrakensteinOk && out.hiLoOk) ? 'PASS' : 'FAIL';
+  out.verdict = (out.mapMatzikamaOk && out.mapDrakensteinOk && out.hiLoOk && out.searchOk) ? 'PASS' : 'FAIL';
   await ctx.close(); return out;
 }

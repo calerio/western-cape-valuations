@@ -154,9 +154,8 @@ For **each** of the 25 local municipalities **+ City of Cape Town**:
    downloaded; never guess.
 5. Transcribe the vetted facts into `extract/authorities.py`.
 
-Fan this out with **cheaper subagent models** (sonnet/haiku) — one municipality per
-agent — per the standing rate-limit note. Each agent returns a structured summary;
-the orchestrator writes `authorities.py`. Missing data is fine (fields hide).
+Run this per municipality in parallel. Each municipality yields a structured summary;
+the summaries are then transcribed into `authorities.py`. Missing data is fine (fields hide).
 
 ## Rendering & contract
 
@@ -186,4 +185,4 @@ the orchestrator writes `authorities.py`. Missing data is fine (fields hide).
 2. `python3 extract/build.py`
 3. `python3 extract/export_site.py`
 4. Verify `how-valuations-work.html`, muni pages, sitemap, and the Atlas panel.
-5. Commit website-repo changes (author = user only; no AI authorship).
+5. Commit website-repo changes (author = user only).

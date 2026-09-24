@@ -1,6 +1,6 @@
 # Municipal Governance & Representation — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Show, per municipality, the 2021 election result, current governing party + mayor, the council seat/vote-share breakdown, and the ward councillors — on the static municipality pages and (summary only) the Atlas panel.
 
@@ -14,7 +14,7 @@
 - **Graceful degradation** (DATA_CONTRACT §5/§13): every field optional; the renderer omits any absent row/section; a section auto-hides when empty. Never emit an empty table or a `null`.
 - **Provenance:** every fact traces to an official source (IEC 2021 results primary; municipal site/gazette for current mayor/governing). Raw docs archived under `<Muni>/politics/`; a `## Governance & representation` section added to each `<Muni>/SOURCE.md`.
 - **Names:** elected officials (councillors, mayors) are public record and shown. Property-OWNER names are never involved.
-- **Git authorship:** commit as the user only — no Claude/AI attribution (repo CLAUDE.md). Push after each committed task (this is the GitHub-Pages website repo; unpushed = not live).
+- **Git authorship:** commit as the user only (repo rule). Push after each committed task (this is the GitHub-Pages website repo; unpushed = not live).
 - **Rebuild contract:** after data changes run `python3 extract/build.py` then `python3 extract/export_site.py`. No valuation data changes → `search.db` untouched, no Supabase re-upload.
 - Data project (`~/projects/western-cape-property-valuations`, contains `extract/`) is NOT git-tracked — its `.py`/`SOURCE.md`/`politics/` edits persist on disk only. The website repo (`~/projects/western-cape-valuations`) IS git-tracked — commit/push there.
 - `slugOf(name) = name.trim().toLowerCase().replace(/ /g, "-")` — the muni-page slug rule, shared by `atlas.js` and `export_pages.slugify`. Use it for the panel's "full council" link.
@@ -500,7 +500,7 @@ git push
 
 - [ ] **Step 1: Dispatch the data-collection fan-out**
 
-Use `superpowers:dispatching-parallel-agents`. One subagent per municipality (25 total, plus a few spares for stubborn cases), **cheap models (sonnet/haiku)** per the standing "use cheaper subagent models" note; escalate only for munis whose data resists. Each subagent's brief:
+Collect in parallel, one municipality per research task (25 total, plus a few spares for stubborn cases); escalate only for munis whose data resists. Each task's brief:
 - From **IEC 2021 Municipal Election results** for this municipality: the winning party, seats won, total council seats, and each party's seats + vote %. From IEC ward results: each ward's elected councillor name + party.
 - From the municipality's **official site / provincial gazette**: the current governing party/coalition and sitting mayor (with an `as_of` year).
 - Return the data as a `politics.py` dict entry matching the documented shape. Every figure must cite its source URL. Download the primary IEC result PDF to `<Muni>/politics/`. **Do not guess** — omit a field rather than fabricate it (graceful degradation covers gaps).

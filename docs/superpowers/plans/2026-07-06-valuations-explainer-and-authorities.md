@@ -1,6 +1,6 @@
 # Valuations Explainer + Per-Municipality Authorities — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a plain-language "how municipal valuations work" explainer (dedicated page + inline links) and a per-municipality "who sets & governs these values" block (valuer + authorities/role-players), rendered on both the static muni pages and the Atlas click-panel — backed by freshly-collected, raw-archived source data.
 
@@ -14,9 +14,9 @@
 - Never publish **owner names** (POPIA). Sales/transfer data is **out of scope**.
 - Every authorities field is **optional** — UI omits missing rows/sections (DATA CONTRACT §5/§13).
 - Two repos: scripts + data in `~/projects/western-cape-property-valuations` (not git); generated site in `~/projects/western-cape-valuations` (git, Pages). Regenerate: `python3 extract/build.py` → `python3 extract/export_site.py`. Never hand-edit generated files.
-- Git: commit as the **user only**, no AI authorship; never push unless told. Correct author email already set in the website repo.
+- Git: commit as the **user only**; never push unless told. Correct author email already set in the website repo.
 - Bump `?v=` on the `atlas.js` `<script>` tag whenever `atlas.js` changes (CDN cache).
-- Fan-out subagents use **cheaper models** (sonnet/haiku).
+- Per-municipality research runs in parallel, one municipality at a time per worker.
 
 ---
 
@@ -47,7 +47,7 @@ Establishes the raw-folder convention, the `SOURCE.md` "Authorities & role-playe
 
 **Files:** per municipality: create `<District>/<Muni>/authorities/`, modify `<District>/<Muni>/SOURCE.md`. (CoCT: `City-of-Cape-Town/` — also fold in the existing PAIA/cctdata provenance.)
 
-- [ ] **Step 1:** Dispatch one subagent per municipality (cheaper model) with the Task-1 protocol as its brief; each returns a structured summary `{muni, valuer, valuer_cycle, dept{...}, objections{...}, raw_files[], source_urls[], gaps[]}` and performs Steps 1–3 of Task 1 for its municipality.
+- [ ] **Step 1:** Research each municipality in parallel with the Task-1 protocol as the brief; each returns a structured summary `{muni, valuer, valuer_cycle, dept{...}, objections{...}, raw_files[], source_urls[], gaps[]}` and performs Steps 1–3 of Task 1 for its municipality.
 - [ ] **Step 2:** Collect the 25 summaries. Log municipalities with material gaps (they degrade gracefully).
 - [ ] **Step 3 (verify):** Spot-check 3–4 `SOURCE.md` updates and their `authorities/` folders for source-grounding and original filenames.
 
@@ -142,7 +142,7 @@ def test_authorities_section_shows_valuer(...):
 - [ ] **Step 1:** Document in `DATA_CONTRACT.md §13`: the new `how-valuations-work.html` page, the authorities section/source (`authorities.py`), and their graceful-degradation rules.
 - [ ] **Step 2:** Full regen: `python3 extract/build.py` → `python3 extract/export_site.py`.
 - [ ] **Step 3 (verify):** Explainer page, a data-rich muni page, a data-poor muni page, a district page, sitemap, and the Atlas panel all render correctly.
-- [ ] **Step 4:** In the **website repo**, commit generated + source changes (author = user only, no AI authorship). Do not push unless asked.
+- [ ] **Step 4:** In the **website repo**, commit generated + source changes (author = user only). Do not push unless asked.
 - [ ] **Step 5:** Data repo raw files/SOURCE.md remain local (not git); note any very large binaries kept uncommitted.
 
 ---

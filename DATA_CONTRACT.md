@@ -16,16 +16,16 @@ source rolls (PDFs/spreadsheets)
                                             • data/stats.json          (all aggregate stats)
                                             • data/towns.json          (suburb names for search)
                                             • data/db/  search.db.* + config.json   (per-property SQLite, chunked)
-                                                  └─► UPLOAD these 4 files to Supabase Storage (see §8)
+                                                  └─► UPLOAD to the Cloudflare R2 bucket: 17 chunks + config.json + manifest.json (see §8)
                                             • data/geo/*.geojson        (boundaries — committed once, rarely change)
    website (index.html + assets/atlas.js):
        • stats.json · towns.json · geo  → served from THIS repo (GitHub Pages)
-       • search.db (chunked SQLite)     → served from SUPABASE STORAGE, not GitHub Pages (see §8)
+       • search.db (chunked SQLite)     → served from CLOUDFLARE R2, not GitHub Pages (see §8)
 ```
 
 The extraction project lives at `~/projects/western-cape-property-valuations` (NOT git-tracked).
 This website repo is the deployed artefact (GitHub Pages). **The search database is the one piece
-NOT served from this repo** — it lives in Supabase Storage because GitHub Pages corrupts the HTTP
+NOT served from this repo** — it lives in Cloudflare R2 because GitHub Pages corrupts the HTTP
 range requests sql.js-httpvfs depends on (see §8).
 
 **Golden rule:** every number on the site is recomputed from `wc-valuations.db` by `export_site.py`.
@@ -41,22 +41,32 @@ cd ~/projects/western-cape-property-valuations
 python3 extract/build.py            # rebuild wc-valuations.db from the source rolls (if sources changed)
 python3 extract/export_site.py      # regenerate stats.json, towns.json, search.db chunks INTO this repo
 
+# If the search DB changed: publish it to Cloudflare R2 under its own namespace b-<sha256[:12]>
+# (export_site.py prints the exact commands). The site reads the DB from R2, NOT from this repo.
+# Order: verify locally -> prune the previous build -> upload the new one -> verify remote -> preflight -> switch.
+# The bucket holds at most two builds and the uploader refuses while two are present, so the build
+# BEFORE the live one is pruned first (archive its config.json + manifest.json in
+# extract/db-manifests-archive/ beforehand). Never prune the namespace the live config URL names.
+extract/match/.venv/bin/python -m pytest extract/tests/test_no_owner_names_in_exports.py -q   # verify: owner-name gate (§7b/§7c)
+extract/match/upload_r2.sh --prune <previous-namespace>      # refuses the namespace the live site reads
+extract/match/upload_r2.sh ~/projects/western-cape-valuations b-<sha12> https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev
 cd ~/projects/western-cape-valuations
-# RE-UPLOAD the regenerated search DB to Supabase Storage — the site reads it from there, NOT this
-# repo. Upload the 4 files in data/db/ (config.json + search.db.000/001/002) to the `valuations`
-# bucket ROOT: dashboard drag-drop, or `supabase storage cp` (after `supabase login`; run
-# `supabase storage cp --help` for the ss:// URI syntax). Objects cache 1h (cache-control
-# max-age=3600) — allow up to an hour for new data to show, or version the bucket path + bump the
-# configUrl in atlas.js. (If only stats/figures changed and the DB didn't, you can skip this.)
+# verify remote: rebuild the whole DB from R2, hashes + build ids. --base is needed for the current
+# manifest (b-93c01c0b6202), whose bytes still list Supabase chunk URLs; it is harmless for newer ones.
+scripts/verify_remote_db.sh data/db/manifest.json --base https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-<sha12>/
+scripts/preflight_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-<sha12>/config.json   # MANDATORY
+scripts/rollback_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-<sha12>/config.json    # switch: commit + push
+# (If only stats/figures changed and the DB didn't, skip the DB lines above.)
 
 # if you changed assets/atlas.js, bump the ?v=N on its <script> tag in index.html (CDN cache-bust)
-git add -A && git commit -m "…"    # commit as the user ONLY — no Claude attribution (see CLAUDE.md)
+git add -A && git commit -m "…"    # commit as the user only, with no co-author trailers
 git push
 ```
 
 Then verify live: load the site, drill country → WC → district → municipality, open the
 "most valuable property" overlay AND search a known address (e.g. "55 Lovell") — those last two
-steps prove the Supabase-hosted chunked DB + indexes are intact and reachable.
+steps prove the R2-hosted chunked DB + indexes are intact and reachable. Storage budget: never more
+than two builds in the bucket; prune after every verified switch (§8).
 
 ### Sanity-check the rebuild BEFORE exporting (avoid double-counting)
 
@@ -133,8 +143,8 @@ field is optional and is consumed defensively (see §5). New municipalities just
    (`general`/`supplementary`/`draft`), `cycle` and `properties` are derived from the DB roll; the
    optional `valued_as_at`/`coverage`/`note`/`source_url` are authored per-muni in
    `extract/provenance.py`. If a muni has no `provenance`, the roll date renders plain (no popover).
-2. **`data/db/`** — `search.db` split into 32 MB chunks + `config.json`. **Served from Supabase
-   Storage, not this repo** (see §8) — these committed files are the *upload source*. Table
+2. **`data/db/`** — `search.db` split into 32 MB chunks + `config.json`. **Served from Cloudflare
+   R2, not this repo** (see §8) — these committed files are the *upload source*. Table
    `prop(muni, suburb, erf, address, extent, dwext, value, tenure, category, scheme, erf_int)` + an FTS5 index
    `psearch` (address/suburb/erf, for in-any-order token search) with indexes
    `idx_addr, idx_sub, idx_muni_value, idx_value, idx_erf_int_value`. `erf_int` is the numeric core
@@ -145,12 +155,88 @@ field is optional and is consumed defensively (see §5). New municipalities just
    `config.json` sets `requestChunkSize: 65536` to pull those contiguous rows in a few range reads.
    `config.json.databaseLengthBytes` **must equal** the summed byte size of the chunk files
    (export computes this — don't touch it).
-3. **`data/geo/*.geojson`** — province / WC districts / WC municipalities /
-   WC wards (`wc-wards.geojson`: 406 MDB wards, properties `ward`/`ward_id`/`muni`;
+3. **`data/geo/*.geojson`** — South Africa outline (`za-outline.geojson`) / WC districts / WC
+   municipalities / WC wards (`wc-wards.geojson`: 406 MDB wards, properties `ward`/`ward_id`/`muni`;
    `muni` matches the DB municipality names exactly — it drives the Atlas's per-municipality
    ward overlay and the satellite map's ward layer + click panel's "Ward" row. Refresh it from
    the WC SpatialDataWarehouse `AfriGIS_MainAdminBoundaries/MapServer/10` after a ward
    re-delimitation; both maps degrade quietly if it's missing).
+   **Since 2026-09-23 these are simplified and generated — never hand-edit them.** The
+   full-resolution boundaries live in the data repo at `extract/geo/source/` (`za-provinces`,
+   `wc-districts`, `wc-municipalities`, `wc-wards`); update a boundary THERE, then run
+   `extract/geo/simplify_geo.py --check` (needs `shapely`), which rewrites the site's
+   `za-outline`, `wc-districts`, `wc-municipalities`, `wc-wards` and copies the unsimplified
+   municipalities to `wc-municipalities-full.geojson` (see §11 for sizes and why the map keeps the
+   full file). `simplify_geo.py` computes the municipal area drift (source → simplified) before
+   writing and refuses to write at 0.5 % or more; `--dry-run` reports sizes, tolerances and drift
+   without writing anything. The system Python has no `shapely`; run it as
+   `uv run --no-project --with shapely python extract/geo/simplify_geo.py --check`.
+4. **`data/i18n-af.json`** — the Afrikaans catalogue (§13.9). **Before committing any change that
+   adds or edits a user-facing English string, run `node tests/check-i18n.mjs`** (there is no
+   package.json; `node --test 'tests/*.test.mjs'` runs it too via `tests/check-i18n.test.mjs`). It
+   exits 1 and lists every literal key without an `af` entry: `t()`/`tf()`/`tn()`/`setHint()`
+   literals in `assets/*.js` and `assets/map/*.js`, `data-i18n`/`-ph`/`-aria` attributes in
+   `index.html`, `map.html`, `plain.html`, `templates/*.html`, and the `data/explore.json` strings the
+   page translates (`meta.caveats`, `rolls[].date_note`, `findings[].en` without an own `af`). Keys
+   built at runtime (variables, ternaries inside `t()`) are not seen — add those by hand.
+
+---
+
+## 4a. `data/explore.json` — pre-computed statistics for the Explore page
+
+**What it is.** One compact JSON file (about 58 KB raw, 17 KB gzipped) holding everything the
+Explore page needs that cannot be derived in the browser from `stats.json`: nearest-rank
+percentiles, a log-binned value histogram, the 8-group category split, land-size and value-per-m²
+figures, concentration measures, the most and least valuable places, a few headline findings and
+the valuation dates. It is produced by **`extract/export_explore.py`**, separately from
+`export_site.py`, and never touches `search.db`. Every number comes from a SQL query in that script,
+and the file ships the SQL text in its `queries` block (per-node queries are templates with a
+`{node}` placeholder; `queries._node` gives the three node expressions).
+
+**Blocks.** `meta` (build date, roll-DB sha256 and row count, totals, roll/SV coverage, the
+reliability rule, category-rule version, caveats) · `nodes` (province `province`, districts `d:<slug>`,
+municipalities `m:<slug>`; slug = `name.strip().lower().replace(' ','-')`) · `rolls[25]` · `pct`
+(`all` and `res_fh` = freehold residential; columns in `pct.cols`) · `loghist` (22 bins: under R10k,
+20 quarter-decade bins from R10k to R1bn, R1bn and over; counts and value in R thousands) · `groups`
+(8 groups × {n, value, median}) · `land` (per municipality; `null` with a reason in `land_reasons`
+when the rule fails) · `conc` (Gini, top 10/1/0.1% and bottom 50% shares, residential Gini) ·
+`places` (top 30 and bottom 10 place labels by median freehold-residential value, n ≥ 200) ·
+`findings` (id, `en`, `af` = null; the front end takes the Afrikaans from `data/i18n-af.json`, value, unit, query_id) ·
+`dates` (per-municipality date of valuation for the date chart).
+
+**Regenerate** (about 3 minutes, read-only on the roll DB, ~200 MB RAM):
+
+```bash
+cd ~/projects/western-cape-property-valuations
+python3 extract/export_explore.py --out <site checkout>/data/explore.json
+extract/match/.venv/bin/python -m pytest extract/tests/test_export_explore.py -q   # ~3 min
+```
+
+`stats.json` and `towns.json` alone can be refreshed without building `search.db`:
+`python3 extract/export_site.py --site <site checkout> --stats-only`.
+
+**Reliability rule (land size, value per m², and the matching `stats.json` fields `erf_*`,
+`ppm_*`, `vacant_ppm_median`, `vacant_land_share`).** Only rows that are `full_title`, valued at
+R10,000 or more, with `extent_m2` between 20 and 50,000, from a roll that passed the cadastre
+extent check (`match.db` `roll_unit`: `unreliable=0 AND n>=30`). Sectional extents are unit floor
+areas and farm extents were never validated (Oudtshoorn and Knysna farms are corrupt), so neither is
+ever used.
+
+**Category rule.** `extract/catrules.py` maps every raw category (text before `[`, upper-cased)
+with an ordered keyword rule into residential, business_commercial, industrial, agricultural,
+vacant, public_infrastructure, municipal_state or other (farm tenure falls back to agricultural).
+`stats.json` `res_median`/`residential_avg` now use this rule's `residential` group; `cat_mix` keeps
+the older `classify()` buckets.
+
+**Caveats the page must show** (also in `meta.caveats`): dates of valuation differ between
+municipalities (2020 to 2025, plus Laingsburg's 2018 draft); City of Cape Town lists multi-use
+properties twice (HOLDING/MULTIPLE PURPOSES parent + erf-less ALLOCATION rows, about R36bn), which
+headline totals include but place rankings and `stats.json` `hi` exclude, and findings exclude the
+allocation rows; sectional units count as properties and their share is not comparable
+(`stats.json` `sectional_share` is now `null` with `sectional_share_note`); supplementary rolls are
+in for only 9 municipalities; about 1.5% of rows are uncoded; value per m² is land plus buildings
+over land area. **No address or owner field is used**: places are suburb/town labels only, and the
+tests assert that no `site_address` string appears in the file.
 
 ---
 
@@ -194,11 +280,15 @@ So a partial data update = a quieter page, not a broken one.
 5. Bump `assets/atlas.js?v=N` in `index.html` whenever `atlas.js` changes, and
    `assets/map.js?v=N` in `map.html` whenever `map.js` changes (GitHub Pages caches assets).
 6. Always re-run `export_site.py` after any DB change (it rewrites all data files together).
-7. **The search DB must stay reachable on Supabase Storage** (see §8). `atlas.js` `ensureDB()` hard-codes
-   the absolute `configUrl` to the `valuations` bucket; if you rename the bucket/paths or rotate the
-   project, update that URL. The bucket must stay **public** (so the object endpoint returns
-   `Access-Control-Allow-Origin: *` for the cross-origin range requests). After regenerating the DB,
-   **re-upload the 4 `data/db/` files** — committing them to this repo alone does NOT update the live site.
+7. **The search DB must stay reachable on the R2 public hostname** (see §8). `DB_CONFIG_URL` in
+   `assets/map.js` and `DB_CONFIG` in `assets/atlas.js` hold the absolute config URL
+   (`https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/<namespace>/config.json`); if the bucket, its
+   public hostname or the namespace changes, switch that URL with `scripts/rollback_db.sh` after `scripts/preflight_db.sh`
+   passes. The bucket's per-origin CORS policy (data repo `extract/match/r2_cors.json`) must list every
+   site origin (`https://calerio.github.io` and the local development origins), or the cross-origin range
+   requests fail in the browser. Namespaces are immutable: a rebuilt DB gets a new namespace, never an
+   overwrite. After regenerating the DB, **re-upload the build** (17 chunks plus `config.json` and
+   `manifest.json`) — committing them to this repo alone does NOT update the live site.
 
 ---
 
@@ -216,16 +306,35 @@ So a partial data update = a quieter page, not a broken one.
 - **`build.py` caps single values at R2bn** to drop misparsed totals lines.
 - **The R618,975,000 "Dagbreekstraat / PSP / Malmesbury" record is the Malmesbury Prison** — REAL,
   verified against the OCR source and two independent extractions. Not an error.
+- **Matzikama GV2025 owner-column shift — FIXED 2026-09-23, not a caveat to keep.** The roll prints a
+  REGISTERED OWNER column that overflows into ADDRESS; the old text-splitting parser shifted 887 rows
+  (owner name in `site_address`, town in `category`, `suburb` = `0`/`1`/`2`: 864 with `suburb='0'` plus
+  23 split rows with `1`/`2`); all 887 were repaired in the DB. The parser now bins cells
+  by PDF coordinates and drops the owner column structurally; the DB was repaired in place by id (ids
+  and row count unchanged). Any `suburb='0'` or owner-looking `site_address` in Matzikama is a
+  regression — guarded by `extract/tests/test_matzikama_owner_guard.py`. Owner names must never reach
+  the export (POPIA); details in the data repo's `West-Coast/Matzikama/SOURCE.md`.
 - **Witzenberg & Laingsburg** are on older valuation cycles; **City of Cape Town** publishes no
   downloadable roll (search-only) and has no stats node — all intentional.
 
 ---
 
-### 7b. Privacy hotfix — Matzikama addresses suppressed (2026-09-23)
-864 Matzikama rows (`suburb='0'`) are column-shifted in the parsed roll: `site_address` holds the registered
-owner's name and `category` the town. The hosted search DB (build `b-2b502178f94f`) therefore carries those
-names in `prop.address`. Until a corrected immutable build ships, **the site displays no address for ANY
-Matzikama row**: `atlas.js`/`map.js` render the i18n string "Address unavailable" (`ADDRESS_HIDDEN_MUNIS`), with
+### 7b. Privacy hotfix — Matzikama addresses suppressed (2026-09-23), lifted 2026-09-24
+**Lifted on 2026-09-24 for build `b-93c01c0b6202`.** `ADDRESS_HIDDEN_MUNIS` in `assets/atlas.js` and
+`assets/map/panel.js` is now an empty set; the mechanism and the "Address unavailable" string stay. The gate
+is `extract/tests/test_no_owner_names_in_exports.py` in the data repo: it rebuilds the owner strings locally
+from the pre-repair backup and checks that none of them is in the DB's public text columns (all
+municipalities), `stats.json`, `towns.json`, `explore.json`, `places.json`, the generated pages or the
+build's search-DB chunks. Rerun it before publishing any new build. If it fails, re-arming is one line in each file:
+`new Set(["Matzikama"])` in both files. The history below is kept for context.
+
+Matzikama rows are column-shifted in the parsed roll: `site_address` holds the registered owner's name and
+`category` the town. The hotfix identified the 864 rows with `suburb='0'` (the set the gate test rebuilds);
+the repair found 23 more split rows (`suburb` `1`/`2`) with the same shift, so 887 rows were repaired in the
+DB. The repair replaced `site_address` on 860 of them (837 of the 864, all 23; the other 27 already held the
+ADDRESS cell), and those 860 are the rows whose public `prop.address` could carry an owner name in the
+hosted search DB (build `b-2b502178f94f`). Until a corrected immutable build ships, **the site displays no
+address for ANY Matzikama row**: `atlas.js`/`map.js` (now `assets/map/panel.js`) rendered the i18n string "Address unavailable" (`ADDRESS_HIDDEN_MUNIS`), with
 no heuristic detection of names. Remove the rule only when the new build (Matzikama parser fixed, reparsed,
 re-adjudicated, verified) is the one referenced by `configUrl`. Static pages and `stats.json` `hi`/`lo` for
 Matzikama carry only street/town strings today and are regenerated with the same rule at the next export.
@@ -236,22 +345,22 @@ was verified against the roll's owner column, so owner-name strings exist in the
 repository (`~/projects/western-cape-property-valuations`: parser fixtures, adjudication reports, DB backups).
 They stay there, unchanged, and the history is not rewritten. The standing constraint:
 - Owner names — or any registered-owner field — never enter website exports (`export_site.py`,
-  `export_explore.py`, `export_pages.py` outputs), uploaded artifacts (Supabase `valuations/*` namespaces),
-  public reports, screenshots, or **any repository that has a remote** (this website repo included, every
-  worktree and branch).
+  `export_explore.py`, `export_pages.py` outputs), uploaded artifacts (the Cloudflare R2 bucket and,
+  while it exists, the Supabase rollback copy), public reports, screenshots, or **any repository that
+  has a remote** (this website repo included, every worktree and branch).
 - Enforced by the parser (the owner column is discarded before rows are emitted; `column_map()` asserts the
   layout) and by `extract/tests/test_matzikama_owner_guard.py`, which proves owner fields cannot reach an
   exported address. Run it before every upload.
 - The data repository must keep **no git remote** while it holds owner strings (`git remote -v` prints nothing).
   Anything copied out of it into a remote-backed repository must be an export listed in §4, never a fixture,
   report or backup.
-Build `b-93c01c0b6202` (live since 2026-09-23) is the first built from the repaired parser; the §7b display
-suppression is still in place and is lifted only by an explicit owner decision.
+Build b-93c01c0b6202 is the first built from the repaired parser; the §7b display suppression was lifted
+on 2026-09-24 behind the gate test `extract/tests/test_no_owner_names_in_exports.py`.
 
-## 8. Why the search DB is hosted on Supabase Storage (NOT GitHub Pages)
+## 8. Where the search DB is hosted: Cloudflare R2 (since 2026-09-24)
 
 `sql.js-httpvfs` reads `search.db` with HTTP **Range requests** (it fetches only the few KB of pages a
-query touches, instead of the whole 85 MB file). This requires the host to serve **raw byte ranges**.
+query touches, instead of the whole ~540 MB file). This requires the host to serve **raw byte ranges**.
 
 - **GitHub Pages (Fastly) gzips every response** and serves ranges against the **compressed** bytes:
   `content-range` totals come back as the gzip size, deep ranges return `416`, and the first bytes are
@@ -261,43 +370,109 @@ query touches, instead of the whole 85 MB file). This requires the host to serve
   header, so JS can't request `identity`.
 - **jsDelivr is also unusable** — it stores files Brotli-compressed at rest and ranges against the
   compressed blob, ignoring `Accept-Encoding` entirely (and rejects >20 MB files).
-- **Supabase Storage** (S3-backed) serves raw byte-ranges with `Accept-Ranges: bytes`, correct
-  `content-range` totals, and `Access-Control-Allow-Origin: *` — **verified** returning real
-  `SQLite format 3` bytes and resolving "55 Lovell" end-to-end.
+- **Supabase Storage** served raw ranges correctly and hosted the DB until 2026-09-24, but its free plan
+  allows 1 GB of storage for the whole organisation. Superseded builds were left in place, the project
+  went over the quota, and Supabase restricted it: every storage read returned HTTP 402 and live parcel
+  lookups failed closed. See `docs/incidents/2026-09-24-supabase-storage-quota.md`.
+- **Cloudflare R2** serves raw byte ranges (`206`, `Accept-Ranges: bytes`, correct `Content-Range`
+  totals), has configurable CORS, charges nothing for egress, and its free tier is ten times larger.
 
-**Setup:** Supabase project `nxeasppmwvzcqbbgrdvf`, **public** bucket `valuations`, the 4 `data/db/`
-files under a **versioned path prefix** (`v9/` since 2026-07-19; `v4/` added Cape Town + the `dwext` column). `atlas.js` + `map.js` `ensureDB()` point `configUrl`
-at `…/storage/v1/object/public/valuations/v9/config.json`; the chunks resolve relative to it via
-`config.json`'s `urlPrefix`. Chunking is retained because each chunk (≤32 MB) stays under Supabase's
-50 MB-per-file upload limit. **Why a versioned path:** objects cache `max-age=3600`, so overwriting
-in place risks an hour of stale/mismatched chunks; uploading a rebuilt DB to a *new* prefix
-(`v4/`, …) and flipping the one `configUrl` in both JS files makes the swap atomic and instantly
-reversible (revert the configUrl) — the old path stays serving until the flip deploys.
-**Free-plan storage quota (1 GB for the whole org):** each version is ~330 MB, so only ~2 fit.
-Once the flip is live and verified, **delete the previous prefix** — keeping v3–v8 around pushed the
-org to 1.52 GB avg in Jul–Aug 2026, past the quota (grace period ended 30 Aug; cleaned 2026-09-22).
-The vendored `sqlite.worker.js` + `sql-wasm.wasm` still load from this
-repo (full GETs, so gzip is fine).
+**Setup:** bucket `wc-valuations-db` (location WEUR), public development endpoint
+`https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev`. Each build lives under its own namespace
+`b-<sha256[:12]>/` (§8b) as `config.json`, `manifest.json` and `search.db.000 … .NNN` (32 MB chunks).
+The live config URL is
+`https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json`, held in
+`DB_CONFIG_URL` (`assets/map.js`) and `DB_CONFIG` (`assets/atlas.js`); the chunks resolve relative to
+it through `config.json`'s `urlPrefix`. No Cloudflare zone is managed for this site, so the r2.dev
+endpoint is used; if a zone is ever added, a custom data hostname on the bucket is the follow-up (one
+config-URL switch). The vendored `sqlite.worker.js` + `sql-wasm.wasm` still load from this repo (full
+GETs, so gzip is fine).
+
+**Free tier (per month):** 10 GB-month of storage, 10 million Class B operations (reads), 1 million
+Class A operations (writes, lists), egress free. A build is ~542 MB, so storage is not the constraint
+as long as the retention rule holds; reads are the metric to watch if traffic grows.
+
+**Storage budget, the rule that the 2026-09-24 incident added:** never more than two builds in the
+bucket, the live one and the previous one (the rollback target). **Order for a new build: verify →
+prune the previous build → upload the new one → verify remote → preflight → switch.** The uploader
+enforces the budget: `extract/match/upload_r2.sh` refuses when the bucket would exceed 3 GB (`MAX_GB`)
+or when `MAX_BUILDS` (2) namespaces already exist, so the build before the live one is pruned first
+with `upload_r2.sh --prune <namespace>`, which deletes exactly that namespace's objects by name and
+refuses the namespace named in the live site's config URL. **Never prune the namespace the live config
+names.** Until the switch, the live build is the rollback target. The uploader never deletes on its own.
+Archive the pruned build's `config.json` + `manifest.json` in the data repo's
+`extract/db-manifests-archive/` before pruning. Wrangler 4.137 has no object-list command, so the
+uploader finds namespaces by probing the ones named in tracked and archived manifests.
+
+**CORS** (data repo `extract/match/r2_cors.json`, applied to the bucket): origins
+`https://calerio.github.io` and the local development origins `http://127.0.0.1:8765` to `:8768` and
+`http://localhost:8766`; methods `GET`, `HEAD`; allowed headers `Range`, `If-None-Match`, `If-Match`,
+`If-Range`, `Content-Type`; exposed headers `Content-Range`, `Accept-Ranges`, `Content-Length`, `ETag`;
+max age 86400 s. A new local port or a new site origin must be added there first, or ranged reads fail
+in the browser.
+
+**Caching:** objects are uploaded with their bytes unchanged. Chunks carry
+`Cache-Control: public, max-age=31536000, immutable` (their namespace fixes their content);
+`config.json` and `manifest.json` carry `public, max-age=300`, and the site fetches both with
+`cache: 'no-store'`.
+
+**Upload:** `extract/match/upload_r2.sh <site-checkout> <namespace> <public-base-url>` (after
+`npx wrangler login`). It uploads the chunks, then `config.json` and `manifest.json`, checks every
+object's remote size, a ranged GET (`206` + `Accept-Ranges`) and CORS from the site origin. Then
+`scripts/verify_remote_db.sh data/db/manifest.json --base <base>/<namespace>/` rebuilds the whole DB
+from R2 and checks every hash and the three build ids.
+
+**Preflight (mandatory before any switch or merge that changes the config URL):**
+`scripts/preflight_db.sh <config-url>`. It fails unless `config.json` answers 200 with
+`serverMode: chunked`; `manifest.json` answers 200 with the same `build_id` and `sha256`; a ranged
+GET of the first chunk answers `206` with `Accept-Ranges: bytes` and the four exposed headers; a
+request from `https://calerio.github.io` gets `Access-Control-Allow-Origin`; the chunk's
+`Cache-Control` contains `immutable`; and, on r2.dev with wrangler logged in, the bucket reports less
+than 3 GB (R2 bucket metrics lag uploads, so the figure may not include a build uploaded minutes ago).
+
+**Switch:** `scripts/rollback_db.sh <config-url>` rewrites the config URL in `assets/map.js` and
+`assets/atlas.js`, bumps the `?v=` on the pages, commits and pushes. It also accepts a bare Supabase
+namespace, which it expands to the Supabase config URL.
+
+**Rollback:** `scripts/rollback_db.sh <previous-config-url>`: the previous build stays in the bucket
+until the next upload for exactly this reason. While it exists, the Supabase copy of b-93c01c0b6202 is
+a second rollback target:
+`https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json`
+(`scripts/rollback_db.sh b-93c01c0b6202` produces the same URL). It only works once Supabase has lifted
+the storage restriction.
+
+**Supabase Storage is now a temporary rollback copy only:** project `nxeasppmwvzcqbbgrdvf`, public
+bucket `valuations`, one namespace (`b-93c01c0b6202`, 19 objects, 542,099,494 bytes). It is kept until
+production has run on R2, then removed; after that only what is deliberately required stays there. Do
+not upload further builds to it (`extract/match/upload_supabase.sh` is legacy): two builds exceed the
+free plan's 1 GB.
 
 ---
 
 ### 8b. Immutable, content-addressed builds (since 2026-09-22)
 
-- Every search-DB build is published under its own namespace `valuations/b-<sha256[:12]>/` (the
-  sha of the whole reassembled DB, from `data/db/manifest.json`). **A namespace is never
-  overwritten** — `extract/match/upload_supabase.sh` refuses if `config.json` already exists there.
-  Version-style paths (`v9`, `v10`) are legacy; `v10` was written once as a staging path and is not
-  referenced.
-- Cache policy: chunks `Cache-Control: public, max-age=31536000, immutable` (their content is fixed
-  by the namespace); `config.json` and `manifest.json` `max-age=60`. The site fetches config and
-  manifest with `cache: 'no-store'`.
+- Every search-DB build is published under its own namespace `b-<sha256[:12]>/` (the sha of the whole
+  reassembled DB, from `data/db/manifest.json`). **A namespace is never overwritten**; a rebuilt DB
+  gets a new sha and therefore a new namespace. Version-style paths (`v9`, `v10`) are legacy.
+- The manifest records where the chunks were published: `remote_prefix` and `chunks[].url`.
+  `export_site.py` writes `https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/<namespace>/` by
+  default; set `WC_DB_BASE` (e.g.
+  `https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations`) to record another
+  host. The manifest of b-93c01c0b6202 still names Supabase because its bytes were copied to R2
+  unchanged. The front end never uses these URLs: it reads the manifest for `build_id` and `sha256`
+  only, and finds the chunks through `config.json`'s relative `urlPrefix`.
+- Cache policy: chunks `Cache-Control: public, max-age=31536000, immutable`; `config.json` and
+  `manifest.json` `public, max-age=300`. The site fetches config and manifest with `cache: 'no-store'`.
 - `build_id` (stamped by `export_site.py`) lives in three places: `link_meta` inside the DB,
   `manifest.json`, `config.json`. `map.js verifyBuild()` compares all three (and manifest
   `size_bytes` vs config `databaseLengthBytes`) before the link table is trusted. **Mismatch fails
   closed:** every click renders the integrity card ("link table could not be read"); the heuristic
-  never runs. Switching builds = `scripts/rollback_db.sh <namespace>` (one commit + push).
-- Any build reconstructs from Supabase + its tracked manifest: `scripts/verify_remote_db.sh
-  data/db/manifest*.json` (per-chunk hashes, order, whole-file hash, integrity_check).
+  never runs. Switching builds = `scripts/rollback_db.sh <config-url>` (one commit + push), after
+  `scripts/preflight_db.sh <config-url>` passes.
+- Any build reconstructs from its host + its tracked manifest: `scripts/verify_remote_db.sh
+  data/db/manifest*.json [--base <url-prefix>]` (per-chunk hashes, order, whole-file hash,
+  integrity_check, then config/manifest/link_meta build ids). `--base` reads the chunks from another
+  host than the one the manifest names.
 
 ## 9. The map view's data path (map.html + assets/map.js)
 
@@ -376,7 +551,12 @@ MAP-FEASIBILITY.md is the upgrade path — swap `addParcels()`'s source, keep ev
 Erf numbers restart in every SG township, so an erf-number match alone is province-wide noise
 (erf 15773 exists in 14 towns). `lookupErf` in `assets/map.js` therefore:
 - **gates rows to the municipality containing the click point** (`muniAt`, point-in-polygon over
-  `data/geo/wc-municipalities.geojson`). Rows from another municipality are allowed only with
+  the full-resolution `data/geo/wc-municipalities-full.geojson`). That file is a byte copy of the data
+  repo's `extract/geo/source/wc-municipalities.geojson`, written by `simplify_geo.py`, and is **never
+  simplified**; the simplified `wc-municipalities.geojson` is display-only, for the Atlas (and the place
+  highlight), and must never feed the gate (§11). The panel's "Ward" row comes from the simplified
+  `wc-wards.geojson` (`wardAt`) and is display-only too: near a ward border it can name the neighbour,
+  and it never gates a lookup. Rows from another municipality are allowed only with
   town-level (suburb) evidence — a safety net for boundary slivers where MDB and SG lines differ.
 - **draws and clicks only current erven** (`where WSTATUS='C'`). 77,120 obsolete erven (5.4%) are
   superseded by consolidations/subdivisions and sit inside their successors; the smallest-first
@@ -424,6 +604,29 @@ Erf numbers restart in every SG township, so an erf-number match alone is provin
   (Bongolethu, Bridgton, Lawaaikamp, Prince Valley, Hillside, Goldnerville) while the SG allotment is
   the whole town — Laingsburg 10% verified, Beaufort West 20%, Oudtshoorn 40%, George 45%.
 
+### 9b. Fail-closed lookup gate and selection token (2026-09-23)
+
+Two front-end defects were fixed as P0 prerequisites of the design refresh (website branch
+`p0-integrity-guards`); the linker, the builds and the decision wording are unchanged.
+
+- **No fail-open path.** `assets/selection.js` provides three-state probe gates. The link-table probe
+  (`sqlite_master` has `link`) and the `prop.town` probe cache a result ONLY after a successful query
+  (`present` / `absent`). Any throw — network, worker, integrity or version error — is `error`, is never
+  cached, and is probed again on the next click. `lookupPath(gate, nolink)` is the single decision: the
+  legacy heuristic may run only for `?nolink=1` or a PROVEN older DB without the table; every other state
+  renders the explicit card "Valuation data unavailable" (i18n key) and never the heuristic.
+  `verifyBuild()` no longer remembers a rejected check. `window._integrity.hasLinkTable()` now THROWS
+  when the state cannot be determined (the smoke matrix records it as `ERR:`), returns `true` only for a
+  proven table, `false` only for a proven absence. `window._integrity.stats()` exposes `heuristicRuns`.
+- **Selection token.** `pickParcel` begins a monotonically increasing token; `showValuation` and
+  `renderLink` check it after every `await` before writing to `#pbody`. A late result for an earlier
+  parcel is dropped, so parcel A can never overwrite parcel B.
+- **Tests.** Unit: `node --test tests/selection.test.mjs` (includes the deterministic "A resolves after B"
+  case). Browser regressions (Playwright, WebKit) `tests/browser/test-race.js` and
+  `tests/browser/test-failopen.js`: copy them into the data repo's `.playwright-mcp/scen/`, serve this repo
+  with `python3 -m http.server 8765 --bind 127.0.0.1`, and run each file in a WebKit Playwright session.
+  Both reproduced the defects on `9d9302a` and pass after the fix. The smoke matrix runs unchanged.
+
 ## 10. Curated municipal rates (`data/rates.json`) — the ONE hand-maintained data file
 
 Everything else under `data/` is machine-generated (golden rule §1). `data/rates.json` is the
@@ -461,7 +664,7 @@ Rules that keep it honest:
 
 ## 11. Why the map click / search is fast (do not silently undo this)
 
-The search DB is read from Supabase over HTTP **range requests** — each uncached SQLite page fault
+The search DB is read from Cloudflare R2 over HTTP **range requests** — each uncached SQLite page fault
 is one network round-trip. A cold query's cost is (pages touched) × (per-request latency), so on a
 slow connection it is dominated by the *number of round-trips*, not CPU. A clicked erf resolves via
 `SELECT … FROM prop WHERE erf_int=? AND value>0 ORDER BY value DESC LIMIT 80`. Measured on a live
@@ -482,7 +685,43 @@ Plus a boot pre-warm: `ensureDB()` (both `atlas.js` and `map.js`) runs tiny `erf
 probes right after opening the worker, faulting the shared index pages before the user's first click
 or search — the pre-warm used to be only `SELECT 1`, so the first real query paid the whole cold
 descent. **If you re-measure and any of these regresses the click past ~2 s, check that all four are
-still in place.** A future structural upgrade (pre-built PMTiles / precomputed top-N in `stats.json`)
+still in place.**
+
+**Load order and boundary weight (design refresh 2026-09).** The pre-warm is deferred so it
+never competes with first paint: the Atlas starts `ensureDB()` from
+`requestIdleCallback(…, { timeout: 4000 })` (Safari has no `requestIdleCallback`: a 1.5 s `setTimeout`
+fallback) or on the first `#search` focus, whichever comes first; the map page starts it the same way
+but only after `map.once('idle')` (first full render). A click or search before that awaits
+`ensureDB()` itself, so the pre-warm is an optimisation only, never a precondition. The warm-up
+queries above are unchanged. d3 on `index.html` is `defer` + SRI (pinned `7.9.0`). The map page skips
+the cadastre refetch when a pan/zoom stays inside the last successful, non-truncated fetch's bbox at
+the same or a higher zoom (`assets/map/bbox.js`); any error, truncation or zoom-out below the parcel
+zoom clears that memory.
+The boundary GeoJSON is simplified by `extract/geo/simplify_geo.py` (per feature,
+`shapely.simplify(tol, preserve_topology=True)`, 4 dp; properties and feature order verbatim):
+
+| file | before | after | tolerance | budget |
+|---|---:|---:|---:|---:|
+| `za-provinces` → `za-outline` (SA + WC dissolved) | 801,916 B | 28,198 B | 0.02° SA / 0.004° WC | 28 KB (12 KB target unreachable; achieved size recorded) |
+| `wc-districts` | 531,072 B | 49,991 B | 0.002° | 60 KB |
+| `wc-municipalities` | 703,958 B | 88,918 B | 0.002° | 90 KB |
+| `wc-wards` | 972,656 B | 224,425 B | 0.004° | 230 KB |
+
+The outline alone may go up to 0.02° (a decorative backdrop and a 96 px locator); the other files stop
+at 0.004°. Wards stay at 0.004° so they still read at municipality scale; they load only on a
+municipality drill (Atlas) or with the map's ward layer, never at the Explore page's first usable, so
+their size does not count against that target.
+The largest per-municipality planar area drift is **0.195 %** (Saldanha Bay; the gate is < 0.5 %).
+Municipal densities in `stats.json` / `explore.json` are computed by `export_site.py` from
+`wc-municipalities.geojson`, so after the next export they carry that ≤ 0.2 % area drift. Borders
+move by up to the tolerance (0.002° ≈ 200 m) and adjacent simplified polygons no longer share edges
+exactly (hairline gaps/overlaps). That is invisible at Atlas scale, but NOT acceptable for the map's
+municipality gate, so `map.js` `muniAt()` reads `wc-municipalities-full.geojson` (the unsimplified
+source, byte-identical to the pre-2026-09-23 file). Ward naming on the map (`wardAt`) uses the
+simplified wards: a click within ~400 m of a ward border can name the neighbouring ward — the ward
+row is display-only and never gates a lookup (§9).
+
+A future structural upgrade (pre-built PMTiles / precomputed top-N in `stats.json`)
 is sketched in the extraction repo's MAP-FEASIBILITY.md.
 
 ## 12. History snapshots (`data/history/`) — append-only, never deleted
@@ -510,8 +749,8 @@ gets a second roll, `export_site.py` archives an **immutable aggregate snapshot*
 - **Null-until-two-rolls:** with one roll everywhere, no muni has a differing earlier snapshot, so
   **none of the growth fields are emitted at all**. Per §5's guard philosophy, the front-end simply
   hides its Growth block until the fields appear. Nothing to configure — it lights up on the next roll.
-- **These files live in this repo (GitHub Pages), not Supabase** — they're small JSON, read directly
-  like `stats.json`/`towns.json`. No `data/db/` or Supabase involvement.
+- **These files live in this repo (GitHub Pages), not on the search-DB host (R2)** — they're small JSON,
+  read directly like `stats.json`/`towns.json`. No `data/db/` or R2 involvement.
 
 ---
 
@@ -627,26 +866,107 @@ halves with deliberately **asymmetric** failure modes:
    the local geojson, no network. **Fetch failure degrades to the fly-to only** (hint chip
    "Boundary unavailable — zoomed to the area") — the navigate half of search never depends on
    the live service. Boundaries render as a translucent accent fill + stroke; deliberately **no
-   symbol/text label layer** (the satellite inline style has no `glyphs` URL, so label text would
-   silently not render — the place name lives in the search input instead).
+   symbol/text label layer** (the place name lives in the search input instead).
    Deep links: `#p/t<mp>` / `#p/s<sp[_sp…]>` / `#p/m<normalizedname>` restore a selection on load
-   and survive switching between the two map views (the view links carry the hash).
+   (fitting its bbox, unless the hash also carries a camera `c=`, which wins); the place key is
+   merged into the full map hash (§16), so basemap, camera and selected parcel survive a search.
 
-## 15. The plain "Map" view (`plain.html`)
+## 15. One map page: `map.html` and `plain.html`
 
-`plain.html` is the non-satellite twin of `map.html`: same shared `assets/map.js` (mode selected
-by `<body data-basemap="plain">`), same parcels/valuation/wards/search. Differences, all
-deliberate:
-- **Basemap:** OpenFreeMap vector style (`https://tiles.openfreemap.org/styles/liberty` — the
-  `PLAIN_STYLE` const in `map.js` is the single swap point, exactly like §9's `BASEMAP`;
-  `/bright` and `/positron` are drop-in alternates, PMTiles self-hosting the escape hatch if the
-  keyless community service ever degrades). Vector tiles overzoom crisply to parcel zoom.
-- **Theme:** pins `data-theme="light"` (`map.html` pins dark). The six `--map-*` overlay tokens
-  in `assets/tokens.css` exist on BOTH theme pins with per-theme values — `map.js` reads the same
-  token names via `cssVar()` and needs no JS branching. Don't move those tokens back to base
-  `:root`.
-- **Layer order:** in plain mode every overlay layer is inserted *before* the style's first
-  symbol layer (`firstSymbolLayerId()`), so OpenFreeMap's road/place labels stay legible above
-  the translucent fills. Satellite mode appends as before.
+`map.html` and `plain.html` are **the same page** — identical shells over the shared
+`assets/map.js` + `assets/map.css` — differing only in their SEO head (title, meta description,
+canonical, og/twitter, ld+json), the initial `data-theme`, and the **default basemap**:
+`<body data-basemap="sat">` (map.html) vs `<body data-basemap="map">` (plain.html). Both keep
+`?db=`, `?nolink=1` and the hash (§16). The Map / Satellite buttons in the top bar switch the
+basemap **in place** — no navigation, no reload, no `setStyle` — so the camera, the open panel and
+the selected erf survive the switch.
+- **Basemap:** ONE style for both — OpenFreeMap Liberty (`https://tiles.openfreemap.org/styles/liberty`,
+  the `PLAIN_STYLE` const in `map.js` is the single swap point; `/bright` and `/positron` are
+  drop-in alternates, PMTiles self-hosting the escape hatch). It is fetched once as JSON and passed
+  through `transformStyle()` (§16), which adds the Esri World Imagery raster. Vector tiles overzoom
+  crisply to parcel zoom. If the style fetch fails the page shows `#mapfail` (no degraded map).
+- **Theme:** the basemap drives the `[data-theme]` pin (`sat` → dark, `map` → light). The six
+  `--map-*` overlay tokens in `assets/tokens.css` exist on BOTH pins with per-theme values; `map.js`
+  reads them via `cssVar()` at boot and again after a switch (`applyOverlayTokens`). Don't move
+  those tokens back to base `:root`.
+- **Layer order:** every overlay layer is inserted *before* the style's first symbol layer
+  (`firstSymbolLayerId()`), so labels stay legible above the translucent fills, in both basemaps.
+- **Chrome:** chips `Wards` (on), `Labels` (basemap labels, on) and `Ward labels` (off by default);
+  attribution lives behind the ⓘ button (`#attribBtn` → `#attrib`, MapLibre's attribution control
+  mounted inside, so credits follow the sources in use — Esri only while imagery shows).
+- MapLibre is pinned to an exact version with SRI (`integrity` + `crossorigin`) in both shells;
+  bump both together (recompute the sha384 of the new `maplibre-gl.js` / `.css`).
 - `plain.html` is listed in `sitemap.xml` (priority 0.8, like `map.html`) and in every generated
   page's view-switcher nav (`templates/shell.html` `${nav_map}`).
+
+## 16. Map style transform and the map URL hash (`assets/map/style.js`, `assets/map/hash.js`)
+
+**`transformStyle(style, {lang, basemap, overrides})`** — pure (returns a new style; unit-tested in
+`tests/style.test.mjs`):
+- adds source `esri` + raster layer `esri-world-imagery` directly above `background`, visible only
+  when `basemap === 'sat'` (a hidden raster requests no tiles — map mode fetches no imagery);
+- in `sat`, hides the fill/line layers by id/source prefix (`SAT_HIDDEN_LAYER_PREFIXES`: landcover,
+  landuse, park, water, building, road/highway/…) and gives every symbol layer a dark halo
+  (`SAT_LABEL_PAINT`); originals are stashed in `layer.metadata` (`wcv_visibility`, `wcv_paint`,
+  `wcv_name_expr`);
+- rewrites each name-reading `text-field` (AF: `name:af` first, falling back to the original;
+  renamed-place overrides keyed on tile feature id + class + exact current name, on place labels
+  only, never a global text replace, see §17); drops parking POIs and starts `poi_r20` at z18.
+
+**`applyBasemap(map, b)`** switches a live map between `map` and `sat` using that metadata:
+`setLayoutProperty('visibility')` / `setPaintProperty` only, restoring each hidden layer's own
+original visibility when switching back. **`applyLanguage(map, lang, overrides)`** re-expresses the
+label `text-field`s the same way. Neither calls `setStyle`.
+
+**Hash** (`parseMapHash(hash, defaults)` / `buildMapHash(state)`, unit-tested in
+`tests/hash.test.mjs`): `#p/<place>` or `#m/<slug>`, then `&b=map|sat&c=<lng>,<lat>,<z>&s=<PRCL_KEY>`.
+- `b` — basemap; omitted when it equals the page's default (so the canonical URLs stay bare).
+- `c` — camera, written on `moveend` (debounced 300 ms, `history.replaceState`, lng/lat rounded to
+  5 dp, zoom to 2 dp). On load `c` wins over the province fit and over a place's bbox fit.
+- `s` — the selected parcel's `PRCL_KEY`, written on selection and removed when the panel closes.
+  On load it is selected **once**, via the ordinary click path (`pickParcel`), after the first
+  parcel load for the hash camera; if that erf is not in view it is dropped from the hash.
+- Legacy `#p/<place>` / `#m/<slug>` still parse; unknown or malformed keys are ignored.
+- Every writer (map.js `writeHash`, places.js via the `writeHash` option) merges into the current
+  hash, so one writer never drops another's keys.
+
+## 17. Renamed places (display overrides) (`data/geo/renamed-places/`)
+
+The basemap labels a renamed South African town, suburb or settlement by its **former** English or
+Afrikaans name (Graaff-Reinet, East London / Oos-Londen, Grahamstown / Grahamstad, Umhlanga Rocks …),
+on both basemaps and in both languages. The official current name stays searchable and is kept as
+metadata; it is never the label. This is a display choice of the site owner (decided 2026-09-24).
+
+- **The registry** is `data/geo/renamed-places/registry.v1.json` (human summary: `REGISTRY.md`, evidence
+  in `sources/`). Each entry has a `display` block (`primary_en`, `primary_af`, `official`, `aliases`),
+  an `override` block (`match`, `tile_feature_id`, `class`, `current_names`, `status`), an `effective`
+  period and a `source`. The `decisions` block records what was decided and why; `excluded` lists what is
+  deliberately not applied (municipality names, registrations without a former name) with the ruling.
+- **Match rule.** An override changes a label only when the tile feature has the recorded feature id
+  (`match: "id"`), the recorded place class and one of the recorded current names. Where no feature id
+  is known, `match: "name-class"` keys on class plus exact name(s), and is only allowed when the feature
+  was found at the entry's coordinates. There is no broad text replacement. Overrides apply to place
+  labels only (symbol layers whose `source-layer` is `place`; `isPlaceLayer()` in `assets/map/style.js`),
+  never to stations, airports, roads or POIs. Entries not in the tiles are `pending (not in tiles)` and
+  produce no override; reverted renamings (Louis Trichardt, Vaalwater) need none.
+- **Effective period.** `effective.from` is the renaming or gazette date (for Nieu-Bethesda, a label
+  correction of OpenStreetMap, the tile snapshot date); `effective.to` is `null`. If a renaming is set
+  aside or the tiles change, edit the registry and rebuild.
+- **Runtime file.** `data/geo/renamed-places/overrides.json` is generated, never hand-edited:
+
+  ```sh
+  node scripts/build-overrides.mjs      # registry.v1.json -> overrides.json (sorted, deterministic)
+  node --test tests/overrides.test.mjs  # fails if the file is out of sync with the registry
+  ```
+
+  It holds `overrides` (`id`, `cls`, `current`, `en`, `af`, `official`, `effective_from`, `source`) and
+  `search` (`primary`, `primary_af`, `official`, `aliases`, `lat`, `lon`, `province`). `map.js` fetches it
+  once at boot (`?v=1`; bump it when the file changes) in parallel with the style, passes `overrides` to
+  `transformStyle` and `applyLanguage`, and hands `search` to the place search (§14), which lists a
+  renamed place under its former name with "official: …" on a second line. Selecting one flies to it at
+  zoom 12 when it lies inside the map bounds; otherwise the row says "outside the map area" and the map
+  stays put. If the file fails to load the map has no overrides and the labels are the tiles' own.
+- **Data untouched.** The valuation rolls, the search DB, the cadastre and the parcel panel are not
+  affected: overrides change basemap label text only.
+- **Credits.** `#attrib` carries one line, "Some places are shown by their former names; official names
+  stay searchable.", linking to `REGISTRY.md` on GitHub.

@@ -86,8 +86,7 @@ muni for the panel; bump `assets/atlas.js?v=24` in `index.html`.
   Election results — authoritative for seats and vote %. Ward councillor names from
   IEC ward results; current mayor/governing party from official municipal sites or
   provincial gazettes.
-- Collected via a **subagent fan-out** using cheap models (sonnet/haiku — per the
-  "use cheaper subagent models" standing note), escalating only for stubborn cases,
+- Collected per municipality in parallel, escalating only for stubborn cases,
   exactly as the authorities sweep was run. Every fact traces to a source.
 - Provenance archived per municipality: a `## Governance & representation` section in
   each `<Muni>/SOURCE.md`, with raw IEC result PDFs under `<Muni>/politics/`.
