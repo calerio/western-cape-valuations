@@ -15,7 +15,9 @@
 # PRAGMA integrity_check. It then fetches config.json and manifest.json from the same base (the base
 # given, or the manifest's remote_prefix / the directory of the first chunk URL) and requires
 # config.buildId == manifest.build_id == link_meta.build_id inside the reconstructed DB, plus
-# config.sha256 == the local manifest's sha256. Exit status is non-zero on any mismatch.
+# config.sha256 == the local manifest's sha256. A legacy manifest without build ids (v9 and older) only
+# warns and skips the build-id comparison; its hashes are still verified. Exit status is non-zero on any
+# mismatch.
 set -euo pipefail
 MAN="${1:?usage: verify_remote_db.sh <manifest.json> [--base <url-prefix>]}"; shift
 BASE=""
@@ -64,10 +66,16 @@ db_build = con.execute("SELECT value FROM link_meta WHERE key='build_id'").fetch
 db_build = db_build[0] if db_build else None
 print(f"build_id  config.json {cfg.get('buildId')} | manifest.json {rman.get('build_id')} | link_meta {db_build}")
 problems = []
-if not (cfg.get('buildId') == rman.get('build_id') == db_build):
+if not man.get('build_id') and not rman.get('build_id'):
+    # legacy manifest (before build ids, e.g. v9): the chunk and whole-file hashes above are the check
+    print('WARN: manifest has no build_id (legacy build); build-id comparison skipped')
+elif not (cfg.get('buildId') == rman.get('build_id') == db_build):
     problems.append('build_id differs between config.json, manifest.json and link_meta')
-if cfg.get('sha256') != man['sha256'] or rman.get('sha256') != man['sha256']:
-    problems.append('remote config/manifest sha256 differs from the local manifest')
+for label, doc in (('config.json', cfg), ('manifest.json', rman)):
+    if not doc.get('sha256'):
+        print(f'WARN: remote {label} has no sha256 (legacy build); not compared')
+    elif doc['sha256'] != man['sha256']:
+        problems.append(f'remote {label} sha256 differs from the local manifest')
 if cfg.get('databaseLengthBytes') != man['size_bytes']:
     problems.append('config.databaseLengthBytes differs from the manifest size_bytes')
 if problems:

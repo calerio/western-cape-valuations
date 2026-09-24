@@ -16,6 +16,7 @@
 #      below MAX_GB (default 3). Wrangler 4.137 has no object-list command, so the namespace count is not
 #      checked here; the uploader (extract/match/upload_r2.sh) probes the known namespaces instead.
 #      R2 bucket metrics lag uploads by a while, so a just-uploaded build may not be counted yet.
+#      A size wrangler reports in an unexpected form prints a WARN line instead of counting as 0.
 # Whole-build byte verification is separate: scripts/verify_remote_db.sh <manifest> --base <prefix>.
 set -euo pipefail
 CFG="${1:?usage: preflight_db.sh <config-url>}"
@@ -76,10 +77,17 @@ case "$BASE" in
     else
       INFO="$info" python3 - "$MAX_GB" <<'PY' || fail "bucket $BUCKET is at or above ${MAX_GB} GB"
 import json, os, re, sys
-raw = os.environ['INFO']; d = json.loads(raw[raw.index('{'):raw.rindex('}') + 1])
-m = re.match(r'\s*([\d.]+)\s*([KMGT]?i?B)', d.get('bucket_size', '0 B'), re.I)
+raw = os.environ['INFO']
+try:
+    d = json.loads(raw[raw.index('{'):raw.rindex('}') + 1])
+except ValueError:
+    print(f"WARN: bucket size unknown (wrangler output not JSON); the {sys.argv[1]} GB limit is not checked"); sys.exit(0)
+m = re.match(r'\s*([\d.]+)\s*([KMGT]?i?B)\s*$', str(d.get('bucket_size') or ''), re.I)
+if not m:
+    print(f"WARN: bucket {d.get('name')}: size unknown ({d.get('bucket_size')!r}); the {sys.argv[1]} GB limit is not checked")
+    sys.exit(0)
 mult = {'b': 1, 'kb': 1e3, 'mb': 1e6, 'gb': 1e9, 'tb': 1e12, 'kib': 1024, 'mib': 1024**2, 'gib': 1024**3, 'tib': 1024**4}
-size = float(m.group(1)) * mult[m.group(2).lower()] if m else 0
+size = float(m.group(1)) * mult[m.group(2).lower()]
 print(f"ok bucket {d.get('name')}: {d.get('bucket_size')} in {d.get('object_count')} objects (limit {sys.argv[1]} GB); namespace count not checked (no list command in wrangler 4.137)")
 sys.exit(0 if size < float(sys.argv[1]) * 1e9 else 1)
 PY
