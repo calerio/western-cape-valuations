@@ -1,20 +1,23 @@
 {
  "schema": "search.db v10",
- "built": "2026-09-23T12:53:03",
- "build_id": "20260923T125124-360099",
+ "built": "2026-09-24T10:02:20",
+ "build_id": "20260924T100043-78b15f",
  "link_meta": {
-  "build_id": "20260923T125124-360099",
+  "build_id": "20260924T100043-78b15f",
   "pipeline_version": "2026-09-22.1",
-  "generated_at": "2026-09-23T12:20:45",
+  "generated_at": "2026-09-24T09:54:11",
   "crosswalk_version": "2026-09-23",
   "cadastre_version": "2026-09-22"
  },
- "size_bytes": 542093312,
- "sha256": "93c01c0b62021f70126c54ba067d1b07b2053f227401ebbfda72e1bf77080f2f",
+ "size_bytes": 542146560,
+ "sha256": "00585a15434bd7bdd0dfb526c8e106f9ffebab90deab4372ebf103bba5f4ee87",
  "rows": {
   "prop": 1459729,
   "link": 1336817
  },
+ "version": "b-00585a15434b",
+ "immutable": true,
+ "remote_prefix": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/",
  "prop_columns": [
   "id",
   "muni",
@@ -36,120 +39,120 @@
    "order": 0,
    "name": "search.db.000",
    "size_bytes": 33554432,
-   "sha256": "27a1e0cd46923c94b023170a673acfe5a1f76dd7d746796caa85c924d49a9983",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.000"
+   "sha256": "4b502ac9f5ea9be5b662eba44f01a480f1a88b12d18b0a1dae72eb080b231598",
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.000"
   },
   {
    "order": 1,
    "name": "search.db.001",
    "size_bytes": 33554432,
    "sha256": "7d64a9fd4813373623b9dce22b6e70ede23b54e1954cbdbd590afc081d3af038",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.001"
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.001"
   },
   {
    "order": 2,
    "name": "search.db.002",
    "size_bytes": 33554432,
    "sha256": "2c58ecd37465906222ce00989d62163722f1f7def683b0c7c2a1c3130c45bd98",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.002"
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.002"
   },
   {
    "order": 3,
    "name": "search.db.003",
    "size_bytes": 33554432,
    "sha256": "71f878bf2c0f2338a9fb0f3f6be914ee0ddc12bf79da0044ebfe1e5e6993245e",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.003"
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.003"
   },
   {
    "order": 4,
    "name": "search.db.004",
    "size_bytes": 33554432,
    "sha256": "2da5cbd5a711777d620ae42a369daa394e2002efca59b741c14bb8101243a228",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.004"
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.004"
   },
   {
    "order": 5,
    "name": "search.db.005",
    "size_bytes": 33554432,
    "sha256": "b9b9eaedd0c953c6ac9feae277bb42f530db0842c78e6443a2c952f824819615",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.005"
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.005"
   },
   {
    "order": 6,
    "name": "search.db.006",
    "size_bytes": 33554432,
    "sha256": "da2653519876c8b7c3a18fc7e2aaf919a9f798d4acf9252b8e6c7aaf2d664651",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.006"
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.006"
   },
   {
    "order": 7,
    "name": "search.db.007",
    "size_bytes": 33554432,
    "sha256": "35e34e57c61964d8abfd38a39ac3e4a06922e3021293541c825dc764dd3a6493",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.007"
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.007"
   },
   {
    "order": 8,
    "name": "search.db.008",
    "size_bytes": 33554432,
    "sha256": "81b51817efefad01f7e3f5f94435bafa491b885561ce013dae0237842fa1c090",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.008"
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.008"
   },
   {
    "order": 9,
    "name": "search.db.009",
    "size_bytes": 33554432,
    "sha256": "ccc14a93eea23206bcdd61be239d47283c86e6b6ac3015a310c71df2fa0bbed3",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.009"
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.009"
   },
   {
    "order": 10,
    "name": "search.db.010",
    "size_bytes": 33554432,
-   "sha256": "011d3bcab351af443062cf1a384db41c29b573abf9526d18b91378e2315282ea",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.010"
+   "sha256": "3f444bee7b2da51bf131f9ecf367acc1872615db31f90943879c0c5273f44dcb",
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.010"
   },
   {
    "order": 11,
    "name": "search.db.011",
    "size_bytes": 33554432,
-   "sha256": "4e8718c0ed47eac5171b722669fef7b89999b334df7726d1c2a9b9adc164fb53",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.011"
+   "sha256": "3b058dae7550f471e4e1196203928434e55081829b0b3646f1db6edd0ec55fa2",
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.011"
   },
   {
    "order": 12,
    "name": "search.db.012",
    "size_bytes": 33554432,
-   "sha256": "39bf353c22617029779583154bd93ccd893c208c0cdf957c3c6041d1b8b991f7",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.012"
+   "sha256": "44bbe34ecde0bbe1ec3e94add29b99729153d24db603953578818ec6365484fe",
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.012"
   },
   {
    "order": 13,
    "name": "search.db.013",
    "size_bytes": 33554432,
-   "sha256": "d4eb470a7d2670767ca4358405667d47dd77bfaf2b1ab6b5a02979b89dbfd352",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.013"
+   "sha256": "1a90302df0b952e169521938baf370bc2339cdc886bdf85c04087b70be523a59",
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.013"
   },
   {
    "order": 14,
    "name": "search.db.014",
    "size_bytes": 33554432,
-   "sha256": "7757a5ff7aeb3ed3cb254bbe032a0d65d0aecc5a3c633e4e45e64f91cfdf132e",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.014"
+   "sha256": "21c9bad08f2671406cb9c3df7968372a834547ee667fc0c76800818700ea3c24",
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.014"
   },
   {
    "order": 15,
    "name": "search.db.015",
    "size_bytes": 33554432,
-   "sha256": "497317db8632ed43f532f03d9ba40b55e3bb9c36b52a0a0f0430438b781363a3",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.015"
+   "sha256": "661c2a47036cfc61af0e81145b1591c8bec2a84729dc2cfa3b50f8aaf7d6ff93",
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.015"
   },
   {
    "order": 16,
    "name": "search.db.016",
-   "size_bytes": 5222400,
-   "sha256": "d35b55a8c547538bc5d601886cca7580d0b0cb5c49039c564e66493900580b68",
-   "url": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/search.db.016"
+   "size_bytes": 5275648,
+   "sha256": "fe0b386896513d99ab671b105ea126c5255006e0bb4281132c70f0f747c5e255",
+   "url": "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/search.db.016"
   }
  ],
  "concatenation": [
@@ -170,8 +173,5 @@
   "search.db.014",
   "search.db.015",
   "search.db.016"
- ],
- "remote_prefix": "https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/",
- "version": "b-93c01c0b6202",
- "immutable": true
+ ]
 }
