@@ -16,16 +16,16 @@ source rolls (PDFs/spreadsheets)
                                             • data/stats.json          (all aggregate stats)
                                             • data/towns.json          (suburb names for search)
                                             • data/db/  search.db.* + config.json   (per-property SQLite, chunked)
-                                                  └─► UPLOAD these 4 files to Supabase Storage (see §8)
+                                                  └─► UPLOAD to the Cloudflare R2 bucket: 17 chunks + config.json + manifest.json (see §8)
                                             • data/geo/*.geojson        (boundaries — committed once, rarely change)
    website (index.html + assets/atlas.js):
        • stats.json · towns.json · geo  → served from THIS repo (GitHub Pages)
-       • search.db (chunked SQLite)     → served from SUPABASE STORAGE, not GitHub Pages (see §8)
+       • search.db (chunked SQLite)     → served from CLOUDFLARE R2, not GitHub Pages (see §8)
 ```
 
 The extraction project lives at `~/projects/western-cape-property-valuations` (NOT git-tracked).
 This website repo is the deployed artefact (GitHub Pages). **The search database is the one piece
-NOT served from this repo** — it lives in Supabase Storage because GitHub Pages corrupts the HTTP
+NOT served from this repo** — it lives in Cloudflare R2 because GitHub Pages corrupts the HTTP
 range requests sql.js-httpvfs depends on (see §8).
 
 **Golden rule:** every number on the site is recomputed from `wc-valuations.db` by `export_site.py`.
@@ -43,15 +43,20 @@ python3 extract/export_site.py      # regenerate stats.json, towns.json, search.
 
 # If the search DB changed: publish it to Cloudflare R2 under its own namespace b-<sha256[:12]>
 # (export_site.py prints the exact commands). The site reads the DB from R2, NOT from this repo.
-~/projects/western-cape-property-valuations/extract/match/upload_r2.sh \
-    ~/projects/western-cape-valuations b-<sha12> https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev
+# Order: verify locally -> prune the previous build -> upload the new one -> verify remote -> preflight -> switch.
+# The bucket holds at most two builds and the uploader refuses while two are present, so the build
+# BEFORE the live one is pruned first (archive its config.json + manifest.json in
+# extract/db-manifests-archive/ beforehand). Never prune the namespace the live config URL names.
+extract/match/.venv/bin/python -m pytest extract/tests/test_no_owner_names_in_exports.py -q   # verify: owner-name gate (§7b/§7c)
+extract/match/upload_r2.sh --prune <previous-namespace>      # refuses the namespace the live site reads
+extract/match/upload_r2.sh ~/projects/western-cape-valuations b-<sha12> https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev
 cd ~/projects/western-cape-valuations
-scripts/verify_remote_db.sh data/db/manifest.json          # rebuild the whole DB from R2, hashes + build ids
+# verify remote: rebuild the whole DB from R2, hashes + build ids. --base is needed for the current
+# manifest (b-93c01c0b6202), whose bytes still list Supabase chunk URLs; it is harmless for newer ones.
+scripts/verify_remote_db.sh data/db/manifest.json --base https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-<sha12>/
 scripts/preflight_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-<sha12>/config.json   # MANDATORY
 scripts/rollback_db.sh https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-<sha12>/config.json    # switch: commit + push
-# after the switch is live and verified: keep the new build and the previous one, prune anything older
-~/projects/western-cape-property-valuations/extract/match/upload_r2.sh --prune <older-namespace>
-# (If only stats/figures changed and the DB didn't, skip the five DB lines above.)
+# (If only stats/figures changed and the DB didn't, skip the DB lines above.)
 
 # if you changed assets/atlas.js, bump the ?v=N on its <script> tag in index.html (CDN cache-bust)
 git add -A && git commit -m "…"    # commit as the user only, with no co-author trailers
@@ -138,8 +143,8 @@ field is optional and is consumed defensively (see §5). New municipalities just
    (`general`/`supplementary`/`draft`), `cycle` and `properties` are derived from the DB roll; the
    optional `valued_as_at`/`coverage`/`note`/`source_url` are authored per-muni in
    `extract/provenance.py`. If a muni has no `provenance`, the roll date renders plain (no popover).
-2. **`data/db/`** — `search.db` split into 32 MB chunks + `config.json`. **Served from Supabase
-   Storage, not this repo** (see §8) — these committed files are the *upload source*. Table
+2. **`data/db/`** — `search.db` split into 32 MB chunks + `config.json`. **Served from Cloudflare
+   R2, not this repo** (see §8) — these committed files are the *upload source*. Table
    `prop(muni, suburb, erf, address, extent, dwext, value, tenure, category, scheme, erf_int)` + an FTS5 index
    `psearch` (address/suburb/erf, for in-any-order token search) with indexes
    `idx_addr, idx_sub, idx_muni_value, idx_value, idx_erf_int_value`. `erf_int` is the numeric core
@@ -275,11 +280,15 @@ So a partial data update = a quieter page, not a broken one.
 5. Bump `assets/atlas.js?v=N` in `index.html` whenever `atlas.js` changes, and
    `assets/map.js?v=N` in `map.html` whenever `map.js` changes (GitHub Pages caches assets).
 6. Always re-run `export_site.py` after any DB change (it rewrites all data files together).
-7. **The search DB must stay reachable on Supabase Storage** (see §8). `atlas.js` `ensureDB()` hard-codes
-   the absolute `configUrl` to the `valuations` bucket; if you rename the bucket/paths or rotate the
-   project, update that URL. The bucket must stay **public** (so the object endpoint returns
-   `Access-Control-Allow-Origin: *` for the cross-origin range requests). After regenerating the DB,
-   **re-upload the 4 `data/db/` files** — committing them to this repo alone does NOT update the live site.
+7. **The search DB must stay reachable on the R2 public hostname** (see §8). `DB_CONFIG_URL` in
+   `assets/map.js` and `DB_CONFIG` in `assets/atlas.js` hold the absolute config URL
+   (`https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/<namespace>/config.json`); if the bucket, its
+   public hostname or the namespace changes, switch that URL with `scripts/rollback_db.sh` after `scripts/preflight_db.sh`
+   passes. The bucket's per-origin CORS policy (data repo `extract/match/r2_cors.json`) must list every
+   site origin (`https://calerio.github.io` and the local development origins), or the cross-origin range
+   requests fail in the browser. Namespaces are immutable: a rebuilt DB gets a new namespace, never an
+   overwrite. After regenerating the DB, **re-upload the build** (17 chunks plus `config.json` and
+   `manifest.json`) — committing them to this repo alone does NOT update the live site.
 
 ---
 
@@ -299,7 +308,8 @@ So a partial data update = a quieter page, not a broken one.
   verified against the OCR source and two independent extractions. Not an error.
 - **Matzikama GV2025 owner-column shift — FIXED 2026-09-23, not a caveat to keep.** The roll prints a
   REGISTERED OWNER column that overflows into ADDRESS; the old text-splitting parser shifted 887 rows
-  (owner name in `site_address`, town in `category`, `suburb` = `0`/`1`/`2`). The parser now bins cells
+  (owner name in `site_address`, town in `category`, `suburb` = `0`/`1`/`2`: 864 with `suburb='0'` plus
+  23 split rows with `1`/`2`); all 887 were repaired in the DB. The parser now bins cells
   by PDF coordinates and drops the owner column structurally; the DB was repaired in place by id (ids
   and row count unchanged). Any `suburb='0'` or owner-looking `site_address` in Matzikama is a
   regression — guarded by `extract/tests/test_matzikama_owner_guard.py`. Owner names must never reach
@@ -318,13 +328,34 @@ municipalities), `stats.json`, `towns.json`, `explore.json`, `places.json`, the 
 build's search-DB chunks. Rerun it before publishing any new build. If it fails, re-arming is one line in each file:
 `new Set(["Matzikama"])` in both files. The history below is kept for context.
 
-864 Matzikama rows (`suburb='0'`) are column-shifted in the parsed roll: `site_address` holds the registered
-owner's name and `category` the town. The hosted search DB (build `b-2b502178f94f`) therefore carries those
-names in `prop.address`. Until a corrected immutable build ships, **the site displays no address for ANY
-Matzikama row**: `atlas.js`/`map.js` (now `assets/map/panel.js`) rendered the i18n string "Address unavailable" (`ADDRESS_HIDDEN_MUNIS`), with
+Matzikama rows are column-shifted in the parsed roll: `site_address` holds the registered owner's name and
+`category` the town. The hotfix identified the 864 rows with `suburb='0'` (the set the gate test rebuilds);
+the repair found 23 more split rows (`suburb` `1`/`2`) with the same shift, so 887 rows were repaired in the
+DB. The repair replaced `site_address` on 860 of them (837 of the 864, all 23; the other 27 already held the
+ADDRESS cell), and those 860 are the rows whose public `prop.address` could carry an owner name in the
+hosted search DB (build `b-2b502178f94f`). Until a corrected immutable build ships, **the site displays no
+address for ANY Matzikama row**: `atlas.js`/`map.js` (now `assets/map/panel.js`) rendered the i18n string "Address unavailable" (`ADDRESS_HIDDEN_MUNIS`), with
 no heuristic detection of names. Remove the rule only when the new build (Matzikama parser fixed, reparsed,
 re-adjudicated, verified) is the one referenced by `configUrl`. Static pages and `stats.json` `hi`/`lo` for
 Matzikama carry only street/town strings today and are regenerated with the same rule at the next export.
+
+### 7c. Registered-owner data stays in the local data repository only (2026-09-23)
+The Matzikama repair (`extract/parsers/matzikama2025.py`, `extract/match/repair_matzikama_owner_shift.py`)
+was verified against the roll's owner column, so owner-name strings exist in the **local, remote-less** data
+repository (`~/projects/western-cape-property-valuations`: parser fixtures, adjudication reports, DB backups).
+They stay there, unchanged, and the history is not rewritten. The standing constraint:
+- Owner names — or any registered-owner field — never enter website exports (`export_site.py`,
+  `export_explore.py`, `export_pages.py` outputs), uploaded artifacts (the Cloudflare R2 bucket and,
+  while it exists, the Supabase rollback copy), public reports, screenshots, or **any repository that
+  has a remote** (this website repo included, every worktree and branch).
+- Enforced by the parser (the owner column is discarded before rows are emitted; `column_map()` asserts the
+  layout) and by `extract/tests/test_matzikama_owner_guard.py`, which proves owner fields cannot reach an
+  exported address. Run it before every upload.
+- The data repository must keep **no git remote** while it holds owner strings (`git remote -v` prints nothing).
+  Anything copied out of it into a remote-backed repository must be an export listed in §4, never a fixture,
+  report or backup.
+Build b-93c01c0b6202 is the first built from the repaired parser; the §7b display suppression was lifted
+on 2026-09-24 behind the gate test `extract/tests/test_no_owner_names_in_exports.py`.
 
 ## 8. Where the search DB is hosted: Cloudflare R2 (since 2026-09-24)
 
@@ -362,12 +393,14 @@ Class A operations (writes, lists), egress free. A build is ~542 MB, so storage 
 as long as the retention rule holds; reads are the metric to watch if traffic grows.
 
 **Storage budget, the rule that the 2026-09-24 incident added:** never more than two builds in the
-bucket, the live one and the previous one (the rollback target). **Prune after every verified switch.**
-The uploader enforces it: `extract/match/upload_r2.sh` refuses when the bucket would exceed 3 GB
-(`MAX_GB`) or when `MAX_BUILDS` (2) namespaces already exist, and after a successful upload it prints
-which namespace would be pruned. It never deletes on its own; `upload_r2.sh --prune <namespace>`
-deletes exactly that namespace's objects by name and refuses the namespace named in the live site's
-config URL. Archive the pruned build's `config.json` + `manifest.json` in the data repo's
+bucket, the live one and the previous one (the rollback target). **Order for a new build: verify →
+prune the previous build → upload the new one → verify remote → preflight → switch.** The uploader
+enforces the budget: `extract/match/upload_r2.sh` refuses when the bucket would exceed 3 GB (`MAX_GB`)
+or when `MAX_BUILDS` (2) namespaces already exist, so the build before the live one is pruned first
+with `upload_r2.sh --prune <namespace>`, which deletes exactly that namespace's objects by name and
+refuses the namespace named in the live site's config URL. **Never prune the namespace the live config
+names.** Until the switch, the live build is the rollback target. The uploader never deletes on its own.
+Archive the pruned build's `config.json` + `manifest.json` in the data repo's
 `extract/db-manifests-archive/` before pruning. Wrangler 4.137 has no object-list command, so the
 uploader finds namespaces by probing the ones named in tracked and archived manifests.
 
@@ -402,7 +435,7 @@ than 3 GB (R2 bucket metrics lag uploads, so the figure may not include a build 
 namespace, which it expands to the Supabase config URL.
 
 **Rollback:** `scripts/rollback_db.sh <previous-config-url>`: the previous build stays in the bucket
-until the next switch for exactly this reason. While it exists, the Supabase copy of b-93c01c0b6202 is
+until the next upload for exactly this reason. While it exists, the Supabase copy of b-93c01c0b6202 is
 a second rollback target:
 `https://nxeasppmwvzcqbbgrdvf.supabase.co/storage/v1/object/public/valuations/b-93c01c0b6202/config.json`
 (`scripts/rollback_db.sh b-93c01c0b6202` produces the same URL). It only works once Supabase has lifted
@@ -631,7 +664,7 @@ Rules that keep it honest:
 
 ## 11. Why the map click / search is fast (do not silently undo this)
 
-The search DB is read from Supabase over HTTP **range requests** — each uncached SQLite page fault
+The search DB is read from Cloudflare R2 over HTTP **range requests** — each uncached SQLite page fault
 is one network round-trip. A cold query's cost is (pages touched) × (per-request latency), so on a
 slow connection it is dominated by the *number of round-trips*, not CPU. A clicked erf resolves via
 `SELECT … FROM prop WHERE erf_int=? AND value>0 ORDER BY value DESC LIMIT 80`. Measured on a live
@@ -716,8 +749,8 @@ gets a second roll, `export_site.py` archives an **immutable aggregate snapshot*
 - **Null-until-two-rolls:** with one roll everywhere, no muni has a differing earlier snapshot, so
   **none of the growth fields are emitted at all**. Per §5's guard philosophy, the front-end simply
   hides its Growth block until the fields appear. Nothing to configure — it lights up on the next roll.
-- **These files live in this repo (GitHub Pages), not Supabase** — they're small JSON, read directly
-  like `stats.json`/`towns.json`. No `data/db/` or Supabase involvement.
+- **These files live in this repo (GitHub Pages), not on the search-DB host (R2)** — they're small JSON,
+  read directly like `stats.json`/`towns.json`. No `data/db/` or R2 involvement.
 
 ---
 
