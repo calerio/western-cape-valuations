@@ -586,7 +586,17 @@ Erf numbers restart in every SG township, so an erf-number match alone is provin
   shown, labelled "sum of the n unit valuations on the roll for scheme X — not the erf's official
   valuation, which is R0". The Cape Town scheme-polygon route shows the sum only on an exact
   scheme-reference match (which returns every roll row of that reference); name-prefix matches
-  show counts only. **A key missing from the table is a data-build mismatch** and renders "Not in this data
+  show counts only.
+  **Consolidated / renumbered parcels (`accepted_lineage`, since 2026-09-24):** when the Surveyor-General
+  has consolidated or renumbered erven but the roll still values the land under the RETIRED numbers, the
+  data repo's `extract/match/lineage.py` (runs after `adjudicate.py`) links a parcel that had no roll
+  candidate to the roll rows of the retired erven whose SG label points lie inside its outline — only with
+  one full-title row per retired erf, tier-A/B/C town evidence, SG areas summing to the parcel within 2 %,
+  agreeing roll extents and no erf claimed twice. `pids` = those rows (also in `cands`, so an older site
+  build lists them as unverified). Reasons: `CONSOLIDATED_FROM:<erf+erf…>`, `LINEAGE_AREA_OK`,
+  `LINEAGE_ROLL_AREA_OK|UNKNOWN`, `TOWN_<tier>`. Rendering: one row → detail card with a "replaced erf N"
+  note; several → list plus the **combined valuation of the older erven** (sum shown only when > 0).
+  Example: Stellenbosch erf 17327 (20 Thibault) ← SB1497 R55 m + SB1505 R1 000 + SB3500 R1 000. **A key missing from the table is a data-build mismatch** and renders "Not in this data
   build" — it is NOT a fallback trigger. The click-time heuristic below runs only when the whole
   table is absent (older hosted DB) or disabled with `?nolink=1`.
   Regeneration order: `build.py` → `match/run.py` → `export_site.py` (which verifies the DB,

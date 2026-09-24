@@ -19,11 +19,12 @@
  */
 import { t, tf, tn, currentLang } from '../i18n.js?v=1';
 import { getRates, computeRates } from '../rates.js?v=1';
-import { loadEvidence, explain, decisionSummary } from '../evidence.js?v=1';
+import { loadEvidence, explain, decisionSummary } from '../evidence.js?v=2';
 
 export const STATE_BADGES = {
   accepted_high: { glyph: '✓', label: 'Verified', tone: 'ok' },
   accepted_group: { glyph: '✓', label: 'Verified property group (sectional scheme)', tone: 'ok' },
+  accepted_lineage: { glyph: '✓', label: 'Verified (roll uses the older erf numbers)', tone: 'ok' },
   review: { glyph: '?', label: 'Possible match', tone: 'warn' },
   ambiguous: { glyph: '≡', label: 'Several entries fit', tone: 'neutral' },
   not_in_roll: { glyph: '⊘', label: 'No valuation found', tone: 'none' },
@@ -189,7 +190,7 @@ export function renderDisclosure(reasonsCsv, decision, { note = '' } = {}) {
 
 // Selection status (map hatch/outline) for the state shown.
 function statusFor(state, listed) {
-  if (state === 'accepted_high' || state === 'accepted_group') return 'verified';
+  if (state === 'accepted_high' || state === 'accepted_group' || state === 'accepted_lineage') return 'verified';
   if (state === 'review' || state === 'ambiguous' || state === 'loading') return 'possible';
   if (state === 'abstain') return listed ? 'possible' : 'none';
   return 'none';
@@ -292,7 +293,20 @@ function renderLinkView(link, props) {
     if (link.complete) renderSchemeSum(rows);
     return { state: 'accepted_group', listed: true };
   }
-  if ((d === 'review' || d === 'accepted_high' || d === 'accepted_group') && rows.length && link.show !== 0) {
+  if (d === 'accepted_lineage' && rows.length) {
+    // the roll still values this land under the retired erf numbers it was consolidated/renumbered from
+    const erfs = lineageErfs(link.reasons);
+    if (rows.length === 1) {
+      renderDetail(rows[0], props, null);
+      pb().insertAdjacentHTML('beforeend', `<div class="pNote">${tf('Verified link: the Surveyor-General replaced erf {old} with this parcel, and the roll still values it under that older number. Tied by the surveyed outline and area.', { old: esc(erfs[0] || rows[0].erf || '?') })}</div>`);
+    } else {
+      renderList(rows, props, tf('this parcel was consolidated from erven {erfs}; the roll still values them separately', { erfs: esc(erfs.join(', ')) }));
+      renderLineageSum(rows);
+      pb().insertAdjacentHTML('beforeend', `<div class="pNote">${t('Verified link: the older erven lie inside this parcel on the survey map and their areas add up to its area. The roll has not yet caught up with the consolidation.')}</div>`);
+    }
+    return { state: 'accepted_lineage', listed: true };
+  }
+  if ((d === 'review' || d === 'accepted_high' || d === 'accepted_group' || d === 'accepted_lineage') && rows.length && link.show !== 0) {
     // review — or an accepted decision whose rows this DB build cannot show: a list, never a certain card
     renderList(rows, props, t('possible match — town not confirmed'));
     pb().insertAdjacentHTML('beforeend', `<div class="pNote">${t('Likely but unconfirmed: the roll entry fits the erf number, but its locality could not be tied to this SG town with certainty.')}${rejectedNote(link) ? ' ' + esc(rejectedNote(link)) : ''}</div>`);
@@ -349,6 +363,20 @@ function renderHeuristic(res, props) {
 // scheme (offline link with `complete`=1, or a Cape Town exact scheme-reference match, which
 // returns every roll row of that reference). Always labelled as a sum of units — the erf's own
 // official valuation is R0 (the roll values the units, not the land parcel).
+// CONSOLIDATED_FROM:1497+1505+3500 → ['1497', '1505', '3500'] ([] when the code is absent)
+function lineageErfs(reasonsCsv) {
+  const m = String(reasonsCsv || '').match(/(?:^|,)\s*CONSOLIDATED_FROM:([^,]+)/);
+  return m ? m[1].trim().split('+') : [];
+}
+// The combined valuation of a consolidated parcel: the sum of its older erven's roll entries (the roll
+// often carries the value on one of them and a nominal amount on the rest). Shown only when positive.
+function renderLineageSum(rows) {
+  const total = rows.reduce((s, r) => s + (r.value || 0), 0);
+  if (!(total > 0)) return;
+  pb().querySelector('.pSub').insertAdjacentHTML('beforebegin',
+    `<div class="pVal">${R(total)}</div>` +
+    `<div class="pSub">${tf('combined municipal market value of the {n} older erven on the roll', { n: rows.length })}</div>`);
+}
 function renderSchemeSum(rows) {
   const total = rows.reduce((s, r) => s + (r.value || 0), 0);
   const scheme = clWs(rows[0].scheme || '') || 'the scheme';

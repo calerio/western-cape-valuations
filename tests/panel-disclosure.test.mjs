@@ -1,6 +1,6 @@
 // tests/panel-disclosure.test.mjs — "Why this result?" text for the shown state (panel.js renderDisclosure)
 import { test } from 'node:test'; import assert from 'node:assert/strict'; import fs from 'node:fs';
-const { loadEvidence } = await import('../assets/evidence.js?v=1');
+const { loadEvidence } = await import('../assets/evidence.js?v=2');
 const { renderDisclosure } = await import('../assets/map/panel.js');
 await loadEvidence(null, JSON.parse(fs.readFileSync(new URL('../data/evidence-codes.json', import.meta.url), 'utf8')));
 test('review (downgraded accepted) leaves out the positive town sentences but keeps every code', () => {

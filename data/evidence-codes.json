@@ -155,6 +155,32 @@
       "source": "extract/match/adjudicate.py:126-131; feature adjudicate.py:322",
       "en": "This erf number occurs only once in this municipality, both on the map and in the roll.",
       "af": "Hierdie erfnommer kom net een keer in hierdie munisipaliteit voor, op die kaart sowel as in die rol."
+    },
+    "CONSOLIDATED_FROM:{n}": {
+      "meaning": "The parcel had no roll candidate; the retired SG erven whose label points lie inside its outline are still on the roll (one full-title row each, town evidence A/B/C, areas summing to the parcel within 2%). {n} = the retired erf numbers joined by +.",
+      "source": "extract/match/lineage.py",
+      "en": "The Surveyor-General replaced erf {n} with this parcel, but the roll still values the land under that older number.",
+      "en_plural": "The Surveyor-General consolidated erven {n} into this parcel, but the roll still values them under those older numbers.",
+      "af": "Die Landmeter-generaal het erf {n} deur hierdie erf vervang, maar die rol waardeer die grond steeds onder daardie ouer nommer.",
+      "af_plural": "Die Landmeter-generaal het erwe {n} tot hierdie erf gekonsolideer, maar die rol waardeer hulle steeds onder daardie ouer nommers."
+    },
+    "LINEAGE_AREA_OK": {
+      "meaning": "SG areas of the rolled predecessors sum to the parcel area within 2%, and their label points lie inside its outline.",
+      "source": "extract/match/lineage.py",
+      "en": "The older erven lie inside this parcel on the survey map, and their areas add up to its area.",
+      "af": "Die ouer erwe lê binne hierdie erf op die opmetingskaart, en hul oppervlaktes tel op tot sy oppervlakte."
+    },
+    "LINEAGE_ROLL_AREA_OK": {
+      "meaning": "The roll extents of the predecessor rows sum to the parcel area (|log10 ratio| <= 0.1).",
+      "source": "extract/match/lineage.py",
+      "en": "The extents printed on the roll agree with this parcel’s surveyed area.",
+      "af": "Die groottes op die rol stem ooreen met hierdie erf se opgemete oppervlakte."
+    },
+    "LINEAGE_ROLL_AREA_UNKNOWN": {
+      "meaning": "At least one predecessor row prints no usable extent; the roll-extent check was skipped.",
+      "source": "extract/match/lineage.py",
+      "en": "The roll prints no usable extent for these entries, so that check was skipped.",
+      "af": "Die rol toon geen bruikbare grootte vir hierdie inskrywings nie, dus is daardie kontrole oorgeslaan."
     }
   },
   "decisions": {
@@ -185,6 +211,10 @@
     "missing": {
       "en": "This parcel is not in the current data build; no valuation is shown rather than a guess.",
       "af": "Hierdie erf is nie in die huidige datastel nie; ons wys eerder niks as om te raai."
+    },
+    "accepted_lineage": {
+      "en": "Verified: the roll values this land under the older erf numbers it was surveyed from.",
+      "af": "Geverifieer: die rol waardeer hierdie grond onder die ouer erfnommers waaruit dit opgemeet is."
     }
   }
 }

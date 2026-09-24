@@ -28,7 +28,7 @@ let maplibregl = null;          // window.maplibregl — the deferred CDN script
 // design tokens (assets/tokens.css). The --map-* overlay inks live on the [data-theme] pins;
 // setBasemap() flips the pin (sat → dark, map → light) and re-reads them (applyOverlayTokens).
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=5";
+import { renderState, lastRender, clearRender, configurePanel, initPanel, setSheet, labelSheet, clWs } from "./map/panel.js?v=6";
 import { dur } from "./motion.js?v=1";
 import { initPlaceSearch } from "./places.js?v=6";
 import { createSelectionGuard, createProbeGate, lookupPath } from "./selection.js?v=1";
@@ -779,6 +779,8 @@ async function lookupErf(tag, town, muni) {
  * Every clickable SG parcel is adjudicated OFFLINE into one decision keyed by PRCL_KEY:
  *   accepted_high  one roll row tied to this parcel by town + erf (+ area)  → detail card, "verified"
  *   accepted_group one sectional scheme's units                            → unit list
+ *   accepted_lineage the roll rows of the retired erven this parcel was consolidated/renumbered from
+ *                  (extract/match/lineage.py)                                → detail card or list + combined value
  *   review         one leading candidate, locality not confirmed          → list, never a certain card
  *   ambiguous      several rows fit equally                               → unverified list
  *   not_in_roll    roll covers the town, no entry for this erf            → "No valuation found"
