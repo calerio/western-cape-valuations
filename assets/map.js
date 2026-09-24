@@ -1091,7 +1091,7 @@ async function showValuation(props, token = selection.begin()) {
 /* ─────────────────────── search.db worker (same pattern as atlas.js) ─────────────────────── */
 
 // The production search DB (immutable, content-addressed namespace; see DATA_CONTRACT §8/§9).
-const DB_CONFIG_URL = 'https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json';
+const DB_CONFIG_URL = 'https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/config.json';
 let dbw = null, dbwPromise = null;
 async function ensureDB() {
   if (dbw) return dbw;

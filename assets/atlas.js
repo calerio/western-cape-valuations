@@ -1079,7 +1079,7 @@ async function ensureDB() {
     // The search-DB host (Cloudflare R2; see DATA_CONTRACT §8) serves raw byte-ranges (no transfer
     // compression) with CORS — verified.
     // config.json's urlPrefix ("search.db.") resolves the chunks relative to this configUrl.
-    const DB_CONFIG = "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json";
+    const DB_CONFIG = "https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-00585a15434b/config.json";
     const w = await createDbWorker([{ from: "jsonconfig", configUrl: DB_CONFIG }],
       abs("assets/vendor/sqlite.worker.js"), abs("assets/vendor/sql-wasm.wasm"));
     // Cold-start can hand back an empty wasm buffer — verify before caching. Then fault in the hot
