@@ -1,8 +1,8 @@
 # Delivery: design refresh 2026-09 (branch `design-2026-09`)
 
-Status: ready for review. Nothing is merged or pushed.
+Status: deployed on 2026-09-24 (main f7f1321) and verified in production.
 
-Branch head at delivery: see the last commit on `design-2026-09`
+Merged into main as f7f1321 on 2026-09-24 (branch head 0c44ed7); deployed at 02:49 and verified live at 03:02
 
 ## 1. Why this refresh
 
@@ -143,7 +143,7 @@ python3 extract/match/smoke_matrix.py --site http://127.0.0.1:8766 --db <prod co
 `https://pub-dbe35b2129524bf1965d77e99d6989a6.r2.dev/b-93c01c0b6202/config.json`. Since 2026-09-24 the
 matrices run against R2; runs before that date read the Supabase copy of the same build.
 
-**Pending.** The matrix drives Safari through AppleScript and cannot render while the screen is locked (`document.hidden` is true). A launcher (`extract/match/design_smoke_when_ready_2026-09-23.sh`) runs it automatically once the P0 checkpoint run has finished and the screen is unlocked with Safari idle; its result lands in `extract/match/reports/design-smoke-2026-09-23.DONE` and `reports/smoke-design-2026-09/smoke.json`.
+Three runs of the 131-case matrix on 2026-09-24, all against the R2 build `b-93c01c0b6202`, each in a fresh Safari window with storage cleared: the rebased P0 branch on the local server (02:14–02:37, 131/131), this branch on the local server (02:37–02:48, 131/131) and, after the merge, the live site (02:50–03:02, 131/131). Every run: accepted_high 25/25, accepted_group 11/11, review 25/25, ambiguous 21/21, not_in_roll 25/25, abstain 24/24; build verified; no JavaScript errors. Results: `extract/match/reports/smoke-{p0,design,prod}-r2-2026-09-24/smoke.json` in the data repository.
 
 ## 6. Screenshots
 
