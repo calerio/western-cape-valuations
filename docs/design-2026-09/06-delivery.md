@@ -124,7 +124,11 @@ Click through in each browser:
    from an `af/` page to its English twin. Then open `http://127.0.0.1:8766/af/m/mossel-bay.html`: the
    fonts are Plex and Source Serif, and DevTools Network shows no request to fonts.googleapis.com.
 
-Not yet clicked through by hand; record the findings here before the merge.
+Checked on 2026-09-24 with the installed browsers on this Mac, from clean profiles.
+
+**Chrome 153** (driven through its DevTools protocol, no extensions): rows 1–12 all pass — Explore loads (R2.66 tn), sorts and expands to 25 rows; `#m/stellenbosch` and `#m/swellendam` drill with the remainder row; EN→AF→EN switches without a reload; the Stellenbosch deep link opens the panel ("Possible match", "Erf 1942: 1 valuation") on the hatched erf with the credits line visible; Satellite and back without a reload, one map instance, panel and hatch kept; the map panel and hint switch to Afrikaans; keyboard focus shows a ring on the close button and a mouse click leaves none; the Explore link is `index.html` at province zoom and `#m/stellenbosch` at zoom 12; the tiles' "Robert Sobukwe Town" renders as "Graaff-Reinet" and the search returns "Graaff-Reinet · official: Robert Sobukwe"; a Matzikama parcel shows "Walvisstraat 24"; `af/m/mossel-bay.html` uses Plex with no request to fonts.googleapis.com; at 390 px the page has no horizontal scroll, the menu lists Verken/Kaart/Satelliet/EN/AF and the sheet peeks and expands. No console errors. In the owner's own Chrome profile the map page showed "The map couldn't load" and Explore stalled; the same pages load in a clean profile, so an extension or the hardware-acceleration setting in that profile is the likely cause and should be checked by hand.
+
+**Firefox 112** (visual only — Firefox has no scripting channel here): rows 1, 4, 5, 9 and 11 verified from screenshots (Explore renders; the deep link shows the hatched erf and the panel; satellite imagery with labels; "Graaff-Reinet" and "Adendorp" labels; the static page in Plex). Rows 3, 6, 7, 8, 10 and 12 were not exercised in Firefox and are unverified there. Firefox 112 dates from 2023; a current release is recommended.
 
 ## 5. Smoke matrix
 
